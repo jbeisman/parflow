@@ -98,6 +98,18 @@ if (${PARFLOW_ENABLE_SILO} OR DEFINED SILO_ROOT)
 endif (${PARFLOW_ENABLE_SILO} OR DEFINED SILO_ROOT)
 
 #-----------------------------------------------------------------------------
+# Alquimia geochemistry interface jjb
+#-----------------------------------------------------------------------------
+set (PARFLOW_ENABLE_ALQUIMIA False CACHE BOOL "Build with Alquimia")
+if (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
+  find_package(Alquimia)
+  if (${ALQUIMIA_FOUND})
+    set(PARFLOW_HAVE_ALQUIMIA "yes")
+    set(HAVE_ALQUIMIA ${PARFLOW_HAVE_ALQUIMIA})
+  endif (${ALQUIMIA_FOUND})
+endif (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
+
+#-----------------------------------------------------------------------------
 # NetCDF
 #-----------------------------------------------------------------------------
 set (PARFLOW_ENABLE_NETCDF False CACHE BOOL "Build with NetCDF")
