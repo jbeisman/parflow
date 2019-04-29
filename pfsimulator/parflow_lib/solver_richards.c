@@ -45,6 +45,8 @@
 #include <string.h>
 #include <float.h>
 #include <limits.h>
+#include "alquimia/alquimia_interface.h"
+
 
 #define PF_CLM_MAX_ROOT_NZ 20
 

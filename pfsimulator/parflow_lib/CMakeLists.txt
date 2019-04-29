@@ -176,3 +176,7 @@ if (${PARFLOW_HAVE_NETCDF})
   target_include_directories (pfsimulator PUBLIC "${NETCDF_INCLUDE_DIRS}")
 endif (${PARFLOW_HAVE_NETCDF})
 
+if (${PARFLOW_HAVE_ALQUIMIA})
+    target_include_directories (pfsimulator PUBLIC "${ALQUIMIA_INCLUDE_DIRS}")
+endif (${PARFLOW_HAVE_ALQUIMIA})
+

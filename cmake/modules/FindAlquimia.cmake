@@ -21,7 +21,7 @@ if(NOT ALQUIMIA_ROOT)
     set(ALQUIMIA_ROOT $ENV{ALQUIMIA_ROOT})
 endif()
 
-find_path(ALQUIMIA_INCLUDE_DIR NAMES alquimia.h
+find_path(ALQUIMIA_INCLUDE_DIR NAMES alquimia
   PATH_SUFFIXES alquimia
   HINTS ${ALQUIMIA_ROOT}/include
   PATHS /usr/include /usr/local/include)
