@@ -180,3 +180,11 @@ if (${PARFLOW_HAVE_ALQUIMIA})
     target_include_directories (pfsimulator PUBLIC "${ALQUIMIA_INCLUDE_DIRS}")
 endif (${PARFLOW_HAVE_ALQUIMIA})
 
+if (${PARFLOW_HAVE_CRUNCH})
+    target_include_directories (pfsimulator PUBLIC "${CRUNCH_INCLUDE_DIRS}")
+endif (${PARFLOW_HAVE_CRUNCH})
+
+if (${PARFLOW_HAVE_PETSC})
+    target_include_directories (pfsimulator PUBLIC "${PETSC_INCLUDE_DIRS}")
+endif (${PARFLOW_HAVE_PETSC})
+

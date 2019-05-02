@@ -2,7 +2,8 @@ cd $PARFLOW_DIR
 if [ -d "$PARFLOW_DIR/build" ]; then 
   rm -rf "$PARFLOW_DIR/build"
 fi
-mkdir build ; cd build
+ORIGIN_DIR=${pwd}
+mkdir ${PARFLOW_DIR}/build ; cd ${PARFLOW_DIR}/build
 cmake .. \
   -DCMAKE_INSTALL_PREFIX=$PARFLOW_DIR \
   -DHYPRE_ROOT=$HYPRE_DIR \
@@ -11,6 +12,8 @@ cmake .. \
   -DPARFLOW_ENABLE_TIMING=true \
   -DSILO_ROOT=$SILO_DIR \
   -DPARFLOW_HAVE_CLM=ON \
-  -DALQUIMIA_ROOT=$ALQUIMIA_DIR
-make
+  -DALQUIMIA_ROOT=$ALQUIMIA_DIR \
+  -DCRUNCH_ROOT=$CRUNCHFLOW_DIR
+make -j 6 VERBOSE=1
 make install
+cd $ORIGIN_DIR

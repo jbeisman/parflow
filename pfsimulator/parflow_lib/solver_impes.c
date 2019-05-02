@@ -39,6 +39,9 @@
 ***************************************************************************/
 
 #include "parflow.h"
+#include "alquimia/alquimia_interface.h"
+#include "alquimia/alquimia_memory.h"
+#include "alquimia/alquimia_util.h"
 
 
 /*------------------------------------------------------------------------
@@ -220,6 +223,85 @@ void      SolverImpes()
   is_multiphase = ProblemNumPhases(problem) > 1;
 
   t = start_time;
+
+
+
+struct TransportDriver 
+{
+  // Simulation parameters.
+  char* description;
+  double t_min, t_max, dt, cfl;
+  int max_steps;
+  bool verbose;
+
+  // 1D grid information.
+  int num_cells;
+  double x_min, x_max;
+
+  // Flow velocity, temperature.
+  double vx, temperature;
+
+  // Material properties.
+  double porosity, saturation;
+
+  // Current sim state.
+  double time;
+  int step;
+
+  // Per-cell chemistry data.
+  AlquimiaProperties* chem_properties;
+  AlquimiaState* chem_state;
+  AlquimiaAuxiliaryData* chem_aux_data;
+  AlquimiaAuxiliaryOutputData* chem_aux_output;
+
+  // Chemistry engine -- one of each of these per thread in general.
+  AlquimiaInterface chem;
+  void* chem_engine;
+  AlquimiaEngineStatus chem_status;
+
+  // Chemistry metadata.
+  AlquimiaSizes chem_sizes;
+  AlquimiaProblemMetaData chem_metadata;
+
+  // Initial and boundary conditions.
+  AlquimiaGeochemicalCondition chem_ic;
+  AlquimiaGeochemicalCondition chem_left_bc, chem_right_bc;
+  AlquimiaState chem_left_state, chem_right_state;
+  AlquimiaAuxiliaryData chem_left_aux_data, chem_right_aux_data;
+
+  // Bookkeeping.
+  AlquimiaState advected_chem_state;
+  AlquimiaAuxiliaryData advected_chem_aux_data;
+  double* advective_fluxes;
+} driver;
+
+  AllocateAlquimiaEngineStatus(&driver->chem_status);
+
+  //this is how we define an alquimia string
+  const char * strtest = "CrunchFlow";
+  char* chemistry_engine = AlquimiaStringDup(strtest);
+  printf( "%s\n", chemistry_engine);
+   
+
+  CreateAlquimiaInterface(chemistry_engine, &chem, &chem_status);
+
+  int num_cells = 100;
+
+  
+
+
+
+//put data in structs
+// struct initialize
+
+
+
+
+
+
+
+
+
 
   /*-------------------------------------------------------------------
    * Allocate temp vectors

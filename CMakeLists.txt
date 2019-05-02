@@ -110,6 +110,34 @@ if (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
 endif (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
 
 #-----------------------------------------------------------------------------
+# CrunchFlow geochemistry engine jjb
+#-----------------------------------------------------------------------------
+set (PARFLOW_ENABLE_CRUNCH False CACHE BOOL "Build with CrunchFlow")
+if (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
+  set(CRUNCH_INCLUDE_DIRS ${CRUNCH_ROOT})
+  set(CRUNCH_LIBRARIES ${CRUNCH_ROOT}/libcrunchchem.a)
+  message("Checking Crunch lib and include dirs : ${CRUNCH_LIBRARIES} ${CRUNCH_INCLUDE_DIRS}")
+  set(PARFLOW_HAVE_CRUNCH "yes")
+  set(HAVE_CRUNCH ${PARFLOW_HAVE_CRUNCH})
+
+# PETSC - needed by CrunchFlow
+  find_package(PETSc)
+  if (${PETSC_FOUND})
+    set(PARFLOW_HAVE_PETSC "yes")
+    set(HAVE_PETSC ${PARFLOW_HAVE_PETSC})
+    set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDES})
+  message("petsc include dirs : ${PETSC_INCLUDE_DIRS}")
+   message("petsc libs : ${PETSC_LIBRARIES}")
+
+
+  endif (${PETSC_FOUND})
+
+
+
+
+endif (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
+
+#-----------------------------------------------------------------------------
 # NetCDF
 #-----------------------------------------------------------------------------
 set (PARFLOW_ENABLE_NETCDF False CACHE BOOL "Build with NetCDF")

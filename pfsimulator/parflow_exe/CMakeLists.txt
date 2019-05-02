@@ -42,6 +42,18 @@ if (${PARFLOW_HAVE_SLURM})
   target_link_libraries (parflow ${SLURM_LIBRARIES})
 endif (${PARFLOW_HAVE_SLURM})
 
+if (${PARFLOW_HAVE_ALQUIMIA})
+  target_link_libraries (parflow ${ALQUIMIA_LIBRARIES})
+endif (${PARFLOW_HAVE_ALQUIMIA})
+
+if (${PARFLOW_HAVE_CRUNCH})
+  target_link_libraries (parflow ${CRUNCH_LIBRARIES})
+endif (${PARFLOW_HAVE_CRUNCH})
+
+if (${PARFLOW_HAVE_PETSC})
+  target_link_libraries (parflow ${PETSC_LIBRARIES})
+endif (${PARFLOW_HAVE_PETSC})
+
 if( ${PARFLOW_ENABLE_PROFILING} )
   set_target_properties(parflow PROPERTIES LINK_FLAGS ${PARFLOW_PROFILE_OPTS})
 endif( ${PARFLOW_ENABLE_PROFILING} )
