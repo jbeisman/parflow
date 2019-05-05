@@ -72,6 +72,7 @@
 #include "nl_function_eval.h"
 #include "parflow_proto.h"
 #include "parflow_proto_f.h"
+#include "pf_alquimia.h"
 
 // SGS FIXME this should not be here, in fact this whole parflow.h file is dumb.
 #include <math.h>

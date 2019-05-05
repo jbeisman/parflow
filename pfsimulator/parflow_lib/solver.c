@@ -76,13 +76,22 @@ NewSolver()
   char *switch_name;
 
   int solver;
+  int switch_value;
   NameArray solver_na;
+  NameArray switch_na;
 
   solver_na = NA_NewNameArray("Richards Diffusion Impes");
+  switch_na = NA_NewNameArray("False True");
 
   /*-----------------------------------------------------------------------
    * Read global solver input
    *-----------------------------------------------------------------------*/
+
+  //ALQUIMIA
+
+
+
+
 
   GlobalsNumProcsX = GetIntDefault("Process.Topology.P", 1);
   GlobalsNumProcsY = GetIntDefault("Process.Topology.Q", 1);
@@ -114,6 +123,16 @@ NewSolver()
   switch_name = GetStringDefault("Solver", "Impes");
   solver = NA_NameToIndex(solver_na, switch_name);
 
+    sprintf(key, "Solver.Chemistry");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if (switch_value < 0)
+  {
+    InputError("Error: invalid value <%s> for key <%s>\n",
+               switch_name, key);
+  }
+  GlobalsChemistryFlag = switch_value;
+
   switch (solver)
   {
     case 0:
@@ -140,7 +159,9 @@ NewSolver()
                  key);
     }
   }
+
   NA_FreeNameArray(solver_na);
+  NA_FreeNameArray(switch_na);
 }
 
 /*--------------------------------------------------------------------------

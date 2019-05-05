@@ -73,6 +73,9 @@ typedef struct _Globals {
 
   NameArray phase_names;
   NameArray contaminant_names;
+  NameArray geochem_names;
+//ALQUIMIA
+  int       chem_flag;
 
   /* Timing Cycle information */
   NameArray cycle_names;
@@ -138,6 +141,8 @@ amps_ThreadLocalDcl(extern IDB *, input_database);
 
 #define GlobalsContaminatNames    (globals->contaminant_names)
 #define GlobalsGeometries         (globals->geometries)
+#define GlobalsGeochemCondNames   (globals->geochem_names)
+#define GlobalsChemistryFlag      (globals->chem_flag)
 
 #define GlobalsParflowSimulation   (globals->parflow_simulation)
 

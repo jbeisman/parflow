@@ -9,6 +9,7 @@ set (SRC_FILES advect.F
   cghs.c
   char_vector.c
   chebyshev.c
+  chem_initialize.c
   comm_pkg.c
   communication.c
   computation.c
@@ -76,6 +77,7 @@ set (SRC_FILES advect.F
   problem_capillary_pressure.c
   problem_domain.c
   problem_eval.c
+  problem_geochem_cond.c
   problem_geometries.c
   problem_phase_heat_capacity.c
   problem_ic_phase_concen.c

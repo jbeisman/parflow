@@ -44,6 +44,7 @@
 #include "alquimia/alquimia_util.h"
 
 
+
 /*------------------------------------------------------------------------
  * Structures
  *------------------------------------------------------------------------*/
@@ -225,28 +226,11 @@ void      SolverImpes()
   t = start_time;
 
 
+  // ALQUIMIA
+  int Chemistry = GlobalsChemistryFlag;
 
-struct TransportDriver 
-{
-  // Simulation parameters.
-  char* description;
-  double t_min, t_max, dt, cfl;
-  int max_steps;
-  bool verbose;
 
-  // 1D grid information.
-  int num_cells;
-  double x_min, x_max;
 
-  // Flow velocity, temperature.
-  double vx, temperature;
-
-  // Material properties.
-  double porosity, saturation;
-
-  // Current sim state.
-  double time;
-  int step;
 
   // Per-cell chemistry data.
   AlquimiaProperties* chem_properties;
@@ -273,9 +257,9 @@ struct TransportDriver
   AlquimiaState advected_chem_state;
   AlquimiaAuxiliaryData advected_chem_aux_data;
   double* advective_fluxes;
-} driver;
 
-  AllocateAlquimiaEngineStatus(&driver->chem_status);
+
+  AllocateAlquimiaEngineStatus(&chem_status);
 
   //this is how we define an alquimia string
   const char * strtest = "CrunchFlow";
@@ -285,8 +269,9 @@ struct TransportDriver
 
   CreateAlquimiaInterface(chemistry_engine, &chem, &chem_status);
 
-  int num_cells = 100;
+  //int num_cells = 100;
 
+  //lets see if we can get into a different function
   
 
 
@@ -294,14 +279,28 @@ struct TransportDriver
 //put data in structs
 // struct initialize
 
+// chem initialization prototype
+  /*if (Chemistry)
+    {
+      PFModuleInvokeType(InitializeChemistry, init_chem,
+                      problem_data)
 
 
+PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
+                                 (problem_data, phase, concen,
+                                  ctemp, concentrations[indx],
+                                  phase_x_velocity[phase],
+                                  phase_y_velocity[phase],
+                                  phase_z_velocity[phase],
+                                  solidmassfactor,
+                                  t, dt, advect_order));
+              indx++;
+*/
+  
+if (Chemistry)
+    {printf( "GLOBAL CHEM FLAG SUCCESS\n");
 
-
-
-
-
-
+}
 
   /*-------------------------------------------------------------------
    * Allocate temp vectors
@@ -513,6 +512,7 @@ struct TransportDriver
           }
         }
       }
+
 
       /*----------------------------------------------------------------
        * Allocate phase/total velocities and total mobility

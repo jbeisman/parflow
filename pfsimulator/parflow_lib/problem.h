@@ -41,6 +41,7 @@ typedef struct {
   int num_phases;
 
   int num_contaminants;
+  int num_geochem_conds;
 
   double base_time_unit;
   int start_count;
@@ -66,6 +67,7 @@ typedef struct {
   PFModule   *porosity;
   PFModule   *retardation;
   PFModule   *phase_mobility;
+  PFModule   *geochemcond;
   PFModule   *phase_rel_perm;           /* relative permeability used in
                                          * SolverRichards */
   PFModule   *phase_source;
@@ -130,6 +132,7 @@ typedef struct {
   Vector         *permeability_z;
 
   Vector         *porosity;
+  Vector         *geochemcond;
 
   Vector         *specific_storage;   //sk
 
@@ -170,6 +173,10 @@ typedef struct {
 #define ProblemContaminants(problem)              ((problem)->contaminants)
 #define ProblemNumContaminants(problem)           ((problem)->num_contaminants)
 
+#define ProblemConditions(problem)                ((problem)->geochem_conds)
+#define ProblemNumGeochemConds(problem)           ((problem)->num_geochem_conds)
+#define ProblemGeochemCond(problem)               ((problem)->geochemcond)
+
 /* Time accessors */
 #define ProblemBaseTimeUnit(problem)              ((problem)->base_time_unit)
 #define ProblemStartCount(problem)                ((problem)->start_count)
@@ -198,7 +205,7 @@ typedef struct {
 #define ProblemSaturation(problem)                ((problem)->saturation)
 #define ProblemBCInternal(problem)                ((problem)->bc_internal)
 #define ProblemSpecStorage(problem)               ((problem)->specific_storage)   //sk
-#define ProblemXSlope(problem)                    ((problem)->x_slope)   //sk
+#define ProblemXSlope(problem)                    ((problem)->x_slope)
 #define ProblemYSlope(problem)                    ((problem)->y_slope)   //sk
 #define ProblemMannings(problem)                  ((problem)->mann)   //sk
 
@@ -256,6 +263,7 @@ typedef struct {
 #define ProblemDataSSlopeY(problem_data)        ((problem_data)->y_sslope)   //RMM
 #define ProblemDataZmult(problem_data)          ((problem_data)->dz_mult)    //RMM
 #define ProblemDataRealSpaceZ(problem_data)     ((problem_data)->rsz)
+#define ProblemDataGeochemCond(problem_data)    ((problem_data)->geochemcond)
 /*--------------------------------------------------------------------------
  * Misc macros
  *   RDF not quite right, maybe?

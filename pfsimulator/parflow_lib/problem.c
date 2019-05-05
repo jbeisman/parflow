@@ -52,8 +52,13 @@ Problem   *NewProblem(
   int num_phases;
   int num_contaminants;
 
+  int num_geochem_conds;
+  char *geochem_conds;
+  
+
   char *phases;
   char *contaminants;
+  
 
   int i;
 
@@ -134,7 +139,7 @@ Problem   *NewProblem(
   /*-----------------------------------------------------------------------
    * ProblemDomain
    *-----------------------------------------------------------------------*/
-
+  
   ProblemDomain(problem) =
     PFModuleNewModule(Domain, ());
 
@@ -151,6 +156,17 @@ Problem   *NewProblem(
   num_contaminants = ProblemNumContaminants(problem) =
     NA_Sizeof(GlobalsContaminatNames);
 
+  /*-----------------------------------------------------------------------
+   * Setup ProblemNumGeochemConds
+   *-----------------------------------------------------------------------*/
+  
+  if (GlobalsChemistryFlag)
+  { 
+      geochem_conds = GetString("GeochemCondition.Names");
+      GlobalsGeochemCondNames = NA_NewNameArray(geochem_conds);
+      num_geochem_conds = ProblemNumGeochemConds(problem) = 
+      NA_Sizeof(GlobalsGeochemCondNames);
+  }
   /*-----------------------------------------------------------------------
    * PDE coefficients
    *-----------------------------------------------------------------------*/
@@ -244,6 +260,16 @@ Problem   *NewProblem(
     ProblemSaturation(problem) =
       PFModuleNewModule(Saturation, ());
   }
+ 
+ /*-----------------------------------------------------------------------
+   * Alquimia coupling
+   *-----------------------------------------------------------------------*/
+  if (GlobalsChemistryFlag)
+    {
+      ProblemGeochemCond(problem) = 
+      PFModuleNewModuleType(GeochemCondNewPublicXtraInvoke, 
+      GeochemCond, (num_geochem_conds));
+    }
 
   /*-----------------------------------------------------------------------
    * Boundary conditions
@@ -343,6 +369,11 @@ void      FreeProblem(
   NA_FreeNameArray(GlobalsPhaseNames);
   NA_FreeNameArray(GlobalsContaminatNames);
 
+  if (GlobalsChemistryFlag)
+  {
+    NA_FreeNameArray(GlobalsGeochemCondNames);
+  }
+
   if (solver != RichardsSolve)
   {
     PFModuleFreeModule(ProblemSaturationConstitutive(problem));
@@ -363,6 +394,10 @@ void      FreeProblem(
   PFModuleFreeModule(ProblemBCPressurePackage(problem));
   PFModuleFreeModule(ProblemBCPressure(problem));
   PFModuleFreeModule(ProblemBCInternal(problem));
+  if (GlobalsChemistryFlag)
+  { 
+    PFModuleFreeModule(ProblemGeochemCond(problem));
+  }
 
   PFModuleFreeModule(ProblemPhaseSource(problem));
   PFModuleFreeModule(ProblemRetardation(problem));
@@ -412,6 +447,10 @@ ProblemData   *NewProblemData(
   ProblemDataTSlopeX(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //sk
   ProblemDataTSlopeY(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //sk
   ProblemDataMannings(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);  //sk
+  if (GlobalsChemistryFlag)
+  {
+    ProblemDataGeochemCond(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
+  }
 
   /* @RMM added vectors for subsurface slopes for terrain-following grid */
   ProblemDataSSlopeX(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //RMM
@@ -469,6 +508,10 @@ void          FreeProblemData(
     FreeVector(ProblemDataZmult(problem_data));   //RMM
     FreeVector(ProblemDataRealSpaceZ(problem_data));
     FreeVector(ProblemDataIndexOfDomainTop(problem_data));
+    if (GlobalsChemistryFlag)
+    {
+      FreeVector(ProblemDataGeochemCond(problem_data));
+    }
 
     tfree(problem_data);
   }

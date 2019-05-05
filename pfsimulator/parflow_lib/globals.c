@@ -70,6 +70,7 @@ void   NewGlobals(char *run_name)
 
   globals_ptr->phase_names = 0;
   globals_ptr->contaminant_names = 0;
+  globals_ptr->geochem_names = 0;
 
   /* Timing Cycle information */
   globals_ptr->cycle_names = 0;
@@ -79,6 +80,9 @@ void   NewGlobals(char *run_name)
   globals_ptr->interval_divisions = 0;
   globals_ptr->intervals = 0;
   globals_ptr->repeat_counts = 0;
+
+  //ALQUIMIA
+  globals_ptr->chem_flag = 0;
 }
 
 
