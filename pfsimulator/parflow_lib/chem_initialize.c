@@ -45,14 +45,15 @@
  *--------------------------------------------------------------------------*/
 
 typedef struct {
-Problem   *problem;
+  int           time_index;
+  int           num_geochem_conds;
 } PublicXtra;
 
 typedef struct {
-  PFModule  *geochemcond;
-  /* InitInstanceXtra arguments */
-  Problem   *problem;
-  Grid      *grid;
+  Problem       *problem;
+  PFModule      *geochemcond;
+  Grid          *grid;
+  int           site_data_not_formed;
 } InstanceXtra;
 
 
@@ -67,28 +68,81 @@ void          InitializeChemistry(
                              ProblemData *problem_data)
 {
   PFModule      *this_module = ThisPFModule;
-  PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
-
-    /*-----------------------------------------------------------------------
-   * Setup ProblemNumGeochemConds
-   *-----------------------------------------------------------------------*/
- 
- /* geochem_conds = GetString("GeochemCondition.Names");
-  GlobalsGeochemCondNames = NA_NewNameArray(geochem_conds);
-  num_geochem_conds = ProblemNumGeochemConds(problem) =
-    NA_Sizeof(GlobalsGeochemCondNames); */
+  PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
+  Problem       *problem = (instance_xtra->problem);
+  Grid          *grid = (instance_xtra->grid);
 
   PFModule      *geochemcond = (instance_xtra->geochemcond);
 
+  char *geochem_conds;
+  int num_geochem_conds;
 
-    PFModuleInvokeType(GeochemCondInvoke, geochemcond,
+
+
+
+if ((instance_xtra->site_data_not_formed))
+  {
+        PFModuleInvokeType(GeochemCondInvoke, geochemcond,
                        (problem_data,
                         ProblemDataGeochemCond(problem_data),
-                        ProblemNumGeochemConds(public_xtra->problem)));
+                        public_xtra->num_geochem_conds));
+        (instance_xtra->site_data_not_formed) = 0;
+  }
 
+/*
+          ForSubgridI(is, GridSubgrids(grid))
+          {
+              int         ix,   iy,   iz, j_x, p_x;
+              int         i,j,k, CF_index;
+              double      *por, *jinit;
+              
+                           
+              subgrid = GridSubgrid(grid, is);
+              Subvector  *por_sub, *jinit_sub;
+              
+              nx = SubgridNX(subgrid);
+              ny = SubgridNY(subgrid);
+              nz = SubgridNZ(subgrid);
+                            
+              ix = SubgridIX(subgrid);
+              iy = SubgridIY(subgrid);
+              iz = SubgridIZ(subgrid);
+              
+          por_sub   = VectorSubvector(ProblemDataPorosity(problem_data),is);
+          jinit_sub = VectorSubvector(ProblemDataCrunchContam(problem_data),is);
+              por       = SubvectorData(por_sub);
+          jinit     = SubvectorData(jinit_sub);
+              p_x = 0;
+          j_x = 0;
+          
+          instance_xtra -> porCRUNCH = ctalloc(double, nx*ny*nz);
+          instance_xtra -> jinitCRUNCH = ctalloc(int, nx*ny*nz);
+             
+              
+              for (i = ix; i < ix + nx; i++)
+              {
+                  for (j = iy; j < iy + ny; j++)
+                  {
+                      for (k = iz; k < iz + nz; k++)
+                      {
+                          p_x = SubvectorEltIndex(por_sub, i,j,k);
+               j_x = SubvectorEltIndex(jinit_sub, i,j,k);
+                         
+                          CF_index = (i-ix ) +
+                          (j- iy) * (nx)  +
+                          (k- iz) * (nx) * (ny);
+              
+                          instance_xtra -> porCRUNCH[CF_index]   = por[p_x];
+               instance_xtra -> jinitCRUNCH[CF_index] = (int)jinit[j_x];
+              // printf("i: %d j: %d k: %d  jinitCRUNCH: %d \n",i,j,k, instance_xtra -> jinitCRUNCH[CF_index]);
+                          
+                      }
+                  }
+              }
+          }
 
-
+*/
 
 }
 
@@ -170,11 +224,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
   PFModule      *this_module = ThisPFModule;
   PublicXtra    *public_xtra;
 
-
-#if 0
   public_xtra = ctalloc(PublicXtra, 1);
-#endif
-  public_xtra = NULL;
 
   PFModulePublicXtra(this_module) = public_xtra;
   return this_module;

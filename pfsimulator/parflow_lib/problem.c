@@ -52,7 +52,7 @@ Problem   *NewProblem(
   int num_phases;
   int num_contaminants;
 
-  int num_geochem_conds;
+  int  num_geochem_conds;
   char *geochem_conds;
   
 
@@ -157,17 +157,6 @@ Problem   *NewProblem(
     NA_Sizeof(GlobalsContaminatNames);
 
   /*-----------------------------------------------------------------------
-   * Setup ProblemNumGeochemConds
-   *-----------------------------------------------------------------------*/
-  
-  if (GlobalsChemistryFlag)
-  { 
-      geochem_conds = GetString("GeochemCondition.Names");
-      GlobalsGeochemCondNames = NA_NewNameArray(geochem_conds);
-      num_geochem_conds = ProblemNumGeochemConds(problem) = 
-      NA_Sizeof(GlobalsGeochemCondNames);
-  }
-  /*-----------------------------------------------------------------------
    * PDE coefficients
    *-----------------------------------------------------------------------*/
 
@@ -264,12 +253,14 @@ Problem   *NewProblem(
  /*-----------------------------------------------------------------------
    * Alquimia coupling
    *-----------------------------------------------------------------------*/
-  if (GlobalsChemistryFlag)
-    {
+      geochem_conds = GetStringDefault("GeochemCondition.Names","");
+      GlobalsGeochemCondNames = NA_NewNameArray(geochem_conds);
+      num_geochem_conds = ProblemNumGeochemConds(problem) = 
+      NA_Sizeof(GlobalsGeochemCondNames);
+
       ProblemGeochemCond(problem) = 
       PFModuleNewModuleType(GeochemCondNewPublicXtraInvoke, 
       GeochemCond, (num_geochem_conds));
-    }
 
   /*-----------------------------------------------------------------------
    * Boundary conditions
@@ -368,11 +359,8 @@ void      FreeProblem(
 
   NA_FreeNameArray(GlobalsPhaseNames);
   NA_FreeNameArray(GlobalsContaminatNames);
+  NA_FreeNameArray(GlobalsGeochemCondNames);
 
-  if (GlobalsChemistryFlag)
-  {
-    NA_FreeNameArray(GlobalsGeochemCondNames);
-  }
 
   if (solver != RichardsSolve)
   {
@@ -394,6 +382,7 @@ void      FreeProblem(
   PFModuleFreeModule(ProblemBCPressurePackage(problem));
   PFModuleFreeModule(ProblemBCPressure(problem));
   PFModuleFreeModule(ProblemBCInternal(problem));
+  
   if (GlobalsChemistryFlag)
   { 
     PFModuleFreeModule(ProblemGeochemCond(problem));
@@ -420,7 +409,6 @@ void      FreeProblem(
   PFModuleFreeModule(ProblemDomain(problem));
 
   PFModuleFreeModule(ProblemGeometries(problem));
-
   FreeGlobalTimeCycleData();
 
   tfree(problem);
@@ -447,11 +435,11 @@ ProblemData   *NewProblemData(
   ProblemDataTSlopeX(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //sk
   ProblemDataTSlopeY(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //sk
   ProblemDataMannings(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);  //sk
+  
   if (GlobalsChemistryFlag)
   {
     ProblemDataGeochemCond(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
   }
-
   /* @RMM added vectors for subsurface slopes for terrain-following grid */
   ProblemDataSSlopeX(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //RMM
   ProblemDataSSlopeY(problem_data) = NewVectorType(grid2d, 1, 1, vector_cell_centered_2D);   //RMM

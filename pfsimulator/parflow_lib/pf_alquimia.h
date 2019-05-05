@@ -69,9 +69,17 @@ void GeochemCondFreePublicXtra(void);
 int GeochemCondSizeOfTempData(void);
 
 
-/* chem_initialize.c */
+
+PFModule *ChemAdvanceInitInstanceXtra(Problem *problem, Grid *grid);
+void ChemAdvanceFreeInstanceXtra(void);
+PFModule *ChemAdvanceNewPublicXtra(void);
+void ChemAdvanceFreePublicXtra(void);
+int ChemAdvanceSizeOfTempData(void);
+
+
+/* chem_initialize.c*/
 typedef void (*InitializeChemistryInvoke) (ProblemData *problem_data);
-typedef PFModule *(*InitializeChemistryInitInstanceXtraInvoke) (Problem *problem, Grid *grid);
+typedef PFModule *(*InitializeChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
 void InitializeChemistry(ProblemData *problem_data);
 PFModule *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid);
 void InitializeChemistryFreeInstanceXtra(void);
@@ -80,10 +88,10 @@ void InitializeChemistryFreePublicXtra(void);
 int InitializeChemistrySizeOfTempData(void);
 
 
-PFModule *ChemAdvanceInitInstanceXtra(Problem *problem, Grid *grid);
-void ChemAdvanceFreeInstanceXtra(void);
-PFModule *ChemAdvanceNewPublicXtra(void);
-void ChemAdvanceFreePublicXtra(void);
-int ChemAdvanceSizeOfTempData(void);
+
+
+
+
+
 
 

@@ -87,11 +87,6 @@ NewSolver()
    * Read global solver input
    *-----------------------------------------------------------------------*/
 
-  //ALQUIMIA
-
-
-
-
 
   GlobalsNumProcsX = GetIntDefault("Process.Topology.P", 1);
   GlobalsNumProcsY = GetIntDefault("Process.Topology.Q", 1);

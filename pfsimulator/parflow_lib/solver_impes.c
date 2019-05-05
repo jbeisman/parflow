@@ -81,6 +81,8 @@ typedef struct {
   int write_silo_velocities;                      /* print velocities? */
   int write_silo_satur;                           /* print saturations? */
   int write_silo_concen;                          /* print concentrations? */
+
+  PFModule          *init_chem;
 } PublicXtra;
 
 typedef struct {
@@ -109,8 +111,10 @@ typedef struct {
   Grid              *z_grid;
 
   ProblemData       *problem_data;
-
   double            *temp_data;
+
+  PFModule          *init_chem;
+
 } InstanceXtra;
 
 
@@ -152,6 +156,7 @@ void      SolverImpes()
   PFModule     *advect_satur = (instance_xtra->advect_satur);
   PFModule     *phase_density = (instance_xtra->phase_density);
   PFModule     *advect_concen = (instance_xtra->advect_concen);
+  
   PFModule     *set_problem_data = (instance_xtra->set_problem_data);
 
   PFModule     *retardation = (instance_xtra->retardation);
@@ -225,10 +230,9 @@ void      SolverImpes()
 
   t = start_time;
 
-
-  // ALQUIMIA
-  int Chemistry = GlobalsChemistryFlag;
-
+  int chem_flag;
+  chem_flag = GlobalsChemistryFlag;
+  PFModule     *init_chem = (instance_xtra->init_chem);
 
 
 
@@ -269,38 +273,13 @@ void      SolverImpes()
 
   CreateAlquimiaInterface(chemistry_engine, &chem, &chem_status);
 
-  //int num_cells = 100;
-
-  //lets see if we can get into a different function
-  
 
 
 
-//put data in structs
-// struct initialize
-
-// chem initialization prototype
-  /*if (Chemistry)
-    {
-      PFModuleInvokeType(InitializeChemistry, init_chem,
-                      problem_data)
 
 
-PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
-                                 (problem_data, phase, concen,
-                                  ctemp, concentrations[indx],
-                                  phase_x_velocity[phase],
-                                  phase_y_velocity[phase],
-                                  phase_z_velocity[phase],
-                                  solidmassfactor,
-                                  t, dt, advect_order));
-              indx++;
-*/
-  
-if (Chemistry)
-    {printf( "GLOBAL CHEM FLAG SUCCESS\n");
 
-}
+
 
   /*-------------------------------------------------------------------
    * Allocate temp vectors
@@ -561,6 +540,16 @@ if (Chemistry)
         PFModuleInvokeType(PermeabilityFaceInvoke, permeability_face,
                            (z_permeability,
                             ProblemDataPermeabilityZ(problem_data)));
+      }
+
+      /*****************************************************************/
+      /*          Call the geochemical engine         */
+      /*****************************************************************/
+printf("chem_flag!??!!!?!: %d\n", chem_flag);
+            if (chem_flag) /*Initialize the geochemical system*/
+      {
+        PFModuleInvokeType(InitializeChemistryInvoke, init_chem,
+                      (problem_data));
       }
 
       /*****************************************************************/
@@ -1583,12 +1572,12 @@ PFModule *SolverImpesInitInstanceXtra()
   // SGS TODO total_mobility_sz is not being set anywhere so initialized to 0 here.
   int total_mobility_sz = 0;
   int pressure_sz, velocity_sz, satur_sz = 0,
-    concen_sz, temp_data_size, sz;
+      concen_sz, temp_data_size, sz;
   int is_multiphase;
 
   int i;
-
-
+  int chem_flag;
+  chem_flag = GlobalsChemistryFlag;
   is_multiphase = ProblemNumPhases(problem) > 1;
 
   if (PFModuleInstanceXtra(this_module) == NULL)
@@ -1729,6 +1718,13 @@ PFModule *SolverImpesInitInstanceXtra()
     (instance_xtra->phase_density) =
       PFModuleNewInstance(ProblemPhaseDensity(problem), ());
 
+    if (chem_flag)
+    {
+      (instance_xtra->init_chem) = 
+      PFModuleNewInstanceType(InitializeChemistryInitInstanceXtraType,
+                              (public_xtra->init_chem),
+                              (problem, grid));
+    }
 
     if (is_multiphase)
     {
@@ -1781,6 +1777,12 @@ PFModule *SolverImpesInitInstanceXtra()
     PFModuleReNewInstance((instance_xtra->phase_mobility), ());
     PFModuleReNewInstance((instance_xtra->ic_phase_concen), ());
     PFModuleReNewInstance((instance_xtra->phase_density), ());
+    if (chem_flag)
+    {
+      PFModuleReNewInstanceType(InitializeChemistryInitInstanceXtraType,
+                             (instance_xtra->init_chem),
+                             (problem, grid));
+    }
 
     if (is_multiphase)
     {
@@ -1922,7 +1924,9 @@ void  SolverImpesFreeInstanceXtra()
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   Problem       *problem = (public_xtra->problem);
   int is_multiphase;
+  int chem_flag;
 
+  chem_flag = GlobalsChemistryFlag;
   is_multiphase = ProblemNumPhases(problem) > 1;
 
   if (instance_xtra)
@@ -1939,8 +1943,11 @@ void  SolverImpesFreeInstanceXtra()
     PFModuleFreeInstance((instance_xtra->linear_solver));
     PFModuleFreeInstance((instance_xtra->diag_scale));
     PFModuleFreeInstance((instance_xtra->discretize_pressure));
-
     PFModuleFreeInstance((instance_xtra->phase_density));
+    if (chem_flag)
+    {
+      PFModuleFreeInstance((instance_xtra->init_chem));
+    }
 
     if (is_multiphase)
     {
@@ -2069,6 +2076,7 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
 
   (public_xtra->advect_satur) = PFModuleNewModule(SatGodunov, ());
   (public_xtra->advect_concen) = PFModuleNewModule(Godunov, ());
+  (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
   (public_xtra->set_problem_data) = PFModuleNewModule(SetProblemData, ());
 
   (public_xtra->problem) = NewProblem(ImpesSolve);
@@ -2245,6 +2253,9 @@ void   SolverImpesFreePublicXtra()
     PFModuleFreeModule(public_xtra->phase_velocity_face);
     PFModuleFreeModule(public_xtra->permeability_face);
     PFModuleFreeModule(public_xtra->discretize_pressure);
+    PFModuleFreeModule(public_xtra->init_chem);
+
+
     tfree(public_xtra);
   }
 }
