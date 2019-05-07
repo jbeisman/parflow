@@ -258,9 +258,8 @@ Problem   *NewProblem(
       num_geochem_conds = ProblemNumGeochemConds(problem) = 
       NA_Sizeof(GlobalsGeochemCondNames);
 
-      ProblemGeochemCond(problem) = 
-      PFModuleNewModuleType(GeochemCondNewPublicXtraInvoke, 
-      GeochemCond, (num_geochem_conds));
+      ProblemGeochemCond(problem) =                
+      PFModuleNewModule(GeochemCond, ());
 
   /*-----------------------------------------------------------------------
    * Boundary conditions

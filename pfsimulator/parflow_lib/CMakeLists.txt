@@ -114,6 +114,7 @@ set (SRC_FILES advect.F
   sadvection_godunov.c
   scale.c
   select_time_step.c
+  set_chem_data.c
   set_problem_data.c
   sim_shear.c
   solver.c

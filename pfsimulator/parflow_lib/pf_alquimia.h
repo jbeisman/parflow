@@ -58,17 +58,17 @@ void PF_allocate_alquimia(int nx, int ny, int nz);
 
 void TestFunction(char * engine);
 
+
+
 /* problem_geochem_cond.c */
-typedef void (*GeochemCondInvoke) (ProblemData *problem_data, Vector *geochemcond, int num_geochem_conds);
-typedef PFModule *(*GeochemCondNewPublicXtraInvoke) (int num_geochem_conds);
-void GeochemCond(ProblemData *problem_data, Vector *geochemcond, int num_geochem_conds);
-PFModule *GeochemCondInitInstanceXtra(void);
-void GeochemCondFreeInstanceXtra(void);
-PFModule *GeochemCondNewPublicXtra(int num_geochem_conds);
+typedef void (*GeochemCondInvoke) (ProblemData *problem_data, Vector *geochemcond );
+void GeochemCond (ProblemData *problem_data, Vector *geochemcond );
+PFModule *GeochemCondInitInstanceXtra (void );
+void GeochemCondFreeInstanceXtra (void );
+PFModule *GeochemCondNewPublicXtra (void );
+void GeochemCondPublicXtra (void );
 void GeochemCondFreePublicXtra(void);
-int GeochemCondSizeOfTempData(void);
-
-
+int GeochemCondSizeOfTempData (void );
 
 PFModule *ChemAdvanceInitInstanceXtra(Problem *problem, Grid *grid);
 void ChemAdvanceFreeInstanceXtra(void);
@@ -88,10 +88,13 @@ void InitializeChemistryFreePublicXtra(void);
 int InitializeChemistrySizeOfTempData(void);
 
 
-
-
-
-
-
-
+/* set_chem_data.c */
+typedef void (*SetChemDataInvoke) (ProblemData *problem_data);
+typedef PFModule *(*SetChemDataInitInstanceXtraInvoke) (Problem *problem, Grid *grid);
+void SetChemData(ProblemData *problem_data);
+PFModule *SetChemDataInitInstanceXtra(Problem *problem, Grid *grid);
+void SetChemDataFreeInstanceXtra(void);
+PFModule *SetChemDataNewPublicXtra(void);
+void SetChemDataFreePublicXtra(void);
+int SetChemDataSizeOfTempData(void);
 

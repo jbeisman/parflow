@@ -131,6 +131,7 @@ void          SetProblemData(
     PFModuleInvokeType(realSpaceZInvoke, real_space_z,
                        (problem_data,
                         ProblemDataRealSpaceZ(problem_data)));
+
     (instance_xtra->site_data_not_formed) = 0;
   }
 
@@ -250,7 +251,6 @@ PFModule  *SetProblemDataInitInstanceXtra(
     PFModuleReNewInstanceType(BCPressurePackageInitInstanceXtraInvoke,
                               (instance_xtra->bc_pressure), (problem));
   }
-
 
   PFModuleInstanceXtra(this_module) = instance_xtra;
   return this_module;

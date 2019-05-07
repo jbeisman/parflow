@@ -57,10 +57,7 @@ typedef struct {
  * GeochemCond
  *--------------------------------------------------------------------------*/
 
-void         GeochemCond(
-                           ProblemData *problem_data,
-                           Vector      *geochemcond,
-                           int          num_geochem_conds)
+void  GeochemCond(ProblemData *problem_data, Vector *geochemcond)
 {
   PFModule      *this_module = ThisPFModule;
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
@@ -75,9 +72,7 @@ void         GeochemCond(
   Subgrid        *subgrid;
   Subvector      *pc_sub;
 
-  int index;
-
-  double         *data;
+  int *data;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -88,7 +83,6 @@ void         GeochemCond(
   /*-----------------------------------------------------------------------
    * Initial conditions for concentrations in each phase
    *-----------------------------------------------------------------------*/
-
   InitVector(geochemcond, 0);
 
   switch ((public_xtra->type))
@@ -110,10 +104,13 @@ void         GeochemCond(
       region_indices = (dummy0->region_indices);
       values = (dummy0->values);
 
+      printf("NUM_REGIONS: %d\n",num_regions);
+
       for (ir = 0; ir < num_regions; ir++)
       {
         gr_solid = ProblemDataGrSolid(problem_data, region_indices[ir]);
         value = values[ir];
+        printf("VALUES:%d\n",value);
 
         ForSubgridI(is, subgrids)
         {
@@ -164,9 +161,9 @@ PFModule  *GeochemCondInitInstanceXtra()
   InstanceXtra  *instance_xtra;
 
   instance_xtra = NULL;
-
+  
   PFModuleInstanceXtra(this_module) = instance_xtra;
-
+  
   return this_module;
 }
 
@@ -190,7 +187,7 @@ void  GeochemCondFreeInstanceXtra()
  * GeochemCondNewPublicXtra
  *--------------------------------------------------------------------------*/
 
-PFModule   *GeochemCondNewPublicXtra(int num_geochem_conds)
+PFModule   *GeochemCondNewPublicXtra()
 {
   PFModule      *this_module = ThisPFModule;
   PublicXtra    *public_xtra;
@@ -202,6 +199,7 @@ PFModule   *GeochemCondNewPublicXtra(int num_geochem_conds)
   char *switch_name;
   char *region;
   char *geochem_cond_names;
+  int  num_geochem_conds;
 
   NameArray type_na;
   NameArray geochem_cond_na;
@@ -210,18 +208,19 @@ PFModule   *GeochemCondNewPublicXtra(int num_geochem_conds)
   public_xtra = ctalloc(PublicXtra, 1);
 
   
-  printf( "%d\n", num_geochem_conds);
+  printf( "number of geochem conds: %d\n", public_xtra->num_geochem_conds);
+
+    geochem_cond_names = GetStringDefault("GeochemCondition.Names","");
+    geochem_cond_na = NA_NewNameArray(geochem_cond_names);
+    public_xtra->geochem_cond_names = geochem_cond_na;
+    num_geochem_conds = NA_Sizeof(geochem_cond_na);
+    (public_xtra->num_geochem_conds) = num_geochem_conds;
+
 
   if (num_geochem_conds > 0)
   {
-    geochem_cond_names = GetString("GeochemCondition.Names");
-    geochem_cond_na = NA_NewNameArray(geochem_cond_names);
-    public_xtra->geochem_cond_names = geochem_cond_na;
-
-    (public_xtra->num_geochem_conds) = num_geochem_conds;
     switch_name = GetString("GeochemCondition.Type");
     public_xtra -> type = NA_NameToIndex(type_na, switch_name);
-
         switch ((public_xtra->type))
         {
           case 0:
@@ -229,9 +228,8 @@ PFModule   *GeochemCondNewPublicXtra(int num_geochem_conds)
             int num_regions, ir;
 
             dummy0 = ctalloc(Type0, 1);
-
-            sprintf(key, "GeochemCondition.GeomNames");
-            switch_name = GetString(key);
+    
+            switch_name = GetString("GeochemCondition.GeomNames");
 
             dummy0->regions = NA_NewNameArray(switch_name);
 
@@ -249,8 +247,7 @@ PFModule   *GeochemCondNewPublicXtra(int num_geochem_conds)
               NA_NameToIndex(GlobalsGeomNames, region);
 
               sprintf(key, "GeochemCondition.Geom.%s.Value", region);
-              dummy0 -> values[ir] = NA_NameToIndex(GlobalsGeochemCondNames, GetString(key));
-
+              dummy0 -> values[ir] = NA_NameToIndex(geochem_cond_na, GetString(key));
             }
 
             (public_xtra->data) = (void*)dummy0;
@@ -282,6 +279,7 @@ PFModule   *GeochemCondNewPublicXtra(int num_geochem_conds)
   }
 
   NA_FreeNameArray(type_na);
+  NA_FreeNameArray(geochem_cond_na);
 
   PFModulePublicXtra(this_module) = public_xtra;
 
@@ -327,7 +325,7 @@ void  GeochemCondFreePublicXtra()
       }
     
 
-    tfree(public_xtra->data);
+   // tfree(public_xtra->data);
     tfree(public_xtra);
   }
 }

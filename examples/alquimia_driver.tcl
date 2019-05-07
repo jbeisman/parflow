@@ -21,17 +21,17 @@ pfset Process.Topology.R        1
 #-----------------------------------------------------------------------------
 # Computational Grid
 #-----------------------------------------------------------------------------
-pfset ComputationalGrid.Lower.X                -10.0
-pfset ComputationalGrid.Lower.Y                 10.0
-pfset ComputationalGrid.Lower.Z                  1.0
+pfset ComputationalGrid.Lower.X                0.0
+pfset ComputationalGrid.Lower.Y                 0.0
+pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 8.8888888888888893
-pfset ComputationalGrid.DY                      10.666666666666666
-pfset ComputationalGrid.DZ	                 1.0
+pfset ComputationalGrid.DX	                 5.0
+pfset ComputationalGrid.DY                      5.0
+pfset ComputationalGrid.DZ	                 0.5
 
-pfset ComputationalGrid.NX                      18
-pfset ComputationalGrid.NY                      15
-pfset ComputationalGrid.NZ                       8
+pfset ComputationalGrid.NX                      2
+pfset ComputationalGrid.NY                      2
+pfset ComputationalGrid.NZ                       2
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -47,13 +47,13 @@ pfset GeomInput.domain_input.GeomName             domain
 #-----------------------------------------------------------------------------
 # Domain Geometry
 #-----------------------------------------------------------------------------
-pfset Geom.domain.Lower.X                        -10.0 
-pfset Geom.domain.Lower.Y                         10.0
-pfset Geom.domain.Lower.Z                          1.0
+pfset Geom.domain.Lower.X                        0.0 
+pfset Geom.domain.Lower.Y                         0.0
+pfset Geom.domain.Lower.Z                          0.0
 
-pfset Geom.domain.Upper.X                        150.0
-pfset Geom.domain.Upper.Y                        170.0
-pfset Geom.domain.Upper.Z                          9.0
+pfset Geom.domain.Upper.X                        10.0
+pfset Geom.domain.Upper.Y                        10.0
+pfset Geom.domain.Upper.Z                          1.0
 
 pfset Geom.domain.Patches "left right front back bottom top"
 
@@ -83,13 +83,13 @@ pfset GeomInput.source_region_input.GeomName       source_region
 #-----------------------------------------------------------------------------
 # Source_Region Geometry
 #-----------------------------------------------------------------------------
-pfset Geom.source_region.Lower.X    65.56
-pfset Geom.source_region.Lower.Y    79.34
-pfset Geom.source_region.Lower.Z     4.5
+pfset Geom.source_region.Lower.X    0.0
+pfset Geom.source_region.Lower.Y    0.0
+pfset Geom.source_region.Lower.Z    0.0
 
-pfset Geom.source_region.Upper.X    74.44
-pfset Geom.source_region.Upper.Y    89.99
-pfset Geom.source_region.Upper.Z     5.5
+pfset Geom.source_region.Upper.X    10.0
+pfset Geom.source_region.Upper.Y    10.0
+pfset Geom.source_region.Upper.Z     0.5
 
 
 #-----------------------------------------------------------------------------
@@ -101,13 +101,13 @@ pfset GeomInput.concen_region_input.GeomName        concen_region
 #-----------------------------------------------------------------------------
 # Concen_Region Geometry
 #-----------------------------------------------------------------------------
-pfset Geom.concen_region.Lower.X   60.0
-pfset Geom.concen_region.Lower.Y   80.0
-pfset Geom.concen_region.Lower.Z    4.0
+pfset Geom.concen_region.Lower.X  0.0
+pfset Geom.concen_region.Lower.Y  0.0
+pfset Geom.concen_region.Lower.Z  0.5
 
-pfset Geom.concen_region.Upper.X   80.0
-pfset Geom.concen_region.Upper.Y  100.0
-pfset Geom.concen_region.Upper.Z    6.0
+pfset Geom.concen_region.Upper.X  10.0
+pfset Geom.concen_region.Upper.Y  10.0
+pfset Geom.concen_region.Upper.Z   1.0
 
 #-----------------------------------------------------------------------------
 # Perm
@@ -355,8 +355,14 @@ pfset Mannings.Geom.domain.Value 2.3e-7
 #---------------------------------------------------------
 # ALQUIMIA INPUT VARS
 #---------------------------------------------------------
-#pfset GeochemCondition.Names ""
-pfset Solver.Chemistry False
+pfset Solver.Chemistry True
+
+pfset GeochemCondition.Type "Constant"
+pfset GeochemCondition.GeomNames "source_region concen_region"
+pfset GeochemCondition.Names "source concen"
+pfset GeochemCondition.Geom.source_region.Value "concen"
+pfset GeochemCondition.Geom.concen_region.Value "source"
+
 
 #-----------------------------------------------------------------------------
 # The Solver Impes MaxIter default value changed so to get previous
