@@ -57,6 +57,9 @@
 #cmakedefine PARFLOW_HAVE_MALLOC_H
 #cmakedefine HAVE_MALLOC_H
 
+#cmakedefine PARFLOW_HAVE_MALLINFO
+#cmakedefine HAVE_MALLINFO
+
 #cmakedefine PARFLOW_HAVE_ALQUIMIA
 #cmakedefine HAVE_ALQUIMIA
 
