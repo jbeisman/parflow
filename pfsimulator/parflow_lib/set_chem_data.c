@@ -35,6 +35,7 @@
 *****************************************************************************/
 
 #include "parflow.h"
+#include "pf_alquimia.h"
 
 
 /*--------------------------------------------------------------------------
@@ -179,8 +180,6 @@ void  SetChemDataFreePublicXtra()
 
 int       SetChemDataSizeOfTempData()
 {
-  PFModule      *this_module = ThisPFModule;
-  InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
 
   return 0;
 }

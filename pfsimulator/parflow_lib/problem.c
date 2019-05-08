@@ -36,6 +36,7 @@
 
 #include "parflow.h"
 #include "problem.h"
+#include "pf_alquimia.h"
 
 
 /*--------------------------------------------------------------------------

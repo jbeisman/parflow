@@ -38,6 +38,8 @@
 
 
 #include "parflow.h"
+#include "pf_alquimia.h"
+#include "alquimia/alquimia_constants.h"
 
 
 /*--------------------------------------------------------------------------
@@ -47,13 +49,13 @@
 typedef struct {
   int           time_index;
   int           num_geochem_conds;
+  char			*engine_name;
   PFModule      *set_chem_data;
 } PublicXtra;
 
 typedef struct {
   Problem       *problem;
   Grid          *grid;
-  int           site_data_not_formed;
   PFModule      *set_chem_data;
 } InstanceXtra;
 
@@ -65,7 +67,7 @@ typedef struct {
  * InitializeChemistry
  *--------------------------------------------------------------------------*/
 
-void InitializeChemistry(ProblemData *problem_data)
+void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -86,48 +88,21 @@ void InitializeChemistry(ProblemData *problem_data)
 
   Vector        *geochemcond = ProblemDataGeochemCond(problem_data);
 
+  AllocateAlquimiaEngineStatus(&alquimia_data->chem_status);
+  CreateAlquimiaInterface(public_xtra->engine_name, &alquimia_data->chem, &alquimia_data->chem_status);
 
-Subgrid      *subgrid;
-int is;
+    if (alquimia_data->chem_status.error != 0) 
+  {
+    alquimia_error("InitializeChemistry: %s", alquimia_data->chem_status.message);
+  }
+  else
+  {
+  	amps_Printf("Successful creation of Alquimia interface\n");
+  }
 
-          ForSubgridI(is, GridSubgrids(grid))
-          {
-              int         ix, iy, iz, j_x, p_x;
-              int         i, j, k;
-              int         nx, ny, nz;
-              int         *cond;
-              
-                           
-              subgrid = GridSubgrid(grid, is);
-              Subvector  *cond_sub, *geom_sub;
-              nx = SubgridNX(subgrid);
-              ny = SubgridNY(subgrid);
-              nz = SubgridNZ(subgrid);
-                            
-              ix = SubgridIX(subgrid);
-              iy = SubgridIY(subgrid);
-              iz = SubgridIZ(subgrid);
-              
-          cond_sub = VectorSubvector(geochemcond,is);
-          cond     = SubvectorData(cond_sub);
-          p_x = 0;
-          
-             
-              
-              for (i = ix; i < ix + nx; i++)
-              {
-                  for (j = iy; j < iy + ny; j++)
-                  {
-                      for (k = iz; k < iz + nz; k++)
-                      {
-               p_x = SubvectorEltIndex(cond_sub, i,j,k);
-              
-               printf("i: %d j: %d k: %d  jinitCRUNCH: %d \n",i,j,k, cond[p_x]);
-                          
-                      }
-                  }
-              }
-          }
+
+
+
 
 
 EndTiming(public_xtra->time_index);
@@ -140,7 +115,6 @@ EndTiming(public_xtra->time_index);
 
 PFModule  *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid)
 {
-
   PFModule      *this_module = ThisPFModule;
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   InstanceXtra  *instance_xtra;
@@ -218,12 +192,25 @@ PFModule   *InitializeChemistryNewPublicXtra()
 {
   PFModule     *this_module = ThisPFModule;
   PublicXtra   *public_xtra;
-
+  char key[IDB_MAX_KEY_LEN];
 
   public_xtra = ctalloc(PublicXtra, 1);
 
   (public_xtra->set_chem_data) = PFModuleNewModule(SetChemData, ());
   (public_xtra->time_index) = RegisterTiming("Chemistry Initialization");
+
+
+  sprintf(key, "Solver.ChemistryEngine");
+  public_xtra->engine_name = GetStringDefault(key,"");
+
+  if (strcmp(public_xtra->engine_name,kAlquimiaStringCrunchFlow) != 0 
+  	 && strcmp(public_xtra->engine_name,kAlquimiaStringPFloTran) != 0)
+  {
+  	amps_Printf("Acceptable ChemistryEngine options are %s or %s\n", 
+  		kAlquimiaStringCrunchFlow, kAlquimiaStringPFloTran);
+    InputError("Error: invalid value <%s> for key <%s>\n",
+               public_xtra->engine_name, key);
+  }
 
   PFModulePublicXtra(this_module) = public_xtra;
   return this_module;

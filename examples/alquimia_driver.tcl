@@ -356,12 +356,13 @@ pfset Mannings.Geom.domain.Value 2.3e-7
 # ALQUIMIA INPUT VARS
 #---------------------------------------------------------
 pfset Solver.Chemistry True
+pfset Solver.ChemistryEngine CrunchFlow
 
 pfset GeochemCondition.Type "Constant"
 pfset GeochemCondition.GeomNames "source_region concen_region"
 pfset GeochemCondition.Names "source concen"
-pfset GeochemCondition.Geom.source_region.Value "concen"
-pfset GeochemCondition.Geom.concen_region.Value "source"
+pfset GeochemCondition.Geom.source_region.Value "source"
+pfset GeochemCondition.Geom.concen_region.Value "concen"
 
 
 #-----------------------------------------------------------------------------

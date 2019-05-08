@@ -32,31 +32,42 @@
 *-----------------------------------------------------------------------------
 *
 *****************************************************************************/
-typedef struct {
-  
-  int nx;
-  int ny;
-  int nz;
+#include "alquimia/alquimia_memory.h"
+#include "alquimia/alquimia_util.h"
+#include "alquimia/alquimia_interface.h"
 
-  Vector *porosity;
-  Vector **saturations;
-  Vector **concentrations;
-  Vector *total_x_velocity;
-  Vector *total_y_velocity;
-  Vector *total_z_velocity;
+typedef struct _AlquimiaDataPF {
+  // Per-cell chemistry data.
+  AlquimiaProperties* chem_properties;
+  AlquimiaState* chem_state;
+  AlquimiaAuxiliaryData* chem_aux_data;
+  AlquimiaAuxiliaryOutputData* chem_aux_output;
+
+  // Chemistry engine -- one of each of these per thread in general.
+  AlquimiaInterface chem;
+  void* chem_engine;
+  AlquimiaEngineStatus chem_status;
+
+  // Chemistry metadata.
+  AlquimiaSizes chem_sizes;
+  AlquimiaProblemMetaData chem_metadata;
+
+  // Initial and boundary conditions.
+  AlquimiaGeochemicalCondition chem_ic;
+  AlquimiaGeochemicalCondition chem_left_bc, chem_right_bc;
+  AlquimiaState chem_left_state, chem_right_state;
+  AlquimiaAuxiliaryData chem_left_aux_data, chem_right_aux_data;
+
+  // Bookkeeping.
+  AlquimiaState advected_chem_state;
+  AlquimiaAuxiliaryData advected_chem_aux_data;
+  double *test_double_ptr;
+  double test_double;
+  int test_int;
+} AlquimiaDataPF;
 
 
 
-
-
-
-
-}AquimiaXtra;
-
-
-void PF_allocate_alquimia(int nx, int ny, int nz);
-
-void TestFunction(char * engine);
 
 
 
@@ -78,9 +89,9 @@ int ChemAdvanceSizeOfTempData(void);
 
 
 /* chem_initialize.c*/
-typedef void (*InitializeChemistryInvoke) (ProblemData *problem_data);
+typedef void (*InitializeChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data);
 typedef PFModule *(*InitializeChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
-void InitializeChemistry(ProblemData *problem_data);
+void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data);
 PFModule *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid);
 void InitializeChemistryFreeInstanceXtra(void);
 PFModule *InitializeChemistryNewPublicXtra(void);
@@ -97,4 +108,10 @@ void SetChemDataFreeInstanceXtra(void);
 PFModule *SetChemDataNewPublicXtra(void);
 void SetChemDataFreePublicXtra(void);
 int SetChemDataSizeOfTempData(void);
+
+void Chem2PF_Single(Vector *pf_vector, double *chem_var);
+void PF2Chem_Single(Vector *pf_vector, double *chem_var);
+void Chem2PF_Multi(Vector *pf_vector, double *chem_var, int num_var);
+void PF2Chem_Multi(Vector *pf_vector, double *chem_var, int num_var);
+
 

@@ -42,6 +42,7 @@
 #include "alquimia/alquimia_interface.h"
 #include "alquimia/alquimia_memory.h"
 #include "alquimia/alquimia_util.h"
+#include "pf_alquimia.h"
 
 
 
@@ -112,9 +113,10 @@ typedef struct {
 
   ProblemData       *problem_data;
   double            *temp_data;
-
+  int               test_var;
   PFModule          *init_chem;
-
+  AlquimiaDataPF      *alquimia_data;
+  
 } InstanceXtra;
 
 
@@ -230,54 +232,18 @@ void      SolverImpes()
 
   t = start_time;
 
+
+// sandbox
   int chem_flag;
   chem_flag = GlobalsChemistryFlag;
   PFModule     *init_chem = (instance_xtra->init_chem);
 
-
-
-  // Per-cell chemistry data.
-  AlquimiaProperties* chem_properties;
-  AlquimiaState* chem_state;
-  AlquimiaAuxiliaryData* chem_aux_data;
-  AlquimiaAuxiliaryOutputData* chem_aux_output;
-
-  // Chemistry engine -- one of each of these per thread in general.
-  AlquimiaInterface chem;
-  void* chem_engine;
-  AlquimiaEngineStatus chem_status;
-
-  // Chemistry metadata.
-  AlquimiaSizes chem_sizes;
-  AlquimiaProblemMetaData chem_metadata;
-
-  // Initial and boundary conditions.
-  AlquimiaGeochemicalCondition chem_ic;
-  AlquimiaGeochemicalCondition chem_left_bc, chem_right_bc;
-  AlquimiaState chem_left_state, chem_right_state;
-  AlquimiaAuxiliaryData chem_left_aux_data, chem_right_aux_data;
-
-  // Bookkeeping.
-  AlquimiaState advected_chem_state;
-  AlquimiaAuxiliaryData advected_chem_aux_data;
-  double* advective_fluxes;
-
-
-  AllocateAlquimiaEngineStatus(&chem_status);
 
   //this is how we define an alquimia string
   const char * strtest = "CrunchFlow";
   char* chemistry_engine = AlquimiaStringDup(strtest);
   printf( "%s\n", chemistry_engine);
    
-
-  CreateAlquimiaInterface(chemistry_engine, &chem, &chem_status);
-
-
-
-
-
-
 
 
 
@@ -492,7 +458,6 @@ void      SolverImpes()
         }
       }
 
-
       /*----------------------------------------------------------------
        * Allocate phase/total velocities and total mobility
        *----------------------------------------------------------------*/
@@ -545,13 +510,19 @@ void      SolverImpes()
       /*****************************************************************/
       /*          Call the geochemical engine         */
       /*****************************************************************/
-printf("chem_flag!??!!!?!: %d\n", chem_flag);
+
             if (chem_flag) /*Initialize the geochemical system*/
       {
-        PFModuleInvokeType(InitializeChemistryInvoke, init_chem,
-                      (problem_data));
-      }
 
+        instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
+        instance_xtra->alquimia_data->test_double_ptr = ctalloc(double, 3);
+
+
+
+        PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
+                          (problem_data, instance_xtra->alquimia_data));
+
+      }
       /*****************************************************************/
       /*          Print out any of the requested initial data          */
       /*****************************************************************/
@@ -1989,6 +1960,9 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
   NameArray diag_solver_na;
   NameArray linear_solver_na;
 
+  int chem_flag;
+  chem_flag = GlobalsChemistryFlag;
+
   switch_na = NA_NewNameArray("False True");
 
   public_xtra = ctalloc(PublicXtra, 1);
@@ -2076,7 +2050,10 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
 
   (public_xtra->advect_satur) = PFModuleNewModule(SatGodunov, ());
   (public_xtra->advect_concen) = PFModuleNewModule(Godunov, ());
+  if (chem_flag)
+{
   (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
+}
   (public_xtra->set_problem_data) = PFModuleNewModule(SetProblemData, ());
 
   (public_xtra->problem) = NewProblem(ImpesSolve);
@@ -2238,6 +2215,8 @@ void   SolverImpesFreePublicXtra()
 {
   PFModule      *this_module = ThisPFModule;
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
+  int chem_flag;
+  chem_flag = GlobalsChemistryFlag;
 
   if (public_xtra)
   {
@@ -2253,7 +2232,10 @@ void   SolverImpesFreePublicXtra()
     PFModuleFreeModule(public_xtra->phase_velocity_face);
     PFModuleFreeModule(public_xtra->permeability_face);
     PFModuleFreeModule(public_xtra->discretize_pressure);
-    PFModuleFreeModule(public_xtra->init_chem);
+        if (chem_flag)
+    {
+      PFModuleFreeModule(public_xtra->init_chem);
+    }
 
 
     tfree(public_xtra);

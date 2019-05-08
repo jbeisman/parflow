@@ -27,6 +27,7 @@
  **********************************************************************EHEADER*/
 
 #include "parflow.h"
+#include "pf_alquimia.h"
 
 /*--------------------------------------------------------------------------
  * Structures
@@ -45,7 +46,7 @@ typedef struct {
   int       num_regions;
   NameArray regions;
   int       *region_indices;
-  int       *values;
+  double    *values;
 } Type0;                       /* constant regions */
 
 typedef struct {
@@ -72,7 +73,7 @@ void  GeochemCond(ProblemData *problem_data, Vector *geochemcond)
   Subgrid        *subgrid;
   Subvector      *pc_sub;
 
-  int *data;
+  double *data;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -91,10 +92,10 @@ void  GeochemCond(ProblemData *problem_data, Vector *geochemcond)
     {
       int num_regions;
       int *region_indices;
-      int *values;
+      double *values;
 
       GrGeomSolid  *gr_solid;
-      int value;
+      double value;
       int ir;
 
 
@@ -110,7 +111,7 @@ void  GeochemCond(ProblemData *problem_data, Vector *geochemcond)
       {
         gr_solid = ProblemDataGrSolid(problem_data, region_indices[ir]);
         value = values[ir];
-        printf("VALUES:%d\n",value);
+        printf("VALUES:%d\n",(int)value);
 
         ForSubgridI(is, subgrids)
         {
@@ -207,8 +208,6 @@ PFModule   *GeochemCondNewPublicXtra()
   type_na = NA_NewNameArray("Constant PFBFile");
   public_xtra = ctalloc(PublicXtra, 1);
 
-  
-  printf( "number of geochem conds: %d\n", public_xtra->num_geochem_conds);
 
     geochem_cond_names = GetStringDefault("GeochemCondition.Names","");
     geochem_cond_na = NA_NewNameArray(geochem_cond_names);
@@ -216,7 +215,7 @@ PFModule   *GeochemCondNewPublicXtra()
     num_geochem_conds = NA_Sizeof(geochem_cond_na);
     (public_xtra->num_geochem_conds) = num_geochem_conds;
 
-
+  printf( "number of geochem conds: %d\n", public_xtra->num_geochem_conds);
   if (num_geochem_conds > 0)
   {
     switch_name = GetString("GeochemCondition.Type");
@@ -237,7 +236,7 @@ PFModule   *GeochemCondNewPublicXtra()
               (dummy0->num_regions) = NA_Sizeof(dummy0->regions);
 
             (dummy0->region_indices) = ctalloc(int, num_regions);
-            (dummy0->values) = ctalloc(int, num_regions);
+            (dummy0->values) = ctalloc(double, num_regions);
 
             for (ir = 0; ir < num_regions; ir++)
             {
