@@ -40,7 +40,9 @@
 #include "parflow.h"
 #include "pf_alquimia.h"
 #include "alquimia/alquimia_constants.h"
-
+#include "alquimia/alquimia_interface.h"
+#include "alquimia/alquimia_memory.h"
+#include "alquimia/alquimia_util.h"
 
 /*--------------------------------------------------------------------------
  * Structures
@@ -49,7 +51,8 @@
 typedef struct {
   int           time_index;
   int           num_geochem_conds;
-  char			*engine_name;
+  char*         engine_name;
+  char*         chemistry_input_file;
   PFModule      *set_chem_data;
 } PublicXtra;
 
@@ -74,13 +77,17 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   Problem       *problem = (instance_xtra->problem);
   Grid          *grid = (instance_xtra->grid);
+  Subgrid          *subgrid;
 
   PFModule     *set_chem_data = (instance_xtra->set_chem_data);
 
   char *geochem_conds;
   int num_geochem_conds;
+  int num_cells;
 
   BeginTiming(public_xtra->time_index);
+
+  //num_cells = SubgridNX(subgrid) * SubgridNY(subgrid) * SubgridNZ(subgrid);
   
   // set chem data  
   PFModuleInvokeType(SetChemDataInvoke, set_chem_data, (problem_data));
@@ -91,18 +98,48 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   AllocateAlquimiaEngineStatus(&alquimia_data->chem_status);
   CreateAlquimiaInterface(public_xtra->engine_name, &alquimia_data->chem, &alquimia_data->chem_status);
 
-    if (alquimia_data->chem_status.error != 0) 
+  if (alquimia_data->chem_status.error != 0) 
   {
-    alquimia_error("InitializeChemistry: %s", alquimia_data->chem_status.message);
+    alquimia_error("Alquimia interface creation error: %s", alquimia_data->chem_status.message);
+    exit(1);
   }
   else
   {
-  	amps_Printf("Successful creation of Alquimia interface\n");
+      if (!amps_Rank(amps_CommWorld))
+      {
+  	     amps_Printf("Successful creation of Alquimia interface\n");
+      }
   }
 
+  bool hands_off = true;
+  AlquimiaEngineFunctionality chem_engine_functionality;
+  alquimia_data->chem.Setup(public_xtra->chemistry_input_file,
+                     hands_off,
+                     &alquimia_data->chem_engine,
+                     &alquimia_data->chem_sizes,
+                     &chem_engine_functionality,
+                     &alquimia_data->chem_status);
 
+  if (alquimia_data->chem_status.error != 0) 
+  {
+    alquimia_error("Alquimia interface setup error: %s", alquimia_data->chem_status.message);
+    exit(1);
+  }
+  else
+  {
+      if (!amps_Rank(amps_CommWorld))
+      {
+          amps_Printf("Successful setup() of Alquimia interface\n");
+      }
+  }
 
+  num_cells = 100;
 
+  AllocateAlquimiaProblemMetaData(&alquimia_data->chem_sizes, &alquimia_data->chem_metadata);
+  alquimia_data->chem_properties = malloc(sizeof(AlquimiaProperties) * num_cells);
+  alquimia_data->chem_state = malloc(sizeof(AlquimiaState) * num_cells);
+  alquimia_data->chem_aux_data = malloc(sizeof(AlquimiaAuxiliaryData) * num_cells);
+  alquimia_data->chem_aux_output = malloc(sizeof(AlquimiaAuxiliaryOutputData) * num_cells);
 
 
 EndTiming(public_xtra->time_index);
@@ -200,17 +237,18 @@ PFModule   *InitializeChemistryNewPublicXtra()
   (public_xtra->time_index) = RegisterTiming("Chemistry Initialization");
 
 
-  sprintf(key, "Solver.ChemistryEngine");
+  sprintf(key, "Chemistry.Engine");
   public_xtra->engine_name = GetStringDefault(key,"");
 
   if (strcmp(public_xtra->engine_name,kAlquimiaStringCrunchFlow) != 0 
   	 && strcmp(public_xtra->engine_name,kAlquimiaStringPFloTran) != 0)
   {
-  	amps_Printf("Acceptable ChemistryEngine options are %s or %s\n", 
-  		kAlquimiaStringCrunchFlow, kAlquimiaStringPFloTran);
-    InputError("Error: invalid value <%s> for key <%s>\n",
+    InputError("Error: invalid value <%s> for key <%s>. Options are CrunchFlow or PFloTran\n",
                public_xtra->engine_name, key);
   }
+
+  sprintf(key, "Chemistry.InputFile");
+  public_xtra->chemistry_input_file = GetString(key);
 
   PFModulePublicXtra(this_module) = public_xtra;
   return this_module;

@@ -513,6 +513,7 @@ void      SolverImpes()
 
             if (chem_flag) /*Initialize the geochemical system*/
       {
+      	amps_Printf("Initializing chemical system\n");
 
         instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
         instance_xtra->alquimia_data->test_double_ptr = ctalloc(double, 3);

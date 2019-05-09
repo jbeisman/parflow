@@ -24,17 +24,24 @@
  *  License along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  *  USA
- **********************************************************************EHEADER*/
+*/
 
-/*****************************************************************************
+
+
+
+#ifndef PF_ALQUIMIA_H
+#define PF_ALQUIMIA_H
+ /**********************************************************************EHEADER
+
+*****************************************************************************
 * Header file to include all Alquimia related functions
 *
 *-----------------------------------------------------------------------------
 *
 *****************************************************************************/
-#include "alquimia/alquimia_memory.h"
-#include "alquimia/alquimia_util.h"
+#include "alquimia/alquimia_containers.h"
 #include "alquimia/alquimia_interface.h"
+
 
 typedef struct _AlquimiaDataPF {
   // Per-cell chemistry data.
@@ -114,4 +121,4 @@ void PF2Chem_Single(Vector *pf_vector, double *chem_var);
 void Chem2PF_Multi(Vector *pf_vector, double *chem_var, int num_var);
 void PF2Chem_Multi(Vector *pf_vector, double *chem_var, int num_var);
 
-
+#endif

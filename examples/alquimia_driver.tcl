@@ -14,8 +14,8 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        1
-pfset Process.Topology.Q        1
+pfset Process.Topology.P        2
+pfset Process.Topology.Q        2
 pfset Process.Topology.R        1
 
 #-----------------------------------------------------------------------------
@@ -356,7 +356,8 @@ pfset Mannings.Geom.domain.Value 2.3e-7
 # ALQUIMIA INPUT VARS
 #---------------------------------------------------------
 pfset Solver.Chemistry True
-pfset Solver.ChemistryEngine CrunchFlow
+pfset Chemistry.Engine CrunchFlow
+pfset Chemistry.InputFile tracer-1d-crunch.in
 
 pfset GeochemCondition.Type "Constant"
 pfset GeochemCondition.GeomNames "source_region concen_region"
