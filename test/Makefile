@@ -14,6 +14,7 @@ default: check
 
 TESTS := \
 	default_single.tcl \
+	default_single_new.tcl \
 	default_richards_wells.tcl \
 	forsyth2.tcl \
 	harvey.flow.tcl \
@@ -74,6 +75,7 @@ PARALLEL_2DTOPO_TESTS :=
 ifeq (${AMPS},mpi1)
 
 PARALLEL_3DTOPO_TESTS += \
+	default_single.tcl \
 	default_single.tcl
 
 ifeq (${PARFLOW_HAVE_HYPRE},yes)
@@ -245,4 +247,5 @@ testclean:
 	@rm -f samrai_grid2D.tmp.tcl
 	@rm -fr LW_var_dz_spinup.out
 	@rm -fr default_single.out
+	@rm -fr default_single_new.out
 	@rm -f *.nc

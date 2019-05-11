@@ -10,6 +10,7 @@ set (SRC_FILES advect.F
   char_vector.c
   chebyshev.c
   chem_initialize.c
+  chem_utilities.c
   comm_pkg.c
   communication.c
   computation.c

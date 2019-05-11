@@ -46,6 +46,7 @@ typedef struct {
   PFModule          *phase_mobility;
   PFModule          *phase_density;
   PFModule          *capillary_pressure;
+  PFModule          *bc_pressure;
 
   Problem           *problem;
   Grid              *grid;
@@ -67,7 +68,8 @@ void          PhaseVelocityFace(
                                 ProblemData *problem_data,
                                 Vector *     pressure,
                                 Vector **    saturations,
-                                int          phase)
+                                int          phase,
+                                double       time)
 {
   PFModule       *this_module = ThisPFModule;
   InstanceXtra   *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -76,6 +78,7 @@ void          PhaseVelocityFace(
   PFModule       *phase_mobility = (instance_xtra->phase_mobility);
   PFModule       *phase_density = (instance_xtra->phase_density);
   PFModule       *capillary_pressure = (instance_xtra->capillary_pressure);
+  PFModule       *bc_pressure = (instance_xtra->bc_pressure);
 
   Problem        *problem = (instance_xtra->problem);
   Grid           *grid = (instance_xtra->grid);
@@ -117,14 +120,10 @@ void          PhaseVelocityFace(
 
   VectorUpdateCommHandle     *handle;
 
-  Vector         *pressure_vector, *vel_vec[3];
-  Subvector      *subvector_v0,
-    *subvector_v1,
-    *subvector_v2;
-  double         *vel0_l, *vel0_r,
-    *vel1_l, *vel1_r,
-    *vel2_l, *vel2_r,
-    *vel_tmp;
+  Vector         *pressure_vector, *vel_vec[3], *mobility_vec[3];
+  Subvector      *subvector_v0, *subvector_mob;
+  double         *vel_l, *vel_r, *mob, *vel_tmp;
+  double         *den, *pres;
   double ds[3];
   double h0, h1, h2, dummy_density;
   int dir0 = 0, dir1, dir2, alpha;
@@ -424,15 +423,33 @@ void          PhaseVelocityFace(
    * `dir0', `dir1', `dir2' to represent the "primary" direction
    * and two "secondary" directions.  Here "primary" essentially the
    * direction of interest or the direction which we are modifying.
+   * --------------------------------------------------------------------
+   * Fixed boundary values for saturated solver - JJB 05/19
+   * 
    *----------------------------------------------------------------------*/
 
   vel_vec[0] = xvel;
   vel_vec[1] = yvel;
   vel_vec[2] = zvel;
 
+  mobility_vec[0] = temp_mobility_x;
+  mobility_vec[1] = temp_mobility_y;
+  mobility_vec[2] = temp_mobility_z;
+
+  int ival;
+  double value;
+  double      *bc_patch_values;
+
+  BCStruct    *bc_struct;
+  bc_struct = PFModuleInvokeType(BCPressureInvoke, bc_pressure,
+                                 (problem_data, grid, gr_domain, time));
   ForSubgridI(sg, GridSubgrids(grid))
   {
     subgrid = GridSubgrid(grid, sg);
+
+    subvector_p = VectorSubvector(pressure_vector, sg);
+    subvector_d = VectorSubvector(temp_density, sg);
+
 
     /* RDF: assume resolution is the same in all 3 directions */
     r = SubgridRX(subgrid);
@@ -449,74 +466,106 @@ void          PhaseVelocityFace(
     ds[1] = SubgridDY(subgrid);
     ds[2] = SubgridDZ(subgrid);
 
-    for (ipatch = 0; ipatch < GrGeomSolidNumPatches(gr_domain); ipatch++)
+    for (ipatch = 0; ipatch < BCStructNumPatches(bc_struct); ipatch++)
     {
-      GrGeomPatchLoop(i, j, k, fdir, gr_domain, ipatch,
-                      r, ix, iy, iz, nx, ny, nz,
+      bc_patch_values = BCStructPatchValues(bc_struct, ipatch, sg);
+
+      switch (BCStructBCType(bc_struct, ipatch))
       {
-        /* primary direction x */
-        if (fdir[0])
+        case DirichletBC:
         {
-          dir0 = 0;
-          dir1 = 1;
-          dir2 = 2;
+          BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, sg,
+          {
+            value = bc_patch_values[ival];
+            /* primary direction x */
+            if (fdir[0])
+            {
+              dir0 = 0;
+            }
+            /* primary direction y */
+            else if (fdir[1])
+            {
+              dir0 = 1;
+            }
+            /* primary direction z */
+            else if (fdir[2])
+            {
+              dir0 = 2;
+            }
+            alpha = -fdir[dir0];
+
+            subvector_v0 = VectorSubvector(vel_vec[dir0], sg);
+            subvector_mob = VectorSubvector(mobility_vec[dir0], sg);
+
+            vel_l = SubvectorElt(subvector_v0, i, j, k);
+            vel_r = SubvectorElt(subvector_v0,
+                                  i + dir[dir0][0],
+                                  j + dir[dir0][1],
+                                  k + dir[dir0][2]);
+
+            mob = SubvectorElt(subvector_mob, i, j, k);
+            den = SubvectorElt(subvector_d, i, j, k);
+            pres = SubvectorElt(subvector_p, i, j, k);
+            h0 = ds[dir0];
+           
+            if (fdir[dir0] == -1)
+            {
+              vel_tmp = vel_r;
+              vel_r = vel_l;
+              vel_l = vel_tmp;
+            }
+
+            if (dir0 == 2)
+            {
+              vel_r[0] = alpha * mob[0] * ((value - pres[0]) / (0.5 * h0) - alpha * den[0] * ProblemGravity(problem));
+            }
+            else
+            {
+              vel_r[0] = alpha * mob[0] * (value - pres[0]) / (0.5 * h0);
+            }
+          });
+          break;
         }
-        /* primary direction y */
-        else if (fdir[1])
+        case FluxBC:
         {
-          dir0 = 1;
-          dir1 = 0;
-          dir2 = 2;
+          BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, sg,
+          {
+            value = bc_patch_values[ival];
+            /* primary direction x */
+            if (fdir[0])
+            {
+              dir0 = 0;
+            }
+            /* primary direction y */
+            else if (fdir[1])
+            {
+              dir0 = 1;
+            }
+            /* primary direction z */
+            else if (fdir[2])
+            {
+              dir0 = 2;
+            }
+
+            subvector_v0 = VectorSubvector(vel_vec[dir0], sg);
+
+            vel_l = SubvectorElt(subvector_v0, i, j, k);
+            vel_r = SubvectorElt(subvector_v0,
+                                  i + dir[dir0][0],
+                                  j + dir[dir0][1],
+                                  k + dir[dir0][2]);
+            if (fdir[dir0] == -1)
+            {
+              vel_tmp = vel_r;
+              vel_r = vel_l;
+              vel_l = vel_tmp;
+            }
+
+            vel_r[0] = value;
+
+          });
         }
-        /* primary direction z */
-        else if (fdir[2])
-        {
-          dir0 = 2;
-          dir1 = 0;
-          dir2 = 1;
-        }
-        alpha = -fdir[dir0];
-
-        subvector_v0 = VectorSubvector(vel_vec[dir0], sg);
-        subvector_v1 = VectorSubvector(vel_vec[dir1], sg);
-        subvector_v2 = VectorSubvector(vel_vec[dir2], sg);
-
-        vel0_l = SubvectorElt(subvector_v0, i, j, k);
-        vel0_r = SubvectorElt(subvector_v0,
-                              i + dir[dir0][0],
-                              j + dir[dir0][1],
-                              k + dir[dir0][2]);
-        vel1_l = SubvectorElt(subvector_v1, i, j, k);
-        vel1_r = SubvectorElt(subvector_v1,
-                              i + dir[dir1][0],
-                              j + dir[dir1][1],
-                              k + dir[dir1][2]);
-        vel2_l = SubvectorElt(subvector_v2, i, j, k);
-        vel2_r = SubvectorElt(subvector_v2,
-                              i + dir[dir2][0],
-                              j + dir[dir2][1],
-                              k + dir[dir2][2]);
-
-        if (fdir[dir0] == -1)
-        {
-          vel_tmp = vel0_r;
-          vel0_r = vel0_l;
-          vel0_l = vel_tmp;
-        }
-
-        h0 = ds[dir0];
-        h1 = ds[dir1];
-        h2 = ds[dir2];
-
-        /*	Apply a xero velocity condition on outer boundaries */
-        vel0_r[0] = 0.0;
-
-        /*
-         * vel0_r[0] = vel0_l[0]
-         + alpha*h0*( (vel1_r[0] - vel1_l[0])/h1
-         + (vel2_r[0] - vel2_l[0])/h2 );
-         */
-      });
+      }
     }
   }
 
@@ -620,12 +669,17 @@ PFModule *PhaseVelocityFaceInitInstanceXtra(
       PFModuleNewInstance(ProblemPhaseDensity(problem), ());
     (instance_xtra->capillary_pressure) =
       PFModuleNewInstance(ProblemCapillaryPressure(problem), ());
+    (instance_xtra->bc_pressure) =
+      PFModuleNewInstanceType(BCPressurePackageInitInstanceXtraInvoke,
+                              ProblemBCPressure(problem), (problem));
   }
   else
   {
     PFModuleReNewInstance((instance_xtra->phase_mobility), ());
     PFModuleReNewInstance((instance_xtra->phase_density), ());
     PFModuleReNewInstance((instance_xtra->capillary_pressure), ());
+    PFModuleReNewInstanceType(BCPressurePackageInitInstanceXtraInvoke,
+                              (instance_xtra->bc_pressure), (problem));
   }
 
   PFModuleInstanceXtra(this_module) = instance_xtra;
@@ -647,6 +701,7 @@ void  PhaseVelocityFaceFreeInstanceXtra()
     PFModuleFreeInstance(instance_xtra->phase_mobility);
     PFModuleFreeInstance(instance_xtra->phase_density);
     PFModuleFreeInstance(instance_xtra->capillary_pressure);
+    PFModuleFreeInstance(instance_xtra->bc_pressure);
 
     free(instance_xtra);
   }

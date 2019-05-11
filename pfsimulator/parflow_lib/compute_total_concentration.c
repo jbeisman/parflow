@@ -81,11 +81,13 @@ double       ComputeTotalConcen(
 
     cell_volume = dx * dy * dz;
 
-    GrGeomSurfLoop(i, j, k, fdir, gr_domain, r, ix, iy, iz, nx, ny, nz,
+
+    //I don't like this
+   /* GrGeomSurfLoop(i, j, k, fdir, gr_domain, r, ix, iy, iz, nx, ny, nz,
     {
       ips = SubvectorEltIndex(s_sub, i, j, k);
       data[ips] = 0.0;
-    });
+    }); */
 
     GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
     {

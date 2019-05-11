@@ -44,7 +44,7 @@ macro(pf_test_clean)
     file(REMOVE ${FILES})
   endif()
 
-  file(GLOB FILES default_single.out water_balance.out default_overland.out LW_var_dz_spinup.out test.log.* richards_hydrostatic_equalibrium.out core.* samrai_grid.tmp.tcl samrai_grid2D.tmp.tcl CMakeCache.txt)
+  file(GLOB FILES default_single.out default_single_new.out water_balance.out default_overland.out LW_var_dz_spinup.out test.log.* richards_hydrostatic_equalibrium.out core.* samrai_grid.tmp.tcl samrai_grid2D.tmp.tcl CMakeCache.txt)
   if (NOT FILES STREQUAL "")
     file(REMOVE ${FILES})
   endif()

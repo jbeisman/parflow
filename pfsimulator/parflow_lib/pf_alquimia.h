@@ -25,10 +25,6 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  *  USA
 */
-
-
-
-
 #ifndef PF_ALQUIMIA_H
 #define PF_ALQUIMIA_H
  /**********************************************************************EHEADER
@@ -116,9 +112,12 @@ PFModule *SetChemDataNewPublicXtra(void);
 void SetChemDataFreePublicXtra(void);
 int SetChemDataSizeOfTempData(void);
 
-void Chem2PF_Single(Vector *pf_vector, double *chem_var);
-void PF2Chem_Single(Vector *pf_vector, double *chem_var);
-void Chem2PF_Multi(Vector *pf_vector, double *chem_var, int num_var);
-void PF2Chem_Multi(Vector *pf_vector, double *chem_var, int num_var);
+
+void Chem2PF_Single(Vector *pf_vector, double *chem_var, ProblemData *problem_data);
+void PF2Chem_Single(Vector *pf_vector, double *chem_var, ProblemData *problem_data);
+void Chem2PF_Multi(Vector *pf_vector, double *chem_var, int num_var, ProblemData *problem_data);
+void PF2Chem_Multi(Vector *pf_vector, double *chem_var, int num_var, ProblemData *problem_data);
+int  SubgridNumCells(Grid *grid, ProblemData *problem_data);
+void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data);
 
 #endif

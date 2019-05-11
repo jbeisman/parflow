@@ -77,7 +77,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   Problem       *problem = (instance_xtra->problem);
   Grid          *grid = (instance_xtra->grid);
-  Subgrid          *subgrid;
+  Subgrid       *subgrid;
 
   PFModule     *set_chem_data = (instance_xtra->set_chem_data);
 
@@ -86,15 +86,19 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   int num_cells;
 
   BeginTiming(public_xtra->time_index);
-
-  //num_cells = SubgridNX(subgrid) * SubgridNY(subgrid) * SubgridNZ(subgrid);
   
-  // set chem data  
+  // set chem data 
+  // this ivokes the geochemcond function and makes available a pfvector of 
+  // geochemcond indicators 
   PFModuleInvokeType(SetChemDataInvoke, set_chem_data, (problem_data));
+  Vector *geochemcond = ProblemDataGeochemCond(problem_data);
+
+  // find number of active cells for this subgrid
+  num_cells = SubgridNumCells(grid, problem_data);
+  printf("NUM_CELLS: %d\n",num_cells);
 
 
-  Vector        *geochemcond = ProblemDataGeochemCond(problem_data);
-
+  // fire alquimia up
   AllocateAlquimiaEngineStatus(&alquimia_data->chem_status);
   CreateAlquimiaInterface(public_xtra->engine_name, &alquimia_data->chem, &alquimia_data->chem_status);
 
@@ -133,13 +137,30 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
       }
   }
 
-  num_cells = 100;
-
   AllocateAlquimiaProblemMetaData(&alquimia_data->chem_sizes, &alquimia_data->chem_metadata);
-  alquimia_data->chem_properties = malloc(sizeof(AlquimiaProperties) * num_cells);
-  alquimia_data->chem_state = malloc(sizeof(AlquimiaState) * num_cells);
-  alquimia_data->chem_aux_data = malloc(sizeof(AlquimiaAuxiliaryData) * num_cells);
-  alquimia_data->chem_aux_output = malloc(sizeof(AlquimiaAuxiliaryOutputData) * num_cells);
+  alquimia_data->chem_properties = ctalloc(AlquimiaProperties, num_cells);
+  alquimia_data->chem_state = ctalloc(AlquimiaState, num_cells);
+  alquimia_data->chem_aux_data = ctalloc(AlquimiaAuxiliaryData, num_cells);
+  alquimia_data->chem_aux_output = ctalloc(AlquimiaAuxiliaryOutputData, num_cells);
+
+  AllocateChemCells(alquimia_data, grid,problem_data);
+
+  alquimia_data->chem.GetProblemMetaData(&alquimia_data->chem_engine, 
+                                         &alquimia_data->chem_metadata, 
+                                         &alquimia_data->chem_status);
+
+  if (alquimia_data->chem_status.error != 0) 
+  {
+    alquimia_error("Alquimia GetProblemMetaData() error: %s", alquimia_data->chem_status.message);
+    exit(1);
+  }
+  else
+  {
+      if (!amps_Rank(amps_CommWorld))
+      {
+          amps_Printf("Successful GetProblemMetaData() of Alquimia interface\n");
+      }
+  }
 
 
 EndTiming(public_xtra->time_index);
@@ -243,7 +264,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
   if (strcmp(public_xtra->engine_name,kAlquimiaStringCrunchFlow) != 0 
   	 && strcmp(public_xtra->engine_name,kAlquimiaStringPFloTran) != 0)
   {
-    InputError("Error: invalid value <%s> for key <%s>. Options are CrunchFlow or PFloTran\n",
+    InputError("Error: Invalid value <%s> for key <%s>. Options are 'CrunchFlow' or 'PFloTran'.\n",
                public_xtra->engine_name, key);
   }
 

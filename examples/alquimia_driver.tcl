@@ -14,8 +14,8 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        2
-pfset Process.Topology.Q        2
+pfset Process.Topology.P        1
+pfset Process.Topology.Q        1
 pfset Process.Topology.R        1
 
 #-----------------------------------------------------------------------------
@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 5.0
-pfset ComputationalGrid.DY                      5.0
-pfset ComputationalGrid.DZ	                 0.5
+pfset ComputationalGrid.DX	                 1.0
+pfset ComputationalGrid.DY                   1.0
+pfset ComputationalGrid.DZ	                 1.0
 
-pfset ComputationalGrid.NX                      2
-pfset ComputationalGrid.NY                      2
-pfset ComputationalGrid.NZ                       2
+pfset ComputationalGrid.NX                      10
+pfset ComputationalGrid.NY                      10
+pfset ComputationalGrid.NZ                      10
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -53,7 +53,7 @@ pfset Geom.domain.Lower.Z                          0.0
 
 pfset Geom.domain.Upper.X                        10.0
 pfset Geom.domain.Upper.Y                        10.0
-pfset Geom.domain.Upper.Z                          1.0
+pfset Geom.domain.Upper.Z                          10.0
 
 pfset Geom.domain.Patches "left right front back bottom top"
 
@@ -85,29 +85,13 @@ pfset GeomInput.source_region_input.GeomName       source_region
 #-----------------------------------------------------------------------------
 pfset Geom.source_region.Lower.X    0.0
 pfset Geom.source_region.Lower.Y    0.0
-pfset Geom.source_region.Lower.Z    0.0
+pfset Geom.source_region.Lower.Z    1.0
 
 pfset Geom.source_region.Upper.X    10.0
 pfset Geom.source_region.Upper.Y    10.0
-pfset Geom.source_region.Upper.Z     0.5
+pfset Geom.source_region.Upper.Z     10.0
 
 
-#-----------------------------------------------------------------------------
-# Concen_Region Geometry Input
-#-----------------------------------------------------------------------------
-pfset GeomInput.concen_region_input.InputType       Box
-pfset GeomInput.concen_region_input.GeomName        concen_region
-
-#-----------------------------------------------------------------------------
-# Concen_Region Geometry
-#-----------------------------------------------------------------------------
-pfset Geom.concen_region.Lower.X  0.0
-pfset Geom.concen_region.Lower.Y  0.0
-pfset Geom.concen_region.Lower.Z  0.5
-
-pfset Geom.concen_region.Upper.X  10.0
-pfset Geom.concen_region.Upper.Y  10.0
-pfset Geom.concen_region.Upper.Z   1.0
 
 #-----------------------------------------------------------------------------
 # Perm
@@ -124,6 +108,24 @@ pfset Geom.Perm.TensorByGeom.Names  "background"
 pfset Geom.background.Perm.TensorValX  1.0
 pfset Geom.background.Perm.TensorValY  1.0
 pfset Geom.background.Perm.TensorValZ  1.0
+
+
+#-----------------------------------------------------------------------------
+# Concen_Region Geometry Input
+#-----------------------------------------------------------------------------
+pfset GeomInput.concen_region_input.InputType       Box
+pfset GeomInput.concen_region_input.GeomName        concen_region
+
+#-----------------------------------------------------------------------------
+# Concen_Region Geometry
+#-----------------------------------------------------------------------------
+pfset Geom.concen_region.Lower.X  0.0
+pfset Geom.concen_region.Lower.Y  0.0
+pfset Geom.concen_region.Lower.Z  0.0
+
+pfset Geom.concen_region.Upper.X  10.0
+pfset Geom.concen_region.Upper.Y  10.0
+pfset Geom.concen_region.Upper.Z   10.0
 
 #-----------------------------------------------------------------------------
 # Phases
@@ -156,8 +158,8 @@ pfset Gravity				1.0
 pfset TimingInfo.BaseUnit		1.0
 pfset TimingInfo.StartCount		0
 pfset TimingInfo.StartTime		0.0
-pfset TimingInfo.StopTime            1000.0
-pfset TimingInfo.DumpInterval	       -1
+pfset TimingInfo.StopTime            20.0
+pfset TimingInfo.DumpInterval	     1
 
 #-----------------------------------------------------------------------------
 # Porosity
@@ -189,35 +191,14 @@ pfset Geom.background.tce.Retardation.Rate     0.0
 #-----------------------------------------------------------------------------
 # Wells
 #-----------------------------------------------------------------------------
-pfset Wells.Names snoopy
-
-pfset Wells.snoopy.InputType                Recirc
-
-pfset Wells.snoopy.Cycle		    constant
-
-pfset Wells.snoopy.ExtractionType	    Flux
-pfset Wells.snoopy.InjectionType            Flux
-
-pfset Wells.snoopy.X			    71.0 
-pfset Wells.snoopy.Y			    90.0
-pfset Wells.snoopy.ExtractionZLower	     5.0
-pfset Wells.snoopy.ExtractionZUpper	     5.0
-pfset Wells.snoopy.InjectionZLower	     2.0
-pfset Wells.snoopy.InjectionZUpper	     2.0
-
-pfset Wells.snoopy.ExtractionMethod	    Standard
-pfset Wells.snoopy.InjectionMethod          Standard
-
-pfset Wells.snoopy.alltime.Extraction.Flux.water.Value        	     5.0
-pfset Wells.snoopy.alltime.Injection.Flux.water.Value		     7.5
-pfset Wells.snoopy.alltime.Injection.Concentration.water.tce.Fraction 0.1
+pfset Wells.Names ""
 
 #-----------------------------------------------------------------------------
 # Time Cycles
 #-----------------------------------------------------------------------------
 pfset Cycle.Names constant
 pfset Cycle.constant.Names		"alltime"
-pfset Cycle.constant.alltime.Length	 1
+pfset Cycle.constant.alltime.Length	 20.0
 pfset Cycle.constant.Repeat		-1
 
 #-----------------------------------------------------------------------------
@@ -225,33 +206,46 @@ pfset Cycle.constant.Repeat		-1
 #-----------------------------------------------------------------------------
 pfset BCPressure.PatchNames "left right front back bottom top"
 
-pfset Patch.left.BCPressure.Type			DirEquilRefPatch
-pfset Patch.left.BCPressure.Cycle			"constant"
-pfset Patch.left.BCPressure.RefGeom			domain
-pfset Patch.left.BCPressure.RefPatch			bottom
-pfset Patch.left.BCPressure.alltime.Value		14.0
-
-pfset Patch.right.BCPressure.Type			DirEquilRefPatch
-pfset Patch.right.BCPressure.Cycle			"constant"
-pfset Patch.right.BCPressure.RefGeom			domain
-pfset Patch.right.BCPressure.RefPatch			bottom
-pfset Patch.right.BCPressure.alltime.Value		9.0
-
-pfset Patch.front.BCPressure.Type			FluxConst
-pfset Patch.front.BCPressure.Cycle			"constant"
-pfset Patch.front.BCPressure.alltime.Value		0.0
-
-pfset Patch.back.BCPressure.Type			FluxConst
+pfset Patch.back.BCPressure.Type			DirEquilRefPatch
 pfset Patch.back.BCPressure.Cycle			"constant"
-pfset Patch.back.BCPressure.alltime.Value		0.0
+pfset Patch.back.BCPressure.RefGeom			domain
+pfset Patch.back.BCPressure.RefPatch			bottom
+pfset Patch.back.BCPressure.alltime.Value		10.0
+
+pfset Patch.front.BCPressure.Type			DirEquilRefPatch
+pfset Patch.front.BCPressure.Cycle			"constant"
+pfset Patch.front.BCPressure.RefGeom			domain
+pfset Patch.front.BCPressure.RefPatch			bottom
+pfset Patch.front.BCPressure.alltime.Value		15.0
+
+pfset Patch.top.BCPressure.Type			FluxConst
+pfset Patch.top.BCPressure.Cycle			"constant"
+pfset Patch.top.BCPressure.alltime.Value		0.0
 
 pfset Patch.bottom.BCPressure.Type			FluxConst
 pfset Patch.bottom.BCPressure.Cycle			"constant"
 pfset Patch.bottom.BCPressure.alltime.Value		0.0
 
-pfset Patch.top.BCPressure.Type			        FluxConst
-pfset Patch.top.BCPressure.Cycle			"constant"
-pfset Patch.top.BCPressure.alltime.Value		0.0
+pfset Patch.left.BCPressure.Type			FluxConst
+pfset Patch.left.BCPressure.Cycle			"constant"
+pfset Patch.left.BCPressure.alltime.Value		0.0
+
+pfset Patch.right.BCPressure.Type			 FluxConst
+pfset Patch.right.BCPressure.Cycle			"constant"
+pfset Patch.right.BCPressure.alltime.Value		0.0
+
+#pfset Patch.back.BCPressure.Type			FluxConst
+#pfset Patch.back.BCPressure.Cycle			"constant"
+#pfset Patch.back.BCPressure.alltime.Value		0.0
+
+#pfset Patch.front.BCPressure.Type			FluxConst
+#pfset Patch.front.BCPressure.Cycle			"constant"
+#pfset Patch.front.BCPressure.alltime.Value		0.0
+
+
+
+
+
 
 #-----------------------------------------------------------------------------
 # Boundary Conditions: Temperature 
@@ -300,7 +294,7 @@ pfset PhaseSources.GeomNames                    background
 pfset PhaseSources.Geom.background.Value               0.0
 
 pfset PhaseConcen.water.tce.Type                      Constant
-pfset PhaseConcen.water.tce.GeomNames                 concen_region
+pfset PhaseConcen.water.tce.GeomNames                 "concen_region"
 pfset PhaseConcen.water.tce.Geom.concen_region.Value  0.8
 
 #-----------------------------------------------------------------------------
@@ -366,11 +360,14 @@ pfset GeochemCondition.Geom.source_region.Value "source"
 pfset GeochemCondition.Geom.concen_region.Value "concen"
 
 
+pfset Solver.WriteSiloConcentration True
+
 #-----------------------------------------------------------------------------
 # The Solver Impes MaxIter default value changed so to get previous
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
-pfset Solver.MaxIter 5
+pfset Solver.MaxIter 5000
+pfset Solver.CFL 0.5
 
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files
