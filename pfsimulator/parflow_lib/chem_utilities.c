@@ -35,6 +35,7 @@
 #include "parflow.h"
 #include "pf_alquimia.h"
 #include "alquimia/alquimia_memory.h"
+#include "alquimia/alquimia_util.h"
 
 void Chem2PF_Single(Vector *pf_vector, double *chem_var, ProblemData *problem_data)
 {
@@ -308,3 +309,20 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
     });
   }
 }
+
+
+
+void FindIndexFromNameCaseInsensitive(const char* const name,
+                               const AlquimiaVectorString* const names,
+                               int* index) {
+  int i;
+  *index = -1;
+  for (i = 0; i < names->size; ++i) {
+    printf ("!!!!!!! i: %d",i);
+    printf("alquimianame: %s \n", names->data[i]);
+    if (AlquimiaCaseInsensitiveStringCompare(name, names->data[i])) {
+      *index = i;
+      break;
+    }
+  }
+} 

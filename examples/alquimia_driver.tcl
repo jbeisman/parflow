@@ -85,11 +85,11 @@ pfset GeomInput.source_region_input.GeomName       source_region
 #-----------------------------------------------------------------------------
 pfset Geom.source_region.Lower.X    0.0
 pfset Geom.source_region.Lower.Y    0.0
-pfset Geom.source_region.Lower.Z    1.0
+pfset Geom.source_region.Lower.Z    0.0
 
 pfset Geom.source_region.Upper.X    10.0
 pfset Geom.source_region.Upper.Y    10.0
-pfset Geom.source_region.Upper.Z     10.0
+pfset Geom.source_region.Upper.Z     5.0
 
 
 
@@ -121,7 +121,7 @@ pfset GeomInput.concen_region_input.GeomName        concen_region
 #-----------------------------------------------------------------------------
 pfset Geom.concen_region.Lower.X  0.0
 pfset Geom.concen_region.Lower.Y  0.0
-pfset Geom.concen_region.Lower.Z  0.0
+pfset Geom.concen_region.Lower.Z  5.0
 
 pfset Geom.concen_region.Upper.X  10.0
 pfset Geom.concen_region.Upper.Y  10.0
@@ -354,10 +354,12 @@ pfset Chemistry.Engine CrunchFlow
 pfset Chemistry.InputFile tracer-1d-crunch.in
 
 pfset GeochemCondition.Type "Constant"
-pfset GeochemCondition.GeomNames "source_region concen_region"
-pfset GeochemCondition.Names "source concen"
-pfset GeochemCondition.Geom.source_region.Value "source"
-pfset GeochemCondition.Geom.concen_region.Value "concen"
+pfset GeochemCondition.GeomNames "concen_region"
+pfset GeochemCondition.Names "initial west"
+pfset GeochemCondition.Geom.source_region.Value "west"
+pfset GeochemCondition.Geom.concen_region.Value "initial"
+
+#pfset BCConcentration.GeochemCondition.Names "initial west"
 
 
 pfset Solver.WriteSiloConcentration True

@@ -56,10 +56,10 @@ typedef struct _AlquimiaDataPF {
   AlquimiaProblemMetaData chem_metadata;
 
   // Initial and boundary conditions.
-  AlquimiaGeochemicalCondition chem_ic;
-  AlquimiaGeochemicalCondition chem_left_bc, chem_right_bc;
-  AlquimiaState chem_left_state, chem_right_state;
-  AlquimiaAuxiliaryData chem_left_aux_data, chem_right_aux_data;
+  AlquimiaState* ic_chem_states, *bc_chem_states;
+  AlquimiaAuxiliaryData* ic_chem_aux_data, *bc_chem_aux_data;
+  AlquimiaGeochemicalConditionVector ic_condition_list, bc_condition_list;
+
 
   // Bookkeeping.
   AlquimiaState advected_chem_state;
@@ -70,8 +70,9 @@ typedef struct _AlquimiaDataPF {
 } AlquimiaDataPF;
 
 
-
-
+  void FindIndexFromNameCaseInsensitive(const char* const name,
+                                 const AlquimiaVectorString* const names,
+                                 int* index);
 
 
 /* problem_geochem_cond.c */
@@ -92,9 +93,9 @@ int ChemAdvanceSizeOfTempData(void);
 
 
 /* chem_initialize.c*/
-typedef void (*InitializeChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data);
+typedef void (*InitializeChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *phi);
 typedef PFModule *(*InitializeChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
-void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data);
+void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *phi);
 PFModule *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid);
 void InitializeChemistryFreeInstanceXtra(void);
 PFModule *InitializeChemistryNewPublicXtra(void);

@@ -521,7 +521,12 @@ void      SolverImpes()
 
 
         PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
-                          (problem_data, instance_xtra->alquimia_data));
+                          (problem_data, instance_xtra->alquimia_data,
+                           concentrations, 
+                           ProblemDataPorosity(problem_data)));
+
+        PrintAlquimiaSizes(&instance_xtra->alquimia_data->chem_sizes,stdout);
+       // PrintAlquimiaGeochemicalCondition(&instance_xtra->alquimia_data->chem_ics[0],stdout);
 
       }
       /*****************************************************************/

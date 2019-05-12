@@ -56,7 +56,7 @@ typedef struct {
 
 
 
-PFModule  *ChemInitInstanceXtra(
+PFModule  *ChemAdvanceInstanceXtra(
                                    Problem *problem,
                                    Grid *   grid,
                                    double * temp_data)
@@ -105,7 +105,7 @@ PFModule  *ChemInitInstanceXtra(
 
 
 
-PFModule  *ChemNewPublicXtra()
+PFModule  *ChemAdvanceNewPublicXtra()
 {
   PFModule     *this_module = ThisPFModule;
   PublicXtra   *public_xtra;
@@ -120,7 +120,7 @@ PFModule  *ChemNewPublicXtra()
 }
 
 
-void  ChemFreeInstanceXtra()
+void  ChemAdvanceFreeInstanceXtra()
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -131,7 +131,7 @@ void  ChemFreeInstanceXtra()
   }
 }
 
-void ChemFreePublicXtra()
+void ChemAdvanceFreePublicXtra()
 {
   PFModule     *this_module = ThisPFModule;
   PublicXtra   *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
@@ -142,7 +142,7 @@ void ChemFreePublicXtra()
   }
 }
 
-int  ChemSizeOfTempData()
+int  ChemAdvanceSizeOfTempData()
 {
   return 0;
 }
