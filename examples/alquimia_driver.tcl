@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 1.0
-pfset ComputationalGrid.DY                   1.0
-pfset ComputationalGrid.DZ	                 1.0
+pfset ComputationalGrid.DX	                 2.5
+pfset ComputationalGrid.DY                   2.5
+pfset ComputationalGrid.DZ	                 2.5
 
-pfset ComputationalGrid.NX                      10
-pfset ComputationalGrid.NY                      10
-pfset ComputationalGrid.NZ                      10
+pfset ComputationalGrid.NX                      4
+pfset ComputationalGrid.NY                      4
+pfset ComputationalGrid.NZ                      4
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -354,12 +354,16 @@ pfset Chemistry.Engine CrunchFlow
 pfset Chemistry.InputFile tracer-1d-crunch.in
 
 pfset GeochemCondition.Type "Constant"
-pfset GeochemCondition.GeomNames "concen_region"
-pfset GeochemCondition.Names "initial west"
+pfset GeochemCondition.GeomNames "concen_region source_region"
+pfset GeochemCondition.Names "west initial"
 pfset GeochemCondition.Geom.source_region.Value "west"
 pfset GeochemCondition.Geom.concen_region.Value "initial"
 
-#pfset BCConcentration.GeochemCondition.Names "initial west"
+
+pfset BCConcentration.GeochemCondition.Names "initial"
+pfset BCConcentration.PatchNames "front"
+pfset Patch.front.BCConcentration.Type Constant
+pfset Patch.front.BCConcentration.Value initial
 
 
 pfset Solver.WriteSiloConcentration True

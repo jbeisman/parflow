@@ -39,6 +39,7 @@
 #include "alquimia/alquimia_interface.h"
 
 
+
 typedef struct _AlquimiaDataPF {
   // Per-cell chemistry data.
   AlquimiaProperties* chem_properties;
@@ -59,6 +60,9 @@ typedef struct _AlquimiaDataPF {
   AlquimiaState* ic_chem_states, *bc_chem_states;
   AlquimiaAuxiliaryData* ic_chem_aux_data, *bc_chem_aux_data;
   AlquimiaGeochemicalConditionVector ic_condition_list, bc_condition_list;
+
+
+  AlquimiaEngineFunctionality chem_engine_functionality;
 
 
   // Bookkeeping.
@@ -120,5 +124,19 @@ void Chem2PF_Multi(Vector *pf_vector, double *chem_var, int num_var, ProblemData
 void PF2Chem_Multi(Vector *pf_vector, double *chem_var, int num_var, ProblemData *problem_data);
 int  SubgridNumCells(Grid *grid, ProblemData *problem_data);
 void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data);
+void CopyChemStateToPF(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vector **concentrations, ProblemData *problem_data);
+
+typedef void (*BCConcentrationInvoke) (Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states, GrGeomSolid *gr_domain);
+
+/* problem_bc_phase_saturation.c */
+void BCConcentration(Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states, GrGeomSolid *gr_domain);
+PFModule *BCConcentrationInitInstanceXtra(void);
+void BCConcentrationFreeInstanceXtra(void);
+PFModule *BCConcentrationNewPublicXtra(void);
+void BCConcentrationFreePublicXtra(void);
+int BCConcentrationSizeOfTempData(void);
+
+void CopyConcenWithBoundary(Vector *x, Vector *y);
+
 
 #endif

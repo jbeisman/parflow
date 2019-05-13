@@ -528,6 +528,11 @@ void      SolverImpes()
         PrintAlquimiaSizes(&instance_xtra->alquimia_data->chem_sizes,stdout);
        // PrintAlquimiaGeochemicalCondition(&instance_xtra->alquimia_data->chem_ics[0],stdout);
 
+
+
+
+
+
       }
       /*****************************************************************/
       /*          Print out any of the requested initial data          */
@@ -1097,6 +1102,9 @@ void      SolverImpes()
       /* Solve for the saturation values at this time-step
        * if necessary. */
 
+
+
+
       if (is_multiphase)
       {
         if (evolve_saturations)
@@ -1181,8 +1189,9 @@ void      SolverImpes()
               handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
               FinalizeVectorUpdate(handle);
 
+
               InitVectorAll(ctemp, 0.0);
-              Copy(concentrations[indx], ctemp);
+              CopyConcenWithBoundary(concentrations[indx], ctemp);
 
               PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
                                  (problem_data, phase, concen,
@@ -1194,30 +1203,6 @@ void      SolverImpes()
                                   t, dt, advect_order));
               indx++;
             }
-          }
-          int is;
-
-          /* put call to CRUNCHFLOW here @RMM */
-          ForSubgridI(is, GridSubgrids(grid))
-          {
-            double dx, dy, dz;
-            int nx, ny, nz, nx_f, ny_f, nz_f, nz_rz, ip, ix, iy, iz;
-            int x, y, z;
-
-            // @RMM - dummy variables for calling CRUNCHFLOW
-            /* nx = SubgridNX(subgrid);
-             * ny = SubgridNY(subgrid);
-             * nz = SubgridNZ(subgrid);
-             *
-             * ix = SubgridIX(subgrid);
-             * iy = SubgridIY(subgrid);
-             * iz = SubgridIZ(subgrid);
-             *
-             * dx = SubgridDX(subgrid);
-             * dy = SubgridDY(subgrid);
-             * dz = SubgridDZ(subgrid);
-             *
-             * CALL_CRUNCHFLOW() */
           }
         }
 

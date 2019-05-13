@@ -46,6 +46,7 @@ typedef void PublicXtra;
 
 typedef struct {
   PFModule  *geochemcond;
+  PFModule  *bc_concentration;
   Problem   *problem;
   Grid      *grid;
   double    *temp_data;
@@ -60,13 +61,13 @@ void          SetChemData(ProblemData *problem_data)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
+  Problem       *problem = instance_xtra->problem;
 
-  PFModule      *geochemcond      = (instance_xtra -> geochemcond);
+  PFModule      *geochemcond        = (instance_xtra -> geochemcond);
 
-
-    PFModuleInvokeType(GeochemCondInvoke, geochemcond,            //JJB
-                       (problem_data,
-                        ProblemDataGeochemCond(problem_data)));
+  PFModuleInvokeType(GeochemCondInvoke, geochemcond,            //JJB
+                    (problem_data,
+                     ProblemDataGeochemCond(problem_data)));
 }
 
 
@@ -115,6 +116,12 @@ PFModule  *SetChemDataInitInstanceXtra(Problem *problem,
   }
 
   PFModuleInstanceXtra(this_module) = instance_xtra;
+
+
+
+
+
+
   return this_module;
 }
 

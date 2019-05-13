@@ -81,6 +81,7 @@ typedef struct {
   PFModule   *bc_pressure;
   PFModule   *bc_pressure_package;
   PFModule   *bc_phase_saturation;      /* RDF assume Dirichlet from IC */
+  PFModule   *bc_concentration;
 
   /* initial conditions */
   PFModule   *ic_phase_concen;
@@ -219,6 +220,7 @@ typedef struct {
 #define ProblemBCPressure(problem)                ((problem)->bc_pressure)
 #define ProblemBCPressurePackage(problem)         ((problem)->bc_pressure_package)
 #define ProblemBCPhaseSaturation(problem)         ((problem)->bc_phase_saturation)
+#define ProblemBCConcentration(problem)           ((problem)->bc_concentration)
 
 /* initial condition accessors */
 #define ProblemICPhaseConcen(problem)             ((problem)->ic_phase_concen)

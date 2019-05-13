@@ -63,6 +63,7 @@ typedef struct {
   Problem       *problem;
   Grid          *grid;
   PFModule      *set_chem_data;
+  PFModule      *bc_concentration;
 } InstanceXtra;
 
 
@@ -82,13 +83,26 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   Grid          *grid = (instance_xtra->grid);
   Subgrid       *subgrid;
 
-  PFModule     *set_chem_data = (instance_xtra->set_chem_data);
+  PFModule      *set_chem_data = (instance_xtra->set_chem_data);
+  PFModule      *bc_concentration = (instance_xtra -> bc_concentration);
+
+  GrGeomSolid   *gr_domain;
 
   char *geochem_conds;
   char* name;
   int num_cells;
 
+  // containers for boundary condition storage
+        AlquimiaState *chem_bc_state;
+  AlquimiaAuxiliaryData *chem_bc_aux_data;
+  AlquimiaProperties *chem_bc_properties;
+    bool hands_off = true;
+
   BeginTiming(public_xtra->time_index);
+
+
+
+  gr_domain = ProblemDataGrDomain(problem_data);
   
   // set chem data 
   // this ivokes the geochemcond function and makes available a pfvector of 
@@ -98,10 +112,10 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   // find number of active cells for this subgrid
   num_cells = SubgridNumCells(grid, problem_data);
-  printf("NUM_CELLS: %d\n",num_cells);
-
-
+printf("num_cells: %d \n",num_cells);
   // fire alquimia up
+
+
   AllocateAlquimiaEngineStatus(&alquimia_data->chem_status);
   CreateAlquimiaInterface(public_xtra->engine_name, &alquimia_data->chem, &alquimia_data->chem_status);
 
@@ -118,13 +132,12 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
       }
   }
 
-  bool hands_off = true;
-  AlquimiaEngineFunctionality chem_engine_functionality;
+
   alquimia_data->chem.Setup(public_xtra->chemistry_input_file,
                      hands_off,
                      &alquimia_data->chem_engine,
                      &alquimia_data->chem_sizes,
-                     &chem_engine_functionality,
+                     &alquimia_data->chem_engine_functionality,
                      &alquimia_data->chem_status);
 
   if (alquimia_data->chem_status.error != 0) 
@@ -140,17 +153,24 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
       }
   }
 
+
+
+
+
   AllocateAlquimiaProblemMetaData(&alquimia_data->chem_sizes, &alquimia_data->chem_metadata);
   alquimia_data->chem_properties = ctalloc(AlquimiaProperties, num_cells);
   alquimia_data->chem_state = ctalloc(AlquimiaState, num_cells);
   alquimia_data->chem_aux_data = ctalloc(AlquimiaAuxiliaryData, num_cells);
   alquimia_data->chem_aux_output = ctalloc(AlquimiaAuxiliaryOutputData, num_cells);
 
-  AllocateChemCells(alquimia_data, grid,problem_data);
+
+  AllocateChemCells(alquimia_data,grid,problem_data);
 
   alquimia_data->chem.GetProblemMetaData(&alquimia_data->chem_engine, 
                                          &alquimia_data->chem_metadata, 
                                          &alquimia_data->chem_status);
+
+  printf("here");
 
   if (alquimia_data->chem_status.error != 0) 
   {
@@ -167,7 +187,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
 
 // assign interior geochemical conditions
-  PrintAlquimiaEngineFunctionality(&chem_engine_functionality, stdout);
+  PrintAlquimiaEngineFunctionality(&alquimia_data->chem_engine_functionality, stdout);
 
 
   if (public_xtra->num_ic_conds > 0)
@@ -181,19 +201,6 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
       strcpy(alquimia_data->ic_condition_list.data[i].name, name);
             printf("top: %s \n",alquimia_data->ic_condition_list.data[i].name);
 
-    }
-  }
-
-    if (public_xtra->num_bc_conds > 0)
-  {
-    AllocateAlquimiaGeochemicalConditionVector(public_xtra->num_bc_conds, &alquimia_data->bc_condition_list);
-    for (int i = 0; i < public_xtra->num_bc_conds; i++)
-    {
-      name = NA_IndexToName(public_xtra->bc_cond_na, i);
-      printf("NAME: %s \n", name);
-      AllocateAlquimiaGeochemicalCondition(strlen(name), 0, 0, &alquimia_data->bc_condition_list.data[i]);
-      strcpy(alquimia_data->bc_condition_list.data[i].name, name);
-      printf("bottom: %s \n", alquimia_data->bc_condition_list.data[i].name);
     }
   }
 
@@ -218,12 +225,14 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
                                     &alquimia_data->chem_aux_data[0],
                                     &alquimia_data->chem_status);
 
-
-
+//AlquimiaSizes *chem_sizes = &alquimia_data->chem_sizes;
+//printf("chem_sizes.num_primary: %d\n",chem_sizes->num_primary);
 
  // Grid          *grid = VectorGrid(geochemcond);
-  SubgridArray  *subgrids = GridSubgrids(grid);
-  GrGeomSolid   *gr_domain;
+
+
+    SubgridArray  *subgrids = GridSubgrids(grid);
+  
   //Subgrid       *subgrid;
   Subvector     *chem_ind_sub;
   Subvector     *por_sub;
@@ -235,8 +244,11 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   int r;
   int chem_index, pf_index;
   double *chem_ind, *por;
+ 
+    subgrid = SubgridArraySubgrid(subgrids, is);
 
-  gr_domain = ProblemDataGrDomain(problem_data);
+
+ 
 
   ForSubgridI(is, subgrids)
   {
@@ -303,6 +315,127 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   }
 
 
+CopyChemStateToPF(alquimia_data->chem_state,alquimia_data->chem_sizes,concentrations,problem_data);
+
+
+
+// boundary conditions:
+
+    if (public_xtra->num_bc_conds > 0)
+  {
+    AllocateAlquimiaGeochemicalConditionVector(public_xtra->num_bc_conds, &alquimia_data->bc_condition_list);
+    chem_bc_properties = ctalloc(AlquimiaProperties, public_xtra->num_bc_conds);
+  	chem_bc_state = ctalloc(AlquimiaState, public_xtra->num_bc_conds);
+  	chem_bc_aux_data = ctalloc(AlquimiaAuxiliaryData, public_xtra->num_bc_conds);
+    for (int i = 0; i < public_xtra->num_bc_conds; i++)
+    {
+      name = NA_IndexToName(public_xtra->bc_cond_na, i);
+      AllocateAlquimiaGeochemicalCondition(strlen(name), 0, 0, &alquimia_data->bc_condition_list.data[i]);
+      strcpy(alquimia_data->bc_condition_list.data[i].name, name);
+
+
+
+      AllocateAlquimiaState(&alquimia_data->chem_sizes, &chem_bc_state[i]);
+      AllocateAlquimiaProperties(&alquimia_data->chem_sizes, &chem_bc_properties[i]);
+      AllocateAlquimiaAuxiliaryData(&alquimia_data->chem_sizes, &chem_bc_aux_data[i]);
+    }
+
+    for (int i = 0; i < public_xtra->num_bc_conds; i++)
+    {
+    	chem_bc_state[i].water_density = water_density;
+		chem_bc_state[i].temperature = 25.0;
+		chem_bc_state[i].porosity = 0.25;
+		chem_bc_state[i].aqueous_pressure = aqueous_pressure;
+
+		alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
+                                    &alquimia_data->bc_condition_list.data[i], 
+                                    &chem_bc_properties[i],
+                                    &chem_bc_state[i],
+                                    &chem_bc_aux_data[i],
+                                    &alquimia_data->chem_status);
+
+    }
+
+
+     PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, chem_bc_state, gr_domain));
+
+
+  }
+
+
+
+                  for(int concen = 0; concen < ProblemNumContaminants(problem); concen++)
+                  {
+                      ForSubgridI(is, GridSubgrids(grid))
+                      {
+                          int         ix,   iy,   iz, i_x;
+                          int         nx, ny, nz;
+                          int       i,j,k, count;
+                          int       CF_index, CF_index2;
+
+                          double      *tp;
+                          count=0;
+                          
+                          subgrid            = GridSubgrid(grid, is);
+                          Subvector  *temp_sub;
+                          
+                          nx = SubgridNX(subgrid)+6;
+                          ny = SubgridNY(subgrid)+6;
+                          nz = SubgridNZ(subgrid)+6;
+                          
+                          ix = SubgridIX(subgrid)-3;
+                          iy = SubgridIY(subgrid)-3;
+                          iz = SubgridIZ(subgrid)-3;
+                          temp_sub = VectorSubvector(concentrations[concen],is);
+     
+                          
+                          tp = SubvectorData(temp_sub);
+                          i_x = 0;
+                          printf(" ix: %d iy: %d iz:%d \n", ix,iy,iz);
+                          printf(" nx: %d ny: %d nz:%d \n", nx,ny,nz);
+                          
+                          for (i = ix; i < ix + nx; i++)
+                          {                
+                              for (j = iy; j < iy + ny; j++)    
+                              {
+                                  for (k = iz; k < iz + nz; k++)
+                                  {
+                          // printf(" i: %d j: %d k:%d \n", i,j,k);
+                                       // printf(" ix: %d iy: %d iz:%d \n", ix,iy,iz);
+                                       // printf(" nx: %d ny: %d nz:%d \n", nx,ny,nz);
+                                      //  printf(" i_y: %d \n", i_x);
+                                     //   printf("ConcentrationsPF: %f \n",tp[i_x]);
+                                        i_x = SubvectorEltIndex(temp_sub, i, j, k);
+                            
+                                        
+                                    //    printf("CFIndex: %d \n",CF_index);
+                                       
+                                            // tp[i_x] = 68;
+                                       printf("outside!! %d %d %d %e \n", i,j,k,tp[i_x]);
+                                      //count=count+1;
+                                        
+                                  }
+                              }
+                          }
+//printf("rank: %d   concen: %d   count: %d \n",rank,concen,count);
+                      }
+                  }
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
 
 
 
@@ -333,6 +466,10 @@ PFModule  *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid)
       PFModuleNewInstanceType(SetChemDataInitInstanceXtraInvoke,
                               (public_xtra->set_chem_data),
                               (problem, grid));
+
+
+      (instance_xtra->bc_concentration) =
+      PFModuleNewInstance(ProblemBCConcentration(problem), ());
   }
   else
   {
@@ -341,6 +478,7 @@ PFModule  *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid)
     PFModuleReNewInstanceType(SetChemDataInitInstanceXtraInvoke,
                               (instance_xtra->set_chem_data),
                               (problem, grid));
+    PFModuleReNewInstance((instance_xtra -> bc_concentration), ());
   }
 
   /*-----------------------------------------------------------------------
@@ -384,6 +522,8 @@ void  InitializeChemistryFreeInstanceXtra()
   if (instance_xtra)
   {
     PFModuleFreeInstance((instance_xtra->set_chem_data));
+    PFModuleFreeInstance(instance_xtra -> bc_concentration);
+
     tfree(instance_xtra);
   }
 }
@@ -456,8 +596,33 @@ void InitializeChemistryFreePublicXtra()
  *--------------------------------------------------------------------------*/
 
 int InitializeChemistrySizeOfTempData()
-{  
-  return 0;
+{
+  PFModule      *this_module = ThisPFModule;
+  InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
+
+  int max_nx = 1000;
+  int max_ny = 1000;
+
+  int sz = 0;
+
+  /* add local TempData size to `sz' */
+  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2);
+  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2);
+  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2) * 3;
+
+  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
+  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
+  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
+  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
+  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
+  sz += (max_nx + 3 + 3);
+  sz += (max_nx + 3 + 3);
+  sz += (max_nx + 3 + 3);
+  sz += (max_nx + 3 + 3) * 4;
+  sz += (max_ny + 3 + 3) * 4;
+  sz += (max_nx + 3 + 3) * 3;
+  sz += (max_nx + 3 + 3) * 3; 
+  return sz;
 }
 
 

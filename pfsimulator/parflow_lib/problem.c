@@ -291,6 +291,12 @@ Problem   *NewProblem(
                             BCPhaseSaturation, (num_phases));
   }
 
+    if (GlobalsChemistryFlag)
+  {
+    ProblemBCConcentration(problem) = PFModuleNewModule(BCConcentration, ());
+                           
+   }
+
   /*-----------------------------------------------------------------------
    * Initial conditions
    *-----------------------------------------------------------------------*/
@@ -386,6 +392,7 @@ void      FreeProblem(
   if (GlobalsChemistryFlag)
   { 
     PFModuleFreeModule(ProblemGeochemCond(problem));
+    PFModuleFreeModule(ProblemBCConcentration(problem));
   }
 
   PFModuleFreeModule(ProblemPhaseSource(problem));
