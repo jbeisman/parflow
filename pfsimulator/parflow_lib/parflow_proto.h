@@ -1,16 +1,15 @@
 /* Header.c */
 
-
-typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data, int phase, int concentration, Vector *old_concentration, Vector *new_concentration, Vector *x_velocity, Vector *y_velocity, Vector *z_velocity, Vector *solid_mass_factor, double time, double deltat, int order);
-typedef PFModule *(*AdvectionConcentrationInitInstanceXtraType) (Problem *problem, Grid *grid, double *temp_data);
+typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor , Vector *old_saturation , Vector *saturation, double time , double deltat , int order, int iteration, int num_iterations);
+typedef PFModule *(*AdvectionConcentrationInitInstanceXtraType) (Problem *problem , Grid *grid , double *temp_data );
 
 /* advection_godunov.c */
-void Godunov(ProblemData *problem_data, int phase, int concentration, Vector *old_concentration, Vector *new_concentration, Vector *x_velocity, Vector *y_velocity, Vector *z_velocity, Vector *solid_mass_factor, double time, double deltat, int order);
-PFModule *GodunovInitInstanceXtra(Problem *problem, Grid *grid, double *temp_data);
-void GodunovFreeInstanceXtra(void);
-PFModule *GodunovNewPublicXtra(void);
-void GodunovFreePublicXtra(void);
-int GodunovSizeOfTempData(void);
+void Godunov (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor, Vector *old_saturation , Vector *saturation, double time , double deltat , int order, int iteration, int num_iterations);
+PFModule *GodunovInitInstanceXtra (Problem *problem , Grid *grid , double *temp_data );
+void GodunovFreeInstanceXtra (void );
+PFModule *GodunovNewPublicXtra (void );
+void GodunovFreePublicXtra (void );
+int GodunovSizeOfTempData (void );
 
 /* axpy.c */
 void Axpy(double alpha, Vector *x, Vector *y);

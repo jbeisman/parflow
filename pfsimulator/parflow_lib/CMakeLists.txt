@@ -1,4 +1,4 @@
-set (SRC_FILES advect.F
+set (SRC_FILES advect_new.F90
   advection_godunov.c
   axpy.c
   background.c

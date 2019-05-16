@@ -40,25 +40,17 @@
 #define ADVECT advect_
 #endif
 
-#define CALL_ADVECT(s, sn, uedge, vedge, wedge, phi, \
-                    slx, sly, slz, \
-                    lo, hi, dlo, dhi, hx, dt, fstord, \
-                    sbot, stop, sbotp, sfrt, sbck, sleft, sright, sfluxz, \
-                    dxscr, dyscr, dzscr, dzfrm) \
-  ADVECT(s, sn, uedge, vedge, wedge, phi, \
-         slx, sly, slz, \
-         lo, hi, dlo, dhi, hx, &dt, &fstord, \
-         sbot, stop, sbotp, sfrt, sbck, sleft, sright, sfluxz, \
-         dxscr, dyscr, dzscr, dzfrm)
+#define CALL_ADVECT(s, sn, uedge, vedge, wedge, phi,\
+                    lo, hi, dlo, dhi, hx, dt, order,\
+                    old_sat, sat, iteration, num_iterations) \
+             ADVECT(s, sn, uedge, vedge, wedge, phi,\
+                    lo, hi, dlo, dhi, hx, &dt, &order,\
+                    old_sat, sat, &iteration, &num_iterations)
 
 void ADVECT(double *s, double *sn,
             double *uedge, double *vedge, double *wedge, double *phi,
-            double *slx, double *sly, double *slz,
-            int *lo, int *hi, int *dlo, int *dhi, double *hx, double *dt, int *fstord,
-            double *sbot, double *stop, double *sbotp,
-            double *sfrt, double *sbck,
-            double *sleft, double *sright, double *sfluxz,
-            double *dxscr, double *dyscr, double *dzscr, double *dzfrm);
+            int *lo, int *hi, int *dlo, int *dhi, double *hx, double *dt, int *order,
+            double *old_sat, double *sat, int *iteration, int *num_iterations);
 
 /* sadvect.f */
 #if defined(_CRAYMPP)

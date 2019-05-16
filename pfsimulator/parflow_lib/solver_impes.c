@@ -395,7 +395,8 @@ void      SolverImpes()
   }
   else
   {
-    saturations[0] = NULL;
+    saturations[0] = NewVectorType(grid, 1, 3, vector_cell_centered);
+      InitVectorAll(saturations[0], 1.0);
   }
 
   /*-------------------------------------------------------------------
@@ -465,14 +466,14 @@ void      SolverImpes()
       phase_x_velocity = ctalloc(Vector *, ProblemNumPhases(problem));
       for (phase = 0; phase < ProblemNumPhases(problem); phase++)
       {
-        phase_x_velocity[phase] = NewVectorType(x_grid, 1, 1, vector_side_centered_x);
+        phase_x_velocity[phase] = NewVectorType(x_grid, 1, 2, vector_side_centered_x);
         InitVectorAll(phase_x_velocity[phase], 0.0);
       }
 
       phase_y_velocity = ctalloc(Vector *, ProblemNumPhases(problem));
       for (phase = 0; phase < ProblemNumPhases(problem); phase++)
       {
-        phase_y_velocity[phase] = NewVectorType(y_grid, 1, 1, vector_side_centered_y);
+        phase_y_velocity[phase] = NewVectorType(y_grid, 1, 2, vector_side_centered_y);
         InitVectorAll(phase_y_velocity[phase], 0.0);
       }
 
@@ -487,10 +488,10 @@ void      SolverImpes()
 
       if (is_multiphase)
       {
-        total_x_velocity = NewVectorType(x_grid, 1, 1, vector_side_centered_x);
+        total_x_velocity = NewVectorType(x_grid, 1, 2, vector_side_centered_x);
         InitVectorAll(total_x_velocity, 0.0);
 
-        total_y_velocity = NewVectorType(y_grid, 1, 1, vector_side_centered_y);
+        total_y_velocity = NewVectorType(y_grid, 1, 2, vector_side_centered_y);
         InitVectorAll(total_y_velocity, 0.0);
 
         total_z_velocity = NewVectorType(z_grid, 1, 2, vector_side_centered_z);
@@ -516,8 +517,6 @@ void      SolverImpes()
       	amps_Printf("Initializing chemical system\n");
 
         instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
-        instance_xtra->alquimia_data->test_double_ptr = ctalloc(double, 3);
-
 
 
         PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
@@ -530,7 +529,7 @@ void      SolverImpes()
 
 
 
-
+printf("I'm in solver impes \n");
 
 
       }
@@ -565,10 +564,12 @@ void      SolverImpes()
           }
         }
       }
+printf("I'm in solver impes 2 \n");
 
       /*----------------------------------------------------------------
        * Print out the initial concentrations?
        *----------------------------------------------------------------*/
+
 
       if (dump_files)
       {
@@ -602,6 +603,8 @@ void      SolverImpes()
           }
         }
       }
+      
+printf("I'm in solver impes 3\n");
 
       /*----------------------------------------------------------------
        * Print out the initial well data?
@@ -1171,6 +1174,7 @@ void      SolverImpes()
       /******************************************************************/
       /*            Solve for and print the concentrations              */
       /******************************************************************/
+      printf("at next print concen\n");
 
       if (evolve_concentrations)
       {
@@ -1193,14 +1197,17 @@ void      SolverImpes()
               InitVectorAll(ctemp, 0.0);
               CopyConcenWithBoundary(concentrations[indx], ctemp);
 
+          printf("right before advection\n");
               PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
-                                 (problem_data, phase, concen,
-                                  ctemp, concentrations[indx],
-                                  phase_x_velocity[phase],
-                                  phase_y_velocity[phase],
-                                  phase_z_velocity[phase],
-                                  solidmassfactor,
-                                  t, dt, advect_order));
+                                (problem_data, phase, concen,
+                                ctemp, concentrations[indx], 
+                                phase_x_velocity[phase], 
+                                phase_y_velocity[phase], 
+                                phase_z_velocity[phase],
+                                solidmassfactor, saturations[phase], saturations[phase],
+                                t, dt, advect_order,
+                                iteration_number,iteration_number)); // will need to fix this for multiphase
+              
               indx++;
             }
           }

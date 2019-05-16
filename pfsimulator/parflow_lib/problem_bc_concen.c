@@ -89,16 +89,11 @@ void          BCConcentration(  Problem *problem,
   int            *bc_types = (public_xtra->bc_types);
 
   SubgridArray   *subgrids = GridSubgrids(grid);
-
   Subgrid        *subgrid;
-
   Subvector      *concen_sub, *subvector;
   double         *concen_dat, *tmpp;
-
   Vector         *pfb_indicator;
-
   BCStruct       *bc_struct;
-
   int patch_index;
 
   int nx_v, ny_v, nz_v;
@@ -108,7 +103,6 @@ void          BCConcentration(  Problem *problem,
 
   int indx, ipatch, is, i, j, k, ival, iv, sv;
   int num_concen, itmp;
-  int idx1,idx2,idx3;
 
   /*-----------------------------------------------------------------------
    * Get an offset into the PublicXtra data
@@ -127,30 +121,8 @@ void          BCConcentration(  Problem *problem,
    * Implement BC's
    *-----------------------------------------------------------------------*/
 
-/*
-
-if (public_xtra->num_geochemconds > 0)
-{
-
-
-
-         alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
-                                    &alquimia_data->ic_condition_list.data[0], 
-                                    &alquimia_data->chem_properties[0],
-                                    &alquimia_data->chem_state[0],
-                                    &alquimia_data->chem_aux_data[0],
-                                    &alquimia_data->chem_status);
-
-
-}
-
-
-*/
 num_concen =  ProblemNumContaminants(problem);
 
-
-
-printf("NUM_DOMAIN_PATCHES: %d", num_domain_patches);
 
   for (ipatch = 0; ipatch < num_domain_patches; ipatch++)
   {
@@ -238,10 +210,9 @@ printf("NUM_DOMAIN_PATCHES: %d", num_domain_patches);
 
         case 1:
         {
-                    printf("case 1\n");
-
 
           dummy1 = (Type1*)(public_xtra->data[ipatch]);
+          pfb_indicator = NewVectorType(grid, 1, 0, vector_cell_centered);
           ReadPFBinary((dummy1->filename), pfb_indicator);
 
           subvector = VectorSubvector(pfb_indicator, is);
@@ -266,10 +237,11 @@ printf("NUM_DOMAIN_PATCHES: %d", num_domain_patches);
                 itmp = SubvectorEltIndex(subvector, i, j, k);  
                 iv = SubvectorEltIndex(concen_sub, i, j, k);
   
-                concen_dat[iv       ] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
+                concen_dat[iv + 3 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
                 concen_dat[iv + sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen]; 
                 concen_dat[iv + 2 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
               });
+              FreeVector(pfb_indicator);
             }  
           
           break;
@@ -288,7 +260,6 @@ printf("NUM_DOMAIN_PATCHES: %d", num_domain_patches);
 
 PFModule *BCConcentrationInitInstanceXtra()
 {
-  printf("im here \n");
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra;
 
@@ -334,7 +305,7 @@ PFModule  *BCConcentrationNewPublicXtra()
   Type0          *dummy0;
   Type1          *dummy1;
 
-  int i, j, indx, size;
+  int i, j, indx;
   char key[IDB_MAX_KEY_LEN];
 
   char *switch_name;
@@ -355,8 +326,6 @@ PFModule  *BCConcentrationNewPublicXtra()
   bc_patches = GetStringDefault("BCConcentration.PatchNames","");
   public_xtra->bc_patches_na = NA_NewNameArray(bc_patches);
   public_xtra->num_patches = num_patches = NA_Sizeof(public_xtra->bc_patches_na);
-
-  size = num_patches;  
   
 
     /* Determine the domain geom index from domain name */
@@ -374,8 +343,6 @@ PFModule  *BCConcentrationNewPublicXtra()
     (public_xtra->bc_types) = ctalloc(int, public_xtra->num_domain_patches);
     (public_xtra->data) = ctalloc(void *, public_xtra->num_domain_patches);
   
-    
-    indx = 0;
   
     for (j = 0; j < public_xtra->num_domain_patches; j++)
     {
@@ -384,7 +351,7 @@ PFModule  *BCConcentrationNewPublicXtra()
       sprintf(key, "Patch.%s.BCConcentration.Type", patch_name);
       switch_name = GetStringDefault(key,"");
       public_xtra->input_types[j] = NA_NameToIndex(type_na, switch_name);
-      public_xtra->patch_indexes[indx] = j;
+      public_xtra->patch_indexes[j] = j;
 
       switch ((public_xtra->input_types[j]))
       {
@@ -397,6 +364,12 @@ PFModule  *BCConcentrationNewPublicXtra()
           sprintf(key, "Patch.%s.BCConcentration.Value",
                   patch_name);
           dummy0->condition = NA_NameToIndex(public_xtra->geochem_cond_na, GetString(key));
+          
+          if (dummy0->condition < 0)
+          {
+            InputError("Error: invalid value <%s> for key <%s>. The geochemical condition must be listed in <BCConcentration.GeochemCondition.Names>\n",
+                     GetString(key), key);
+          }
   
           (public_xtra->data[j]) = (void*)dummy0;
           break;
@@ -415,20 +388,19 @@ PFModule  *BCConcentrationNewPublicXtra()
           break;
         }
   
-        case -1:
+        case -1: // nothing, defaults to copying adjacent interior cell
         {
           (public_xtra->bc_types[j]) = DirichletBC;
   
           break;
         }
   
-        default:
+        default: // can't get here
         {
           InputError("Error: invalid type <%s> for key <%s>\n",
                      switch_name, key);
         }
       }
-      indx++;
     }
 
   NA_FreeNameArray(type_na);
@@ -445,45 +417,41 @@ void  BCConcentrationFreePublicXtra()
   PFModule    *this_module = ThisPFModule;
   PublicXtra  *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
 
-  int num_geochemcond = (public_xtra->num_geochemconds);
-
   Type0  *dummy0;
   Type1  *dummy1;
 
-
-  int i, j, indx;
+  int j, indx;
 
   if (public_xtra)
   {
-    indx = 0;
 
     NA_FreeNameArray(public_xtra->bc_patches_na);
+    NA_FreeNameArray(public_xtra->geochem_cond_na);
 
-    for (i = 0; i < num_geochemcond - 1; i++)
-    {
-      for (j = 0; j < (public_xtra->num_patches); j++)
+      for (j = 0; j < (public_xtra->num_domain_patches); j++)
       {
-        switch ((public_xtra->input_types[indx]))
+        switch ((public_xtra->input_types[j]))
         {
           case 0:
-            dummy0 = (Type0*)(public_xtra->data[indx]);
+            dummy0 = (Type0*)(public_xtra->data[j]);
             tfree(dummy0);
             break;
 
           case 1:
-            dummy1 = (Type1*)(public_xtra->data[indx]);
+            dummy1 = (Type1*)(public_xtra->data[j]);
             tfree(dummy1);
             break;
+
+          case -1:
+          	break;
         }
-        indx++;
       }
-    }
 
     tfree(public_xtra->data);
     tfree(public_xtra->bc_types);
     tfree(public_xtra->input_types);
     tfree(public_xtra->patch_indexes);
-    NA_FreeNameArray(public_xtra->geochem_cond_na);
+    
 
 
     tfree(public_xtra);

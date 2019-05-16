@@ -254,7 +254,8 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
     GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
     {
       
-      chem_index = (i-ix ) + (j- iy) * (nx) + (k- iz) * (nx) * (ny);
+      chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+      printf("i,j,k: %d %d %d nx ny nz: %d %d %d ix iy iz: %d %d %d chem index: %d \n",i,j,k,nx,ny,nz,ix,iy,iz,chem_index);
      
       AllocateAlquimiaState(&alquimia_data->chem_sizes, &alquimia_data->chem_state[chem_index]);
       AllocateAlquimiaProperties(&alquimia_data->chem_sizes, &alquimia_data->chem_properties[chem_index]);
@@ -272,8 +273,6 @@ void FindIndexFromNameCaseInsensitive(const char* const name,
   int i;
   *index = -1;
   for (i = 0; i < names->size; ++i) {
-    printf ("!!!!!!! i: %d",i);
-    printf("alquimianame: %s \n", names->data[i]);
     if (AlquimiaCaseInsensitiveStringCompare(name, names->data[i])) {
       *index = i;
       break;
@@ -327,15 +326,9 @@ void CopyChemStateToPF(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vect
         GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
         {
           pf_index = SubvectorEltIndex(concen_sub, i, j, k);
-          chem_index = concen + (i-ix ) * num_primary 
-                         + (j- iy) * (nx) * num_primary 
-                         + (k- iz) * (nx) * (ny) * num_primary;
+          chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+
           concen_dat[pf_index] = chem_state[chem_index].total_mobile.data[concen];
-
-
-
-
-
       });
 
     }
@@ -389,18 +382,11 @@ void CopyPFStateToChem(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vect
         GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
         {
           pf_index = SubvectorEltIndex(concen_sub, i, j, k);
-          chem_index = concen + (i-ix ) * num_primary 
-                         + (j- iy) * (nx) * num_primary 
-                         + (k- iz) * (nx) * (ny) * num_primary;
+          chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+
           chem_state[chem_index].total_mobile.data[concen] = concen_dat[pf_index];
-
-
-
-
-
       });
-
-    }
+      }
     }
 }
 

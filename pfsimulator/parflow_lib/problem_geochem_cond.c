@@ -37,7 +37,6 @@ typedef struct {
   int       num_geochem_conds;
   int       type;
   void      *data;
-  NameArray geochem_cond_names;
 } PublicXtra;
 
 typedef void InstanceXtra;
@@ -211,11 +210,8 @@ PFModule   *GeochemCondNewPublicXtra()
 
     geochem_cond_names = GetStringDefault("GeochemCondition.Names","");
     geochem_cond_na = NA_NewNameArray(geochem_cond_names);
-    public_xtra->geochem_cond_names = geochem_cond_na;
     num_geochem_conds = NA_Sizeof(geochem_cond_na);
-    (public_xtra->num_geochem_conds) = num_geochem_conds;
 
-  printf( "number of geochem conds: %d\n", public_xtra->num_geochem_conds);
   if (num_geochem_conds > 0)
   {
     switch_name = GetString("GeochemCondition.Type");
@@ -322,9 +318,7 @@ void  GeochemCondFreePublicXtra()
           break;
         }
       }
-    
-
-   // tfree(public_xtra->data);
+      
     tfree(public_xtra);
   }
 }

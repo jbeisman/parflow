@@ -170,7 +170,7 @@ printf("num_cells: %d \n",num_cells);
                                          &alquimia_data->chem_metadata, 
                                          &alquimia_data->chem_status);
 
-  printf("here");
+  printf("here\n");
 
   if (alquimia_data->chem_status.error != 0) 
   {
@@ -218,12 +218,6 @@ printf("num_cells: %d \n",num_cells);
       alquimia_data->chem_state[i].aqueous_pressure = aqueous_pressure;
 */
 
-       alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
-                                    &alquimia_data->ic_condition_list.data[0], 
-                                    &alquimia_data->chem_properties[0],
-                                    &alquimia_data->chem_state[0],
-                                    &alquimia_data->chem_aux_data[0],
-                                    &alquimia_data->chem_status);
 
 //AlquimiaSizes *chem_sizes = &alquimia_data->chem_sizes;
 //printf("chem_sizes.num_primary: %d\n",chem_sizes->num_primary);
@@ -280,18 +274,21 @@ printf("num_cells: %d \n",num_cells);
     GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
     {
       pf_index = SubvectorEltIndex(chem_ind_sub, i, j, k);
-      chem_index = (i-ix ) + (j- iy) * (nx) + (k- iz) * (nx) * (ny);
+      chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
       //chem_var[chem_index] = chem_ind[pf_index];
+      printf("right before processcondition");
 
 
       alquimia_data->chem_properties[chem_index].volume = vol;
-      alquimia_data->chem_properties[i].saturation = 1.0;
+      alquimia_data->chem_properties[chem_index].saturation = 1.0;
 
       // Set the thermodynamic state.
       alquimia_data->chem_state[chem_index].water_density = 998.0;
       alquimia_data->chem_state[chem_index].temperature = 20.0;
       alquimia_data->chem_state[chem_index].porosity = por[pf_index];
       alquimia_data->chem_state[chem_index].aqueous_pressure = aqueous_pressure;
+
+      
 
       // Invoke the chemical initial condition.
      alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
@@ -361,83 +358,6 @@ CopyChemStateToPF(alquimia_data->chem_state,alquimia_data->chem_sizes,concentrat
 
 
   }
-
-
-
-                  for(int concen = 0; concen < ProblemNumContaminants(problem); concen++)
-                  {
-                      ForSubgridI(is, GridSubgrids(grid))
-                      {
-                          int         ix,   iy,   iz, i_x;
-                          int         nx, ny, nz;
-                          int       i,j,k, count;
-                          int       CF_index, CF_index2;
-
-                          double      *tp;
-                          count=0;
-                          
-                          subgrid            = GridSubgrid(grid, is);
-                          Subvector  *temp_sub;
-                          
-                          nx = SubgridNX(subgrid)+6;
-                          ny = SubgridNY(subgrid)+6;
-                          nz = SubgridNZ(subgrid)+6;
-                          
-                          ix = SubgridIX(subgrid)-3;
-                          iy = SubgridIY(subgrid)-3;
-                          iz = SubgridIZ(subgrid)-3;
-                          temp_sub = VectorSubvector(concentrations[concen],is);
-     
-                          
-                          tp = SubvectorData(temp_sub);
-                          i_x = 0;
-                          printf(" ix: %d iy: %d iz:%d \n", ix,iy,iz);
-                          printf(" nx: %d ny: %d nz:%d \n", nx,ny,nz);
-                          
-                          for (i = ix; i < ix + nx; i++)
-                          {                
-                              for (j = iy; j < iy + ny; j++)    
-                              {
-                                  for (k = iz; k < iz + nz; k++)
-                                  {
-                          // printf(" i: %d j: %d k:%d \n", i,j,k);
-                                       // printf(" ix: %d iy: %d iz:%d \n", ix,iy,iz);
-                                       // printf(" nx: %d ny: %d nz:%d \n", nx,ny,nz);
-                                      //  printf(" i_y: %d \n", i_x);
-                                     //   printf("ConcentrationsPF: %f \n",tp[i_x]);
-                                        i_x = SubvectorEltIndex(temp_sub, i, j, k);
-                            
-                                        
-                                    //    printf("CFIndex: %d \n",CF_index);
-                                       
-                                            // tp[i_x] = 68;
-                                       printf("outside!! %d %d %d %e \n", i,j,k,tp[i_x]);
-                                      //count=count+1;
-                                        
-                                  }
-                              }
-                          }
-//printf("rank: %d   concen: %d   count: %d \n",rank,concen,count);
-                      }
-                  }
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
 
 
 

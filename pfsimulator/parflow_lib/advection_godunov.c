@@ -87,9 +87,13 @@ void     Godunov(
                  Vector *     y_velocity,
                  Vector *     z_velocity,
                  Vector *     solid_mass_factor,
+                 Vector *     old_saturation,
+                 Vector *     saturation,
                  double       time,
                  double       deltat,
-                 int          order)
+                 int          order,
+                 int          iteration,
+                 int          num_iterations)
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -165,7 +169,7 @@ void     Godunov(
   int nx_cells, ny_cells, nz_cells, index, flopest;
   double lambda, decay_factor;
 
-  double           *c, *cn;
+  double           *c, *cn, *old_sat, *sat;
   double           *rhs, *scal, *smf;
   double           *px, *py, *pz;
   double           *xvel_u, *xvel_l, *yvel_u, *yvel_l, *zvel_u, *zvel_l;
@@ -183,7 +187,7 @@ void     Godunov(
   double avg_x, avg_y, avg_z, area_x, area_y, area_z, area_sum;
 
   amps_Invoice result_invoice;
-
+printf("inside godunov\n");
   /*-----------------------------------------------------------------------
    * Begin timing
    *-----------------------------------------------------------------------*/
@@ -200,7 +204,6 @@ void     Godunov(
   /*-----------------------------------------------------------------------
    * Initialize some data
    *-----------------------------------------------------------------------*/
-
   dt = deltat;
   t = time;
   if (order == 1)
@@ -261,14 +264,16 @@ void     Godunov(
       subgrid = SubgridArraySubgrid(subgrids, sr);
 
       /**** Get locations for subvector data of vectors passed in ****/
-      c = SubvectorData(VectorSubvector(old_concentration, sr));
-      cn = SubvectorData(VectorSubvector(new_concentration, sr));
+      c       = SubvectorData(VectorSubvector(old_concentration, sr));
+      cn      = SubvectorData(VectorSubvector(new_concentration, sr));
+      old_sat = SubvectorData(VectorSubvector(old_saturation, sr));
+      sat     = SubvectorData(VectorSubvector(saturation, sr));
+
 
       uedge = SubvectorData(VectorSubvector(x_velocity, sr));
       vedge = SubvectorData(VectorSubvector(y_velocity, sr));
       wedge = SubvectorData(VectorSubvector(z_velocity, sr));
-
-      phi = SubvectorData(VectorSubvector(solid_mass_factor, sr));
+      phi   = SubvectorData(VectorSubvector(solid_mass_factor, sr));
 
       /***** Compute extents of data *****/
       dlo[0] = SubgridIX(subgrid);
@@ -286,6 +291,7 @@ void     Godunov(
 
       ForSubregionI(sg, subregion_array)
       {
+
         subregion = SubregionArraySubregion(subregion_array, sg);
 
         /**** Compute the extents of computational subregion *****/
@@ -298,12 +304,10 @@ void     Godunov(
         hi[2] = SubregionIZ(subregion) + (SubregionNZ(subregion) - 1);
 
         /***** Make the call to the Godunov advection routine *****/
-        CALL_ADVECT(c, cn,
-                    uedge, vedge, wedge, phi,
-                    slx, sly, slz,
-                    lo, hi, dlo, dhi, hx, dt, fstord,
-                    sbot, stop, sbotp, sfrt, sbck, sleft, sright, sfluxz,
-                    dxscr, dyscr, dzscr, dzfrm);
+        CALL_ADVECT(c,cn,uedge,vedge,wedge,phi,
+                   lo,hi,dlo,dhi,hx,dt,order,
+                   old_sat,sat,iteration,
+                   num_iterations);
       }
     }
   }

@@ -14,7 +14,7 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        1
+pfset Process.Topology.P        4
 pfset Process.Topology.Q        1
 pfset Process.Topology.R        1
 
@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 2.5
-pfset ComputationalGrid.DY                   2.5
-pfset ComputationalGrid.DZ	                 2.5
+pfset ComputationalGrid.DX	                 0.5
+pfset ComputationalGrid.DY                   0.5
+pfset ComputationalGrid.DZ	                 0.5
 
-pfset ComputationalGrid.NX                      4
-pfset ComputationalGrid.NY                      4
-pfset ComputationalGrid.NZ                      4
+pfset ComputationalGrid.NX                      20
+pfset ComputationalGrid.NY                      20
+pfset ComputationalGrid.NZ                      20
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -359,11 +359,10 @@ pfset GeochemCondition.Names "west initial"
 pfset GeochemCondition.Geom.source_region.Value "west"
 pfset GeochemCondition.Geom.concen_region.Value "initial"
 
-
-pfset BCConcentration.GeochemCondition.Names "initial"
+pfset BCConcentration.GeochemCondition.Names "west"
 pfset BCConcentration.PatchNames "front"
 pfset Patch.front.BCConcentration.Type Constant
-pfset Patch.front.BCConcentration.Value initial
+pfset Patch.front.BCConcentration.Value west
 
 
 pfset Solver.WriteSiloConcentration True
@@ -374,6 +373,7 @@ pfset Solver.WriteSiloConcentration True
 #-----------------------------------------------------------------------------
 pfset Solver.MaxIter 5000
 pfset Solver.CFL 0.5
+pfset Solver.AdvectOrder 1
 
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files
