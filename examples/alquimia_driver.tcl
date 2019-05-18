@@ -14,7 +14,7 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        4
+pfset Process.Topology.P        1
 pfset Process.Topology.Q        1
 pfset Process.Topology.R        1
 
@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 0.5
-pfset ComputationalGrid.DY                   0.5
-pfset ComputationalGrid.DZ	                 0.5
+pfset ComputationalGrid.DX	                 1.0
+pfset ComputationalGrid.DY                   1.0
+pfset ComputationalGrid.DZ	                 3.0
 
-pfset ComputationalGrid.NX                      20
-pfset ComputationalGrid.NY                      20
-pfset ComputationalGrid.NZ                      20
+pfset ComputationalGrid.NX                      100
+pfset ComputationalGrid.NY                      100
+pfset ComputationalGrid.NZ                      1
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -51,9 +51,9 @@ pfset Geom.domain.Lower.X                        0.0
 pfset Geom.domain.Lower.Y                         0.0
 pfset Geom.domain.Lower.Z                          0.0
 
-pfset Geom.domain.Upper.X                        10.0
-pfset Geom.domain.Upper.Y                        10.0
-pfset Geom.domain.Upper.Z                          10.0
+pfset Geom.domain.Upper.X                        100.0
+pfset Geom.domain.Upper.Y                        100.0
+pfset Geom.domain.Upper.Z                          3.0
 
 pfset Geom.domain.Patches "left right front back bottom top"
 
@@ -87,9 +87,9 @@ pfset Geom.source_region.Lower.X    0.0
 pfset Geom.source_region.Lower.Y    0.0
 pfset Geom.source_region.Lower.Z    0.0
 
-pfset Geom.source_region.Upper.X    10.0
-pfset Geom.source_region.Upper.Y    10.0
-pfset Geom.source_region.Upper.Z     5.0
+pfset Geom.source_region.Upper.X    100.0
+pfset Geom.source_region.Upper.Y    100.0
+pfset Geom.source_region.Upper.Z     3.0
 
 
 
@@ -119,13 +119,13 @@ pfset GeomInput.concen_region_input.GeomName        concen_region
 #-----------------------------------------------------------------------------
 # Concen_Region Geometry
 #-----------------------------------------------------------------------------
-pfset Geom.concen_region.Lower.X  0.0
-pfset Geom.concen_region.Lower.Y  0.0
-pfset Geom.concen_region.Lower.Z  5.0
+pfset Geom.concen_region.Lower.X  10.0
+pfset Geom.concen_region.Lower.Y  10.0
+pfset Geom.concen_region.Lower.Z  0.0
 
-pfset Geom.concen_region.Upper.X  10.0
-pfset Geom.concen_region.Upper.Y  10.0
-pfset Geom.concen_region.Upper.Z   10.0
+pfset Geom.concen_region.Upper.X  30.0
+pfset Geom.concen_region.Upper.Y  30.0
+pfset Geom.concen_region.Upper.Z   3.0
 
 #-----------------------------------------------------------------------------
 # Phases
@@ -155,10 +155,10 @@ pfset Gravity				1.0
 # Setup timing info
 #-----------------------------------------------------------------------------
 
-pfset TimingInfo.BaseUnit		1.0
+pfset TimingInfo.BaseUnit		0.5
 pfset TimingInfo.StartCount		0
 pfset TimingInfo.StartTime		0.0
-pfset TimingInfo.StopTime            20.0
+pfset TimingInfo.StopTime            240.0
 pfset TimingInfo.DumpInterval	     1
 
 #-----------------------------------------------------------------------------
@@ -206,19 +206,42 @@ pfset Cycle.constant.Repeat		-1
 #-----------------------------------------------------------------------------
 pfset BCPressure.PatchNames "left right front back bottom top"
 
-pfset Patch.back.BCPressure.Type			DirEquilRefPatch
-pfset Patch.back.BCPressure.Cycle			"constant"
-pfset Patch.back.BCPressure.RefGeom			domain
-pfset Patch.back.BCPressure.RefPatch			bottom
-pfset Patch.back.BCPressure.alltime.Value		10.0
-
+#pfset Patch.top.BCPressure.Type			DirEquilRefPatch
+#pfset Patch.top.BCPressure.Cycle			"constant"
+#pfset Patch.top.BCPressure.RefGeom			domain
+#pfset Patch.top.BCPressure.RefPatch			bottom
+#pfset Patch.top.BCPressure.alltime.Value		3.0
+#
+#pfset Patch.bottom.BCPressure.Type			DirEquilRefPatch
+#pfset Patch.bottom.BCPressure.Cycle			"constant"
+#pfset Patch.bottom.BCPressure.RefGeom			domain
+#pfset Patch.bottom.BCPressure.RefPatch			bottom
+#pfset Patch.bottom.BCPressure.alltime.Value		0.0
 pfset Patch.front.BCPressure.Type			DirEquilRefPatch
 pfset Patch.front.BCPressure.Cycle			"constant"
 pfset Patch.front.BCPressure.RefGeom			domain
 pfset Patch.front.BCPressure.RefPatch			bottom
-pfset Patch.front.BCPressure.alltime.Value		15.0
+pfset Patch.front.BCPressure.alltime.Value		5.0
 
-pfset Patch.top.BCPressure.Type			FluxConst
+pfset Patch.back.BCPressure.Type			DirEquilRefPatch
+pfset Patch.back.BCPressure.Cycle			"constant"
+pfset Patch.back.BCPressure.RefGeom			domain
+pfset Patch.back.BCPressure.RefPatch			bottom
+pfset Patch.back.BCPressure.alltime.Value		0.0
+
+pfset Patch.left.BCPressure.Type			DirEquilRefPatch
+pfset Patch.left.BCPressure.Cycle			"constant"
+pfset Patch.left.BCPressure.RefGeom			domain
+pfset Patch.left.BCPressure.RefPatch			bottom
+pfset Patch.left.BCPressure.alltime.Value		5.0
+
+pfset Patch.right.BCPressure.Type			DirEquilRefPatch
+pfset Patch.right.BCPressure.Cycle			"constant"
+pfset Patch.right.BCPressure.RefGeom			domain
+pfset Patch.right.BCPressure.RefPatch			bottom
+pfset Patch.right.BCPressure.alltime.Value		0.0
+
+pfset Patch.top.BCPressure.Type				FluxConst
 pfset Patch.top.BCPressure.Cycle			"constant"
 pfset Patch.top.BCPressure.alltime.Value		0.0
 
@@ -226,21 +249,21 @@ pfset Patch.bottom.BCPressure.Type			FluxConst
 pfset Patch.bottom.BCPressure.Cycle			"constant"
 pfset Patch.bottom.BCPressure.alltime.Value		0.0
 
-pfset Patch.left.BCPressure.Type			FluxConst
-pfset Patch.left.BCPressure.Cycle			"constant"
-pfset Patch.left.BCPressure.alltime.Value		0.0
-
-pfset Patch.right.BCPressure.Type			 FluxConst
-pfset Patch.right.BCPressure.Cycle			"constant"
-pfset Patch.right.BCPressure.alltime.Value		0.0
-
+#pfset Patch.left.BCPressure.Type			FluxConst
+#pfset Patch.left.BCPressure.Cycle			"constant"
+#pfset Patch.left.BCPressure.alltime.Value		-0.25
+#
+#pfset Patch.right.BCPressure.Type			 FluxConst
+#pfset Patch.right.BCPressure.Cycle			"constant"
+#pfset Patch.right.BCPressure.alltime.Value		-0.25
+#
 #pfset Patch.back.BCPressure.Type			FluxConst
 #pfset Patch.back.BCPressure.Cycle			"constant"
 #pfset Patch.back.BCPressure.alltime.Value		0.0
-
+#
 #pfset Patch.front.BCPressure.Type			FluxConst
 #pfset Patch.front.BCPressure.Cycle			"constant"
-#pfset Patch.front.BCPressure.alltime.Value		0.0
+#pfset Patch.front.BCPressure.alltime.Value		-0.25
 
 
 
@@ -353,16 +376,21 @@ pfset Solver.Chemistry True
 pfset Chemistry.Engine CrunchFlow
 pfset Chemistry.InputFile tracer-1d-crunch.in
 
+
+# order of geomnames matters
+# just like everything else w/ PF geometries,
+# geominputs listed later will overwrite those
+# listed earlier if they overlap
 pfset GeochemCondition.Type "Constant"
-pfset GeochemCondition.GeomNames "concen_region source_region"
-pfset GeochemCondition.Names "west initial"
-pfset GeochemCondition.Geom.source_region.Value "west"
-pfset GeochemCondition.Geom.concen_region.Value "initial"
+pfset GeochemCondition.GeomNames "source_region concen_region"
+pfset GeochemCondition.Names "initial west"
+pfset GeochemCondition.Geom.source_region.Value "initial"
+pfset GeochemCondition.Geom.concen_region.Value "west"
 
 pfset BCConcentration.GeochemCondition.Names "west"
-pfset BCConcentration.PatchNames "front"
-pfset Patch.front.BCConcentration.Type Constant
-pfset Patch.front.BCConcentration.Value west
+pfset BCConcentration.PatchNames "left"
+pfset Patch.left.BCConcentration.Type Constant
+pfset Patch.left.BCConcentration.Value west
 
 
 pfset Solver.WriteSiloConcentration True
@@ -372,7 +400,7 @@ pfset Solver.WriteSiloConcentration True
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
 pfset Solver.MaxIter 5000
-pfset Solver.CFL 0.5
+pfset Solver.CFL 1.0
 pfset Solver.AdvectOrder 1
 
 #-----------------------------------------------------------------------------

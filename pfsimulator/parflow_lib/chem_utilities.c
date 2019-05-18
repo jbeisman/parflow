@@ -255,7 +255,6 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
     {
       
       chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
-      printf("i,j,k: %d %d %d nx ny nz: %d %d %d ix iy iz: %d %d %d chem index: %d \n",i,j,k,nx,ny,nz,ix,iy,iz,chem_index);
      
       AllocateAlquimiaState(&alquimia_data->chem_sizes, &alquimia_data->chem_state[chem_index]);
       AllocateAlquimiaProperties(&alquimia_data->chem_sizes, &alquimia_data->chem_properties[chem_index]);

@@ -55,21 +55,24 @@ typedef struct {
   int max_ny;
   int max_nz;
 
-  double *slx;
-  double *sly;
-  double *slz;
-  double *sbot;
-  double *stop;
-  double *sbotp;
-  double *sfrt;
-  double *sbck;
-  double *sleft;
-  double *sright;
-  double *sfluxz;
-  double *dxscr;
-  double *dyscr;
-  double *dzscr;
-  double *dzfrm;
+  double *stemp;
+  double *fx;
+  double *fy;
+  double *fz;
+  double *vx;
+  double *wx;
+  double *uy;
+  double *wy;
+  double *uz;
+  double *vz;
+  double *smin;
+  double *smax;
+  double *sx;
+  double *sy;
+  double *sz;
+  double *sxtemp;
+  double *sytemp;
+  double *sztemp;
 } InstanceXtra;
 
 
@@ -105,21 +108,26 @@ void     Godunov(
   Vector     *scale = NULL;
   Vector     *right_hand_side = NULL;
 
-  double     *slx = (instance_xtra->slx);
-  double     *sly = (instance_xtra->sly);
-  double     *slz = (instance_xtra->slz);
-  double     *sbot = (instance_xtra->sbot);
-  double     *stop = (instance_xtra->stop);
-  double     *sbotp = (instance_xtra->sbotp);
-  double     *sfrt = (instance_xtra->sfrt);
-  double     *sbck = (instance_xtra->sbck);
-  double     *sleft = (instance_xtra->sleft);
-  double     *sright = (instance_xtra->sright);
-  double     *sfluxz = (instance_xtra->sfluxz);
-  double     *dxscr = (instance_xtra->dxscr);
-  double     *dyscr = (instance_xtra->dyscr);
-  double     *dzscr = (instance_xtra->dzscr);
-  double     *dzfrm = (instance_xtra->dzfrm);
+  double *stemp  = (instance_xtra->stemp);
+  double *fx     = (instance_xtra->fx);
+  double *fy     = (instance_xtra->fy);
+  double *fz     = (instance_xtra->fz);
+  double *vx     = (instance_xtra->vx);
+  double *wx     = (instance_xtra->wx);
+  double *uy     = (instance_xtra->uy);
+  double *wy     = (instance_xtra->wy);
+  double *uz     = (instance_xtra->uz);
+  double *vz     = (instance_xtra->vz);
+  double *smin   = (instance_xtra->smin);
+  double *smax   = (instance_xtra->smax);
+  double *sx     = (instance_xtra->sx);
+  double *sy     = (instance_xtra->sy);
+  double *sz     = (instance_xtra->sz);
+  double *sxtemp = (instance_xtra->sxtemp);
+  double *sytemp = (instance_xtra->sytemp);
+  double *sztemp = (instance_xtra->sztemp);
+
+
 
   WellData         *well_data = ProblemDataWellData(problem_data);
   WellDataPhysical *well_data_physical;
@@ -131,6 +139,13 @@ void     Godunov(
   Vector           *perm_x = ProblemDataPermeabilityX(problem_data);
   Vector           *perm_y = ProblemDataPermeabilityY(problem_data);
   Vector           *perm_z = ProblemDataPermeabilityZ(problem_data);
+
+  int gnx = BackgroundNX(GlobalsBackground);
+  int gny = BackgroundNY(GlobalsBackground);
+  int gnz = BackgroundNZ(GlobalsBackground);
+  int gx =  BackgroundX(GlobalsBackground);
+  int gy =  BackgroundY(GlobalsBackground);
+  int gz =  BackgroundZ(GlobalsBackground);
 
   VectorUpdateCommHandle       *handle = NULL;
 
@@ -187,7 +202,7 @@ void     Godunov(
   double avg_x, avg_y, avg_z, area_x, area_y, area_z, area_sum;
 
   amps_Invoice result_invoice;
-printf("inside godunov\n");
+
   /*-----------------------------------------------------------------------
    * Begin timing
    *-----------------------------------------------------------------------*/
@@ -304,10 +319,11 @@ printf("inside godunov\n");
         hi[2] = SubregionIZ(subregion) + (SubregionNZ(subregion) - 1);
 
         /***** Make the call to the Godunov advection routine *****/
-        CALL_ADVECT(c,cn,uedge,vedge,wedge,phi,
-                   lo,hi,dlo,dhi,hx,dt,order,
-                   old_sat,sat,iteration,
-                   num_iterations);
+        CALL_ADVECT(c,cn,uedge,vedge,wedge,phi,lo,hi,dlo,
+                   dhi,hx,dt,order,old_sat,sat,iteration,
+                   num_iterations,gnx,gny,gnz,gx,gy,gz,fx,
+                   fy,fz,vx,wx,uy,wy,uz,vz,stemp,smin,
+                   smax,sx,sy,sz,sxtemp,sytemp,sztemp);
       }
     }
   }
@@ -1064,37 +1080,42 @@ PFModule  *GodunovInitInstanceXtra(
     max_nz = (instance_xtra->max_nz);
 
     /*** set temp data pointers ***/
-    (instance_xtra->slx) = temp_data;
-    temp_data += (max_nx + 2 + 2) * (max_ny + 2 + 2);
-    (instance_xtra->sly) = temp_data;
-    temp_data += (max_nx + 2 + 2) * (max_ny + 2 + 2);
-    (instance_xtra->slz) = temp_data;
-    temp_data += (max_nx + 2 + 2) * (max_ny + 2 + 2) * 3;
-
-    (instance_xtra->sbot) = temp_data;
-    temp_data += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-    (instance_xtra->stop) = temp_data;
-    temp_data += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-    (instance_xtra->sbotp) = temp_data;
-    temp_data += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-    (instance_xtra->sfrt) = temp_data;
-    temp_data += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-    (instance_xtra->sbck) = temp_data;
-    temp_data += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-    (instance_xtra->sleft) = temp_data;
-    temp_data += (max_nx + 3 + 3);
-    (instance_xtra->sright) = temp_data;
-    temp_data += (max_nx + 3 + 3);
-    (instance_xtra->sfluxz) = temp_data;
-    temp_data += (max_nx + 3 + 3);
-    (instance_xtra->dxscr) = temp_data;
-    temp_data += (max_nx + 3 + 3) * 4;
-    (instance_xtra->dyscr) = temp_data;
-    temp_data += (max_ny + 3 + 3) * 4;
-    (instance_xtra->dzscr) = temp_data;
-    temp_data += (max_nx + 3 + 3) * 3;
-    (instance_xtra->dzfrm) = temp_data;
-    temp_data += (max_nx + 3 + 3) * 3;
+    (instance_xtra->stemp) = temp_data;
+    temp_data += (max_nx + 3 + 3) * (max_ny + 3 + 3) * (max_nz + 3 + 3);
+    (instance_xtra->sxtemp) = temp_data;
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
+    (instance_xtra->sytemp) = temp_data;
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
+    (instance_xtra->sztemp) = temp_data;
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
+    (instance_xtra->sx) = temp_data;
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
+    (instance_xtra->sy) = temp_data;
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
+    (instance_xtra->sz) = temp_data;
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
+    (instance_xtra->smin) = temp_data;
+    temp_data += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2);
+    (instance_xtra->smax) = temp_data;
+    temp_data += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2);
+    (instance_xtra->fx) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->fy) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->fz) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->vx) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->wx) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->uy) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->wy) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->uz) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    (instance_xtra->vz) = temp_data;
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
   }
 
   PFModuleInstanceXtra(this_module) = instance_xtra;
@@ -1160,26 +1181,15 @@ int  GodunovSizeOfTempData()
 
   int max_nx = (instance_xtra->max_nx);
   int max_ny = (instance_xtra->max_ny);
+  int max_nz = (instance_xtra->max_nz);
 
   int sz = 0;
 
   /* add local TempData size to `sz' */
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2);
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2);
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2) * 3;
-
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3);
-  sz += (max_nx + 3 + 3);
-  sz += (max_nx + 3 + 3);
-  sz += (max_nx + 3 + 3) * 4;
-  sz += (max_ny + 3 + 3) * 4;
-  sz += (max_nx + 3 + 3) * 3;
-  sz += (max_nx + 3 + 3) * 3;
+  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3) * (max_nz + 3 + 3);
+  sz += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3) * 6;
+  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2) * 2;
+  sz += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2) * 9;
 
   return sz;
 }

@@ -38,18 +38,20 @@
  *  Update mode stuff
  *--------------------------------------------------------------------------*/
 
-#define NumUpdateModes 10
+#define NumUpdateModes 12
 
 #define VectorUpdateAll      0
 #define VectorUpdateAll2     1
 #define VectorUpdateRPoint   2
 #define VectorUpdateBPoint   3
 #define VectorUpdateGodunov  4
-#define VectorUpdateVelZ     5
-#define VectorUpdatePGS1     6
-#define VectorUpdatePGS2     7
-#define VectorUpdatePGS3     8
-#define VectorUpdatePGS4     9
+#define VectorUpdateVelX     5
+#define VectorUpdateVelY     6
+#define VectorUpdateVelZ     7
+#define VectorUpdatePGS1     8
+#define VectorUpdatePGS2     9
+#define VectorUpdatePGS3     10
+#define VectorUpdatePGS4     11
 
 /*--------------------------------------------------------------------------
  * CommPkg:

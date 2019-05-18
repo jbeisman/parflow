@@ -276,7 +276,7 @@ printf("num_cells: %d \n",num_cells);
       pf_index = SubvectorEltIndex(chem_ind_sub, i, j, k);
       chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
       //chem_var[chem_index] = chem_ind[pf_index];
-      printf("right before processcondition");
+     // printf("right before processcondition");
 
 
       alquimia_data->chem_properties[chem_index].volume = vol;
