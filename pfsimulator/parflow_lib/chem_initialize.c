@@ -88,7 +88,6 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   GrGeomSolid   *gr_domain;
 
-  char *geochem_conds;
   char* name;
   int num_cells;
 
@@ -206,7 +205,6 @@ printf("num_cells: %d \n",num_cells);
 
  static const double water_density = 999.9720;    // density of water in kg/m**3
  static const double aqueous_pressure = 201325.0; // pressure in Pa.
- double volume = 1.0;
 /*
       alquimia_data->chem_properties[i].volume = volume;
       alquimia_data->chem_properties[i].saturation = driver->saturation;
@@ -230,7 +228,7 @@ printf("num_cells: %d \n",num_cells);
   //Subgrid       *subgrid;
   Subvector     *chem_ind_sub;
   Subvector     *por_sub;
-  int is;
+  int is = 0;
   int i, j, k;
   int ix, iy, iz;
   int nx, ny, nz;

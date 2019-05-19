@@ -83,7 +83,7 @@
       integer ii,ii2,ii3,jj,jj2,jj3,kk,kk2,kk3
       integer iiz,iiz2,jjx,jjx2,kky,kky2,iiy,jjz,kkx
       real(dp) dx,dy,dz
-      real(dp) half
+      real(dp) half,third
       real(dp) rx,ry,rz,mclimit,limx,thetax,thetay,thetaz,limy,limz
       real(dp) transvel,sat_diff,iter,num_iter,abs_smin
       real(dp) minmod4,minmod2,median
@@ -98,6 +98,7 @@
       dy = hx(2)
       dz = hx(3)
       half = 0.5_dp
+      third = 1.0_dp/3.0_dp
 
       iter=DBLE(iteration)
       num_iter=DBLE(num_iterations)
@@ -290,22 +291,22 @@
           !x sweep
           sytemp(ii2,jjx,k) = sytemp(ii2,jjx,k)-half*rx*uedge(i,j,k)*vx(i,j,k)
           sztemp(ii2,j,kkx)=sztemp(ii2,j,kkx) - half*rx*uedge(i,j,k)*wx(i,j,k) + &
-          (1.0_dp/3.0_dp)*uedge(i,j,k)*abs(vx(i,j,k))*wx(i,j,k)*rx 
-          sztemp(ii2,jjx2,kkx)=sztemp(ii2,jjx2,kkx) - (1.0_dp/3.0_dp)*uedge(i,j,k) * &
+          (third)*uedge(i,j,k)*abs(vx(i,j,k))*wx(i,j,k)*rx 
+          sztemp(ii2,jjx2,kkx)=sztemp(ii2,jjx2,kkx) - (third)*uedge(i,j,k) * &
           abs(vx(i,j,k))*wx(i,j,k)*rx 
     
           !y sweep
           sztemp(i,jj2,kky) = sztemp(i,jj2,kky)-half*ry*vedge(i,j,k)*wy(i,j,k)
           sxtemp(iiy,jj2,k)=sxtemp(iiy,jj2,k) - half*ry*vedge(i,j,k)*uy(i,j,k) + &
-          (1.0_dp/3.0_dp)*vedge(i,j,k)*abs(wy(i,j,k))*uy(i,j,k)*ry 
-          sxtemp(iiy,jj2,kky2)=sxtemp(iiy,jj2,kky2) - (1.0_dp/3.0_dp)*vedge(i,j,k) * &
+          (third)*vedge(i,j,k)*abs(wy(i,j,k))*uy(i,j,k)*ry 
+          sxtemp(iiy,jj2,kky2)=sxtemp(iiy,jj2,kky2) - (third)*vedge(i,j,k) * &
           abs(wy(i,j,k))*uy(i,j,k)*ry 
     
           !z sweep
           sxtemp(iiz,j,kk2) = sxtemp(iiz,j,kk2)-half*rz*wedge(i,j,k)*uz(i,j,k)
           sytemp(i,jjz,kk2)=sytemp(i,jjz,kk2) - half*rz*wedge(i,j,k)*vz(i,j,k) + &
-          (1.0_dp/3.0_dp)*wedge(i,j,k)*abs(uz(i,j,k))*vz(i,j,k)*rz 
-          sytemp(iiz2,jjz,kk2)=sytemp(iiz2,jjz,kk2) - (1.0_dp/3.0_dp)*wedge(i,j,k) * &
+          (third)*wedge(i,j,k)*abs(uz(i,j,k))*vz(i,j,k)*rz 
+          sytemp(iiz2,jjz,kk2)=sytemp(iiz2,jjz,kk2) - (third)*wedge(i,j,k) * &
           abs(uz(i,j,k))*vz(i,j,k)*rz
     
           ! Add second order transverse propogation information

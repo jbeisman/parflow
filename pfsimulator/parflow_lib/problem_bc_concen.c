@@ -305,7 +305,7 @@ PFModule  *BCConcentrationNewPublicXtra()
   Type0          *dummy0;
   Type1          *dummy1;
 
-  int i, j, indx;
+  int  j;
   char key[IDB_MAX_KEY_LEN];
 
   char *switch_name;
@@ -420,7 +420,7 @@ void  BCConcentrationFreePublicXtra()
   Type0  *dummy0;
   Type1  *dummy1;
 
-  int j, indx;
+  int j;
 
   if (public_xtra)
   {

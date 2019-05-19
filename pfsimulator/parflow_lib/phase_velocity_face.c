@@ -125,8 +125,8 @@ void          PhaseVelocityFace(
   double         *vel_l, *vel_r, *mob, *vel_tmp;
   double         *den, *pres;
   double ds[3];
-  double h0, h1, h2, dummy_density;
-  int dir0 = 0, dir1, dir2, alpha;
+  double h0, dummy_density;
+  int dir0 = 0, alpha;
   int dir[3][3] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
 
 

@@ -240,7 +240,7 @@ void     Godunov(
   /*-----------------------------------------------------------------------
    * Advect on all the subgrids
    *-----------------------------------------------------------------------*/
-
+  // need to reestimate this, the new scheme is not as efficient
   flopest =
     ((nz_cells + 1) *
      ((ny_cells + 3) * ((nx_cells + 5) * 8 + ((nx_cells + 3) * 6)) +
