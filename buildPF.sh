@@ -13,7 +13,11 @@ cmake .. \
   -DSILO_ROOT=$SILO_DIR \
   -DPARFLOW_HAVE_CLM=ON \
   -DALQUIMIA_ROOT=$ALQUIMIA_DIR \
-  -DCRUNCH_ROOT=$CRUNCHFLOW_DIR
+  -DCRUNCH_ROOT=$CRUNCHFLOW_DIR \
+  -DCMAKE_BUILD_TYPE=DEBUG \
+  -DCMAKE_C_FLAGS="-W -Wall -Wextra" \
+  -DCMAKE_CXX_FLAGS="-W -Wall -Wextra" \
+  -DCMAKE_Fortran_FLAGS="-W -Wall -Wextra"
 make -j 6 VERBOSE=1
 make install
 cd $ORIGIN_DIR

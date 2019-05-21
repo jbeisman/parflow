@@ -122,15 +122,14 @@
       uz = 0.0_dp
       vz = 0.0_dp
 
+
       sxtemp = 0.0_dp
       sytemp = 0.0_dp
       sztemp = 0.0_dp
-      
-      abs_smin = minval(s(is:ie,js:je,ks:ke))
 
-      !! main loop
-      !! compute increment fluxes and second order corrections
-      !! compute transverse riemann problem, move fluxes appropriately
+
+      ! compute acceptable min and max values for each cell
+      abs_smin = minval(s(is:ie,js:je,ks:ke))
       do k=ks-2,ke+2
         do j=js-2,je+2
           do i=is-2,ie+2
@@ -178,7 +177,9 @@
         ke2 = ke
       endif
 
-      
+      !! main loop
+      !! compute increment fluxes and second order corrections
+      !! compute transverse riemann problem, move fluxes appropriately
       do k=ks1-1,ke1+2
         do j=js1-1,je1+2
           do i=is1-1,ie1+2

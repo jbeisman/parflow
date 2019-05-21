@@ -76,7 +76,6 @@ void          BCConcentration(  Problem *problem,
                                 AlquimiaState *chem_bc_state,
                                 GrGeomSolid *gr_domain)
 {
-  printf("im inside bcconcen main\n");
   PFModule       *this_module = ThisPFModule;
   PublicXtra     *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
 

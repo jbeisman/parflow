@@ -104,13 +104,10 @@ void  GeochemCond(ProblemData *problem_data, Vector *geochemcond)
       region_indices = (dummy0->region_indices);
       values = (dummy0->values);
 
-      printf("NUM_REGIONS: %d\n",num_regions);
-
       for (ir = 0; ir < num_regions; ir++)
       {
         gr_solid = ProblemDataGrSolid(problem_data, region_indices[ir]);
         value = values[ir];
-        printf("VALUES:%d\n",(int)value);
 
         ForSubgridI(is, subgrids)
         {

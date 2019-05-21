@@ -240,9 +240,9 @@ void      SolverImpes()
 
 
   //this is how we define an alquimia string
-  const char * strtest = "CrunchFlow";
-  char* chemistry_engine = AlquimiaStringDup(strtest);
-  printf( "%s\n", chemistry_engine);
+  //const char * strtest = "CrunchFlow";
+  //char* chemistry_engine = AlquimiaStringDup(strtest);
+  //printf( "%s\n", chemistry_engine);
    
 
 
@@ -522,15 +522,10 @@ void      SolverImpes()
         PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
                           (problem_data, instance_xtra->alquimia_data,
                            concentrations, 
-                           ProblemDataPorosity(problem_data)));
+                           ProblemDataPorosity(problem_data),
+                           saturations[0]));
 
         PrintAlquimiaSizes(&instance_xtra->alquimia_data->chem_sizes,stdout);
-       // PrintAlquimiaGeochemicalCondition(&instance_xtra->alquimia_data->chem_ics[0],stdout);
-
-
-
-printf("I'm in solver impes \n");
-
 
       }
       /*****************************************************************/
@@ -564,8 +559,6 @@ printf("I'm in solver impes \n");
           }
         }
       }
-printf("I'm in solver impes 2 \n");
-
       /*----------------------------------------------------------------
        * Print out the initial concentrations?
        *----------------------------------------------------------------*/
@@ -604,8 +597,6 @@ printf("I'm in solver impes 2 \n");
         }
       }
       
-printf("I'm in solver impes 3\n");
-
       /*----------------------------------------------------------------
        * Print out the initial well data?
        *----------------------------------------------------------------*/
@@ -1174,8 +1165,6 @@ printf("I'm in solver impes 3\n");
       /******************************************************************/
       /*            Solve for and print the concentrations              */
       /******************************************************************/
-      printf("at next print concen\n");
-
       if (evolve_concentrations)
       {
         if (ProblemNumContaminants(problem) > 0)
@@ -1197,7 +1186,6 @@ printf("I'm in solver impes 3\n");
               InitVectorAll(ctemp, 0.0);
               CopyConcenWithBoundary(concentrations[indx], ctemp);
 
-          printf("right before advection\n");
               PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
                                 (problem_data, phase, concen,
                                 ctemp, concentrations[indx], 

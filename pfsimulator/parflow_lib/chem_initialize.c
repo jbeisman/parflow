@@ -28,7 +28,10 @@
 
 /*****************************************************************************
 *
-* Module for initializing the geochemical problem.
+* Module for initializing the geochemical problem. This code reads the PF input 
+* file chemistry options, starts the alquimia interface, allocates the alquimia 
+* and PF data storage, and processes and assigns geochemical initial and boundary
+* conditions. The data is saved in a large struct, AlquimiaDataPF 
 *
 *-----------------------------------------------------------------------------
 *
@@ -57,6 +60,32 @@ typedef struct {
   NameArray     bc_cond_na;
   int           num_ic_conds;
   int           num_bc_conds;
+  int 			print_mineral_rate;
+  int 			silo_mineral_rate;
+  int 			print_mineral_volfx;
+  int 			silo_mineral_volfx;
+  int 			print_mineral_surfarea;
+  int 			silo_mineral_surfarea;
+  int 			print_surf_dens;
+  int 			silo_surf_dens;
+  int 			print_CEC;
+  int 			silo_CEC;
+  int 			print_pH;
+  int 			silo_pH;
+  int 			print_aqueous_rate;
+  int 			silo_aqueous_rate;
+  int 			print_mineral_SI;
+  int 			silo_mineral_SI;
+  int 			print_primary_freeion;
+  int 			silo_primary_freeion;
+  int 			print_primary_activity;
+  int 			silo_primary_activity;
+  int 			print_secondary_freeion;
+  int 			silo_secondary_freeion;
+  int 			print_secondary_activity;
+  int 			silo_secondary_activity;
+  int 			print_sorbed;
+  int 			silo_sorbed;
 } PublicXtra;
 
 typedef struct {
@@ -74,7 +103,7 @@ typedef struct {
  * InitializeChemistry
  *--------------------------------------------------------------------------*/
 
-void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *phi)
+void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *phi, Vector *saturation)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -90,48 +119,62 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   char* name;
   int num_cells;
-
-  // containers for boundary condition storage
-        AlquimiaState *chem_bc_state;
-  AlquimiaAuxiliaryData *chem_bc_aux_data;
-  AlquimiaProperties *chem_bc_properties;
-    bool hands_off = true;
+  bool hands_off = true;
 
   BeginTiming(public_xtra->time_index);
 
-
-
   gr_domain = ProblemDataGrDomain(problem_data);
-  
+
+  // gather print flags
+  alquimia_data->print_mineral_rate = public_xtra->print_mineral_rate;
+  alquimia_data->silo_mineral_rate = public_xtra->silo_mineral_rate;
+  alquimia_data->print_mineral_volfx = public_xtra->print_mineral_volfx;
+  alquimia_data->silo_mineral_volfx = public_xtra->silo_mineral_volfx;
+  alquimia_data->print_mineral_surfarea = public_xtra->print_mineral_surfarea;
+  alquimia_data->silo_mineral_surfarea = public_xtra->silo_mineral_surfarea;
+  alquimia_data->print_surf_dens = public_xtra->print_surf_dens;
+  alquimia_data->silo_surf_dens = public_xtra->silo_surf_dens;
+  alquimia_data->print_CEC = public_xtra->print_CEC;
+  alquimia_data->silo_CEC = public_xtra->silo_CEC;
+  alquimia_data->print_pH = public_xtra->print_pH;
+  alquimia_data->silo_pH = public_xtra->silo_pH;
+  alquimia_data->print_aqueous_rate = public_xtra->print_aqueous_rate;
+  alquimia_data->silo_aqueous_rate = public_xtra->silo_aqueous_rate;
+  alquimia_data->print_mineral_SI = public_xtra->print_mineral_SI;
+  alquimia_data->silo_mineral_SI = public_xtra->silo_mineral_SI;
+  alquimia_data->print_primary_freeion = public_xtra->print_primary_freeion;
+  alquimia_data->silo_primary_freeion = public_xtra->silo_primary_freeion;
+  alquimia_data->print_primary_activity = public_xtra->print_primary_activity;
+  alquimia_data->silo_primary_activity = public_xtra->silo_primary_activity;
+  alquimia_data->print_secondary_freeion = public_xtra->print_secondary_freeion;
+  alquimia_data->silo_secondary_freeion = public_xtra->silo_secondary_freeion;
+  alquimia_data->print_secondary_activity = public_xtra->print_secondary_activity;
+  alquimia_data->silo_secondary_activity = public_xtra->silo_secondary_activity;
+  alquimia_data->print_sorbed = public_xtra->print_sorbed;
+  alquimia_data->silo_sorbed = public_xtra->silo_sorbed; 
+
   // set chem data 
   // this ivokes the geochemcond function and makes available a pfvector of 
   // geochemcond indicators 
   PFModuleInvokeType(SetChemDataInvoke, set_chem_data, (problem_data));
-  Vector *geochemcond = ProblemDataGeochemCond(problem_data);
 
   // find number of active cells for this subgrid
   num_cells = SubgridNumCells(grid, problem_data);
-printf("num_cells: %d \n",num_cells);
-  // fire alquimia up
 
-
+  // start making alquimia calls
   AllocateAlquimiaEngineStatus(&alquimia_data->chem_status);
   CreateAlquimiaInterface(public_xtra->engine_name, &alquimia_data->chem, &alquimia_data->chem_status);
+  	if (alquimia_data->chem_status.error != 0) 
+  	{
+  	  	alquimia_error("Alquimia interface creation error: %s", alquimia_data->chem_status.message);
+  	  	exit(1);
+  	}
+  	else if (!amps_Rank(amps_CommWorld))
+  	{
+  		amps_Printf("Successful creation of Alquimia interface\n");
+  	}
 
-  if (alquimia_data->chem_status.error != 0) 
-  {
-    alquimia_error("Alquimia interface creation error: %s", alquimia_data->chem_status.message);
-    exit(1);
-  }
-  else
-  {
-      if (!amps_Rank(amps_CommWorld))
-      {
-  	     amps_Printf("Successful creation of Alquimia interface\n");
-      }
-  }
-
-
+  // read input file, setup chem problem 
   alquimia_data->chem.Setup(public_xtra->chemistry_input_file,
                      hands_off,
                      &alquimia_data->chem_engine,
@@ -139,225 +182,70 @@ printf("num_cells: %d \n",num_cells);
                      &alquimia_data->chem_engine_functionality,
                      &alquimia_data->chem_status);
 
-  if (alquimia_data->chem_status.error != 0) 
-  {
-    alquimia_error("Alquimia interface setup error: %s", alquimia_data->chem_status.message);
-    exit(1);
-  }
-  else
-  {
-      if (!amps_Rank(amps_CommWorld))
-      {
-          amps_Printf("Successful setup() of Alquimia interface\n");
-      }
-  }
+  	if (alquimia_data->chem_status.error != 0) 
+  	{
+  	  	alquimia_error("Alquimia interface setup error: %s", alquimia_data->chem_status.message);
+  	  	exit(1);
+  	}
+  	else if (!amps_Rank(amps_CommWorld))
+  	{
+  	  	amps_Printf("Successful setup() of Alquimia interface\n");
+  	}
 
 
-
-
-
+  // Allocate space for alquimia data
   AllocateAlquimiaProblemMetaData(&alquimia_data->chem_sizes, &alquimia_data->chem_metadata);
   alquimia_data->chem_properties = ctalloc(AlquimiaProperties, num_cells);
   alquimia_data->chem_state = ctalloc(AlquimiaState, num_cells);
   alquimia_data->chem_aux_data = ctalloc(AlquimiaAuxiliaryData, num_cells);
   alquimia_data->chem_aux_output = ctalloc(AlquimiaAuxiliaryOutputData, num_cells);
 
-
+  // allocate cell by cell data in alquimia data structs
   AllocateChemCells(alquimia_data,grid,problem_data);
+  //allocate PF vector data for printing - todo: make allocations more flexible
+  AllocatePFChemData(alquimia_data,grid);
 
+  // get metadata - chemistry names etc
   alquimia_data->chem.GetProblemMetaData(&alquimia_data->chem_engine, 
                                          &alquimia_data->chem_metadata, 
                                          &alquimia_data->chem_status);
+  	if (alquimia_data->chem_status.error != 0) 
+  	{
+    	alquimia_error("Alquimia GetProblemMetaData() error: %s", alquimia_data->chem_status.message);
+    	exit(1);
+  	}
+  	else if (!amps_Rank(amps_CommWorld))
+  	{
+    	amps_Printf("Successful GetProblemMetaData() of Alquimia interface\n");
+  	}
+ 
 
-  printf("here\n");
+  ProcessGeochemICs(alquimia_data, grid, problem_data, public_xtra->num_ic_conds, public_xtra->ic_cond_na, saturation);
+  	if (alquimia_data->chem_status.error != 0) 
+  	{
+    	alquimia_error("Alquimia ProcessGeochemICs() error: %s", alquimia_data->chem_status.message);
+    	exit(1);
+  	}
+  	else if (!amps_Rank(amps_CommWorld))
+  	{
+    	amps_Printf("Successful ProcessGeochemICs() of Alquimia interface\n");
+  	}
 
-  if (alquimia_data->chem_status.error != 0) 
-  {
-    alquimia_error("Alquimia GetProblemMetaData() error: %s", alquimia_data->chem_status.message);
-    exit(1);
-  }
-  else
-  {
-      if (!amps_Rank(amps_CommWorld))
-      {
-          amps_Printf("Successful GetProblemMetaData() of Alquimia interface\n");
-      }
-  }
+  CopyChemDataToPF(alquimia_data,concentrations,problem_data);
 
-
-// assign interior geochemical conditions
-  PrintAlquimiaEngineFunctionality(&alquimia_data->chem_engine_functionality, stdout);
-
-
-  if (public_xtra->num_ic_conds > 0)
-  {
-    AllocateAlquimiaGeochemicalConditionVector(public_xtra->num_ic_conds, &alquimia_data->ic_condition_list);
-    for (int i = 0; i < public_xtra->num_ic_conds; i++)
-    {
-      name = NA_IndexToName(public_xtra->ic_cond_na, i);
-      printf("NAME: %s \n", name);
-      AllocateAlquimiaGeochemicalCondition(strlen(name), 0, 0, &alquimia_data->ic_condition_list.data[i]);
-      strcpy(alquimia_data->ic_condition_list.data[i].name, name);
-            printf("top: %s \n",alquimia_data->ic_condition_list.data[i].name);
-
-    }
-  }
-
- static const double water_density = 999.9720;    // density of water in kg/m**3
- static const double aqueous_pressure = 201325.0; // pressure in Pa.
-/*
-      alquimia_data->chem_properties[i].volume = volume;
-      alquimia_data->chem_properties[i].saturation = driver->saturation;
-
-      // Set the thermodynamic state.
-      alquimia_data->chem_state[i].water_density = water_density;
-      alquimia_data->chem_state[i].temperature = driver->temperature;
-      alquimia_data->chem_state[i].porosity = driver->porosity;
-      alquimia_data->chem_state[i].aqueous_pressure = aqueous_pressure;
-*/
-
-
-//AlquimiaSizes *chem_sizes = &alquimia_data->chem_sizes;
-//printf("chem_sizes.num_primary: %d\n",chem_sizes->num_primary);
-
- // Grid          *grid = VectorGrid(geochemcond);
-
-
-    SubgridArray  *subgrids = GridSubgrids(grid);
   
-  //Subgrid       *subgrid;
-  Subvector     *chem_ind_sub;
-  Subvector     *por_sub;
-  int is = 0;
-  int i, j, k;
-  int ix, iy, iz;
-  int nx, ny, nz;
-  int dx, dy, dz;
-  int r;
-  int chem_index, pf_index;
-  double *chem_ind, *por;
- 
-    subgrid = SubgridArraySubgrid(subgrids, is);
+  ProcessGeochemBCs(alquimia_data, public_xtra->num_bc_conds, public_xtra->bc_cond_na);
+  	if (alquimia_data->chem_status.error != 0) 
+  	{
+    	alquimia_error("Alquimia ProcessGeochemBCs() error: %s", alquimia_data->chem_status.message);
+    	exit(1);
+  	}
+  	else if (!amps_Rank(amps_CommWorld))
+  	{
+    	amps_Printf("Successful ProcessGeochemBCs() of Alquimia interface\n");
+  	}
 
-
- 
-
-  ForSubgridI(is, subgrids)
-  {
-    subgrid = SubgridArraySubgrid(subgrids, is);
-
-    ix = SubgridIX(subgrid);
-    iy = SubgridIY(subgrid);
-    iz = SubgridIZ(subgrid);
-
-    nx = SubgridNX(subgrid);
-    ny = SubgridNY(subgrid);
-    nz = SubgridNZ(subgrid);
-
-    dx = SubgridDX(subgrid);
-    dy = SubgridDY(subgrid);
-    dz = SubgridDZ(subgrid);
-
-    double vol = dx * dy * dz;
-
-    // RDF: assume resolution is the same in all 3 directions 
-    r = SubgridRX(subgrid);
-
-    chem_ind_sub = VectorSubvector(geochemcond, is);
-    chem_ind = SubvectorData(chem_ind_sub);
-
-    por_sub = VectorSubvector(phi, is);
-    por = SubvectorData(por_sub);
-
-    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
-    {
-      pf_index = SubvectorEltIndex(chem_ind_sub, i, j, k);
-      chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
-      //chem_var[chem_index] = chem_ind[pf_index];
-     // printf("right before processcondition");
-
-
-      alquimia_data->chem_properties[chem_index].volume = vol;
-      alquimia_data->chem_properties[chem_index].saturation = 1.0;
-
-      // Set the thermodynamic state.
-      alquimia_data->chem_state[chem_index].water_density = 998.0;
-      alquimia_data->chem_state[chem_index].temperature = 20.0;
-      alquimia_data->chem_state[chem_index].porosity = por[pf_index];
-      alquimia_data->chem_state[chem_index].aqueous_pressure = aqueous_pressure;
-
-      
-
-      // Invoke the chemical initial condition.
-     alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
-                                    &alquimia_data->ic_condition_list.data[(int)chem_ind[pf_index]], 
-                                    &alquimia_data->chem_properties[chem_index],
-                                    &alquimia_data->chem_state[chem_index],
-                                    &alquimia_data->chem_aux_data[chem_index],
-                                    &alquimia_data->chem_status);
-      if (alquimia_data->chem_status.error != 0)
-      {
-        printf("TransportDriver: initialization error: %s\n", 
-               alquimia_data->chem_status.message);
-        break;
-      }
-
-
-
-
-
-    });
-  }
-
-
-CopyChemStateToPF(alquimia_data->chem_state,alquimia_data->chem_sizes,concentrations,problem_data);
-
-
-
-// boundary conditions:
-
-    if (public_xtra->num_bc_conds > 0)
-  {
-    AllocateAlquimiaGeochemicalConditionVector(public_xtra->num_bc_conds, &alquimia_data->bc_condition_list);
-    chem_bc_properties = ctalloc(AlquimiaProperties, public_xtra->num_bc_conds);
-  	chem_bc_state = ctalloc(AlquimiaState, public_xtra->num_bc_conds);
-  	chem_bc_aux_data = ctalloc(AlquimiaAuxiliaryData, public_xtra->num_bc_conds);
-    for (int i = 0; i < public_xtra->num_bc_conds; i++)
-    {
-      name = NA_IndexToName(public_xtra->bc_cond_na, i);
-      AllocateAlquimiaGeochemicalCondition(strlen(name), 0, 0, &alquimia_data->bc_condition_list.data[i]);
-      strcpy(alquimia_data->bc_condition_list.data[i].name, name);
-
-
-
-      AllocateAlquimiaState(&alquimia_data->chem_sizes, &chem_bc_state[i]);
-      AllocateAlquimiaProperties(&alquimia_data->chem_sizes, &chem_bc_properties[i]);
-      AllocateAlquimiaAuxiliaryData(&alquimia_data->chem_sizes, &chem_bc_aux_data[i]);
-    }
-
-    for (int i = 0; i < public_xtra->num_bc_conds; i++)
-    {
-    	chem_bc_state[i].water_density = water_density;
-		chem_bc_state[i].temperature = 25.0;
-		chem_bc_state[i].porosity = 0.25;
-		chem_bc_state[i].aqueous_pressure = aqueous_pressure;
-
-		alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
-                                    &alquimia_data->bc_condition_list.data[i], 
-                                    &chem_bc_properties[i],
-                                    &chem_bc_state[i],
-                                    &chem_bc_aux_data[i],
-                                    &alquimia_data->chem_status);
-
-    }
-
-
-     PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, chem_bc_state, gr_domain));
-
-
-  }
-
-
+  PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state, gr_domain));
 
 
 
@@ -487,6 +375,322 @@ PFModule   *InitializeChemistryNewPublicXtra()
   public_xtra->num_ic_conds = NA_Sizeof(public_xtra->ic_cond_na);
 
   PFModulePublicXtra(this_module) = public_xtra;
+
+
+
+
+
+
+
+
+	NameArray      switch_na;
+	char          *switch_name;
+    int            switch_value;
+	switch_na = NA_NewNameArray("False True");
+
+
+
+   sprintf(key, "Chemistry.PrintMineralRate");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_mineral_rate = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloMineralRate");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_mineral_rate = switch_value;
+
+
+
+   sprintf(key, "Chemistry.PrintMineralVolFrac");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_mineral_volfx = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloMineralVolFrac");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_mineral_volfx = switch_value;
+
+
+
+
+   sprintf(key, "Chemistry.PrintMineralSurfArea");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_mineral_surfarea = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloMineralSurfArea");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_mineral_surfarea = switch_value;
+
+
+
+
+
+
+
+
+
+
+
+
+   sprintf(key, "Chemistry.PrintSurfSiteDens");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_surf_dens = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloSurfSiteDens");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_surf_dens = switch_value;
+
+
+
+   sprintf(key, "Chemistry.PrintCEC");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_CEC = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloCEC");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_CEC = switch_value;
+
+
+
+   sprintf(key, "Chemistry.PrintpH");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_pH = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSilopH");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_pH = switch_value;
+
+
+
+
+
+
+
+   sprintf(key, "Chemistry.PrintAqueousRate");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_aqueous_rate = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloAqueousRate");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_aqueous_rate = switch_value;
+
+
+   sprintf(key, "Chemistry.PrintMineralSI");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_mineral_SI = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloMineralSI");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_mineral_SI = switch_value;
+
+
+   sprintf(key, "Chemistry.PrintPrimaryFreeIon");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_primary_freeion = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloPrimaryFreeIon");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_primary_freeion = switch_value;
+
+
+   sprintf(key, "Chemistry.PrintPrimaryActivity");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_primary_activity = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloPrimaryActivity");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_primary_activity = switch_value;
+
+
+   sprintf(key, "Chemistry.PrintSecondaryFreeIon");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_secondary_freeion = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloSecondaryFreeIon");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_secondary_freeion = switch_value;
+
+
+   sprintf(key, "Chemistry.PrintSecondaryActivity");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_secondary_activity = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloSecondaryActivity");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_secondary_activity = switch_value;
+
+
+
+   sprintf(key, "Chemistry.PrintSorbed");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
+		     switch_name, key );
+   }
+   public_xtra -> print_sorbed = switch_value;
+   
+   sprintf(key, "Chemistry.WriteSiloSorbed");
+   switch_name = GetStringDefault(key, "False");
+   switch_value = NA_NameToIndex(switch_na, switch_name);
+   if(switch_value < 0)
+   {
+      InputError("Error: invalid value <%s> for key <%s>\n",
+      switch_name, key );
+   }
+   public_xtra -> silo_sorbed = switch_value;
+   
+
+
+
+
+
+   NA_FreeNameArray(switch_na);
+
+
   return this_module;
 }
 
@@ -515,31 +719,9 @@ void InitializeChemistryFreePublicXtra()
 
 int InitializeChemistrySizeOfTempData()
 {
-  PFModule      *this_module = ThisPFModule;
-  InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
-
-  int max_nx = 1000;
-  int max_ny = 1000;
 
   int sz = 0;
 
-  /* add local TempData size to `sz' */
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2);
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2);
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2) * 3;
-
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3);
-  sz += (max_nx + 3 + 3);
-  sz += (max_nx + 3 + 3);
-  sz += (max_nx + 3 + 3);
-  sz += (max_nx + 3 + 3) * 4;
-  sz += (max_ny + 3 + 3) * 4;
-  sz += (max_nx + 3 + 3) * 3;
-  sz += (max_nx + 3 + 3) * 3; 
   return sz;
 }
 

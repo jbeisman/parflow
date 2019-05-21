@@ -266,6 +266,127 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
 
 
 
+void AllocatePFChemData(AlquimiaDataPF *alquimia_data, Grid *grid)
+{
+  int is;
+  int i, j, k;
+  int ix, iy, iz;
+  int nx, ny, nz;
+  int r;
+  int chem_index;
+
+  //pH
+  alquimia_data->pH = NewVectorType( grid, 1, 0, vector_cell_centered );
+  InitVectorAll(alquimia_data->pH, 0.0);
+  
+  // num_primary - primary activity and free ion concen
+  if (alquimia_data->chem_sizes.num_primary > 0)
+  {
+    alquimia_data->primary_free_ion_concentrationPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_primary);
+    alquimia_data->primary_activity_coeffPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_primary);
+
+    for (i = 0; i < alquimia_data->chem_sizes.num_primary; i++)
+    {
+      alquimia_data->primary_free_ion_concentrationPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->primary_free_ion_concentrationPF[i], 0.0);
+
+      alquimia_data->primary_activity_coeffPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->primary_activity_coeffPF[i], 0.0);
+    } 
+  }
+
+  // num_sorbed - total_immobile - allocate for num_primary
+  if (alquimia_data->chem_sizes.num_sorbed > 0)
+  {
+    alquimia_data->total_immobilePF = ctalloc(Vector *, alquimia_data->chem_sizes.num_primary);
+
+    for (i = 0; i < alquimia_data->chem_sizes.num_primary; i++)
+    {
+      alquimia_data->total_immobilePF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->total_immobilePF[i], 0.0);
+    } 
+  }
+
+  // num_minerals - volfx, SSA, SI, rate
+  if (alquimia_data->chem_sizes.num_minerals > 0)
+  {
+    alquimia_data->mineral_volume_fractionsPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_minerals);
+    alquimia_data->mineral_specific_surfacePF = ctalloc(Vector *, alquimia_data->chem_sizes.num_minerals);
+    alquimia_data->mineral_saturation_indexPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_minerals);
+    alquimia_data->mineral_reaction_ratePF = ctalloc(Vector *, alquimia_data->chem_sizes.num_minerals);
+
+    for (i = 0; i < alquimia_data->chem_sizes.num_minerals; i++)
+    {
+      alquimia_data->mineral_volume_fractionsPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->mineral_volume_fractionsPF[i], 0.0);
+
+      alquimia_data->mineral_specific_surfacePF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->mineral_specific_surfacePF[i], 0.0);
+
+      alquimia_data->mineral_saturation_indexPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->mineral_saturation_indexPF[i], 0.0);
+
+      alquimia_data->mineral_reaction_ratePF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->mineral_reaction_ratePF[i], 0.0);
+    } 
+  }
+
+  // num_aqueous_complexes - secondary activity and free ion
+  if (alquimia_data->chem_sizes.num_aqueous_complexes > 0)
+  {
+    alquimia_data->secondary_free_ion_concentrationPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_aqueous_complexes);
+    alquimia_data->secondary_activity_coeffPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_aqueous_complexes);
+
+    for (i = 0; i < alquimia_data->chem_sizes.num_aqueous_complexes; i++)
+    {
+      alquimia_data->secondary_free_ion_concentrationPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->secondary_free_ion_concentrationPF[i], 0.0);
+
+      alquimia_data->secondary_activity_coeffPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->secondary_activity_coeffPF[i], 0.0);
+    } 
+  }
+
+  // num_surface_sites - site density
+  if (alquimia_data->chem_sizes.num_surface_sites > 0)
+  {
+    alquimia_data->surface_site_densityPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_surface_sites);
+
+    for (i = 0; i < alquimia_data->chem_sizes.num_surface_sites; i++)
+    {
+      alquimia_data->surface_site_densityPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->surface_site_densityPF[i], 0.0);
+    } 
+  }
+
+  // num_ion_exchange_sites - cation exchange capacity
+  if (alquimia_data->chem_sizes.num_ion_exchange_sites > 0)
+  {
+    alquimia_data->cation_exchange_capacityPF = ctalloc(Vector *, alquimia_data->chem_sizes.num_ion_exchange_sites);
+
+    for (i = 0; i < alquimia_data->chem_sizes.num_ion_exchange_sites; i++)
+    {
+      alquimia_data->cation_exchange_capacityPF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->cation_exchange_capacityPF[i], 0.0);
+    } 
+  }
+
+  // num_aqueous_kinetics - aqueous kinetic rate
+  if (alquimia_data->chem_sizes.num_aqueous_kinetics > 0)
+  {
+    alquimia_data->aqueous_kinetic_ratePF = ctalloc(Vector *, alquimia_data->chem_sizes.num_aqueous_kinetics);
+
+    for (i = 0; i < alquimia_data->chem_sizes.num_aqueous_kinetics; i++)
+    {
+      alquimia_data->aqueous_kinetic_ratePF[i] = NewVectorType( grid, 1, 0, vector_cell_centered );
+      InitVectorAll(alquimia_data->aqueous_kinetic_ratePF[i], 0.0);
+    } 
+  }
+}
+
+
+
+
 void FindIndexFromNameCaseInsensitive(const char* const name,
                                const AlquimiaVectorString* const names,
                                int* index) {
@@ -280,26 +401,30 @@ void FindIndexFromNameCaseInsensitive(const char* const name,
 } 
 
 
-void CopyChemStateToPF(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vector **concentrations, ProblemData *problem_data)
+void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data)
 {
   Grid          *grid = VectorGrid(concentrations[0]);
   SubgridArray  *subgrids = GridSubgrids(grid);
   GrGeomSolid   *gr_domain;
   Subgrid       *subgrid;
-  Subvector     *concen_sub;
   int is;
   int i, j, k;
   int ix, iy, iz;
   int nx, ny, nz;
   int r;
-  int chem_index, pf_index;
-  int concen;
-  double *concen_dat;
+  int chem_index, pf_index1, pf_index2, pf_index3, pf_index4;
+  double *pf_dat1, *pf_dat2, *pf_dat3, *pf_dat4;
+  Subvector *pf_sub1, *pf_sub2, *pf_sub3, *pf_sub4;
+
 
   gr_domain = ProblemDataGrDomain(problem_data);
-  int num_primary = chem_sizes.num_primary;
-
-
+  int num_primary = alquimia_data->chem_sizes.num_primary;
+  int num_minerals = alquimia_data->chem_sizes.num_minerals;
+  int num_surf_sites = alquimia_data->chem_sizes.num_surface_sites;
+  int num_ion_exchange_sites = alquimia_data->chem_sizes.num_ion_exchange_sites;
+  int num_aqueous_kinetics = alquimia_data->chem_sizes.num_aqueous_kinetics;
+  int num_aqueous_complexes = alquimia_data->chem_sizes.num_aqueous_complexes;
+  int num_sorbed = alquimia_data->chem_sizes.num_sorbed;
 
     ForSubgridI(is, subgrids)
     {
@@ -316,21 +441,149 @@ void CopyChemStateToPF(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vect
       /* RDF: assume resolution is the same in all 3 directions */
       r = SubgridRX(subgrid);
 
-      for(concen = 0; concen < num_primary; concen++)
+      for(int concen = 0; concen < num_primary; concen++)
       {
+        pf_sub1 = VectorSubvector(concentrations[concen],is);
+        pf_dat1 = SubvectorData(pf_sub1);
 
-        concen_sub = VectorSubvector(concentrations[concen],is);
-        concen_dat = SubvectorData(concen_sub);
+        pf_sub2 = VectorSubvector(alquimia_data->primary_free_ion_concentrationPF[concen],is);
+        pf_dat2 = SubvectorData(pf_sub2);
+
+        pf_sub3 = VectorSubvector(alquimia_data->primary_activity_coeffPF[concen],is);
+        pf_dat3 = SubvectorData(pf_sub3);
   
         GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
         {
-          pf_index = SubvectorEltIndex(concen_sub, i, j, k);
+          pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+          pf_index2 = SubvectorEltIndex(pf_sub2, i, j, k);
+          pf_index3 = SubvectorEltIndex(pf_sub3, i, j, k);
+
           chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
 
-          concen_dat[pf_index] = chem_state[chem_index].total_mobile.data[concen];
-      });
+          pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].total_mobile.data[concen];
+          pf_dat2[pf_index2] = alquimia_data->chem_aux_output[chem_index].primary_free_ion_concentration.data[concen];
+          pf_dat3[pf_index3] = alquimia_data->chem_aux_output[chem_index].primary_activity_coeff.data[concen];
+        });
+      }
 
-    }
+
+
+      for(int mineral = 0; mineral < num_minerals; mineral++)
+        {
+          pf_sub1 = VectorSubvector(alquimia_data->mineral_volume_fractionsPF[mineral],is);
+          pf_dat1 = SubvectorData(pf_sub1);
+  
+          pf_sub2 = VectorSubvector(alquimia_data->mineral_specific_surfacePF[mineral],is);
+          pf_dat2 = SubvectorData(pf_sub2);
+  
+          pf_sub3 = VectorSubvector(alquimia_data->mineral_saturation_indexPF[mineral],is);
+          pf_dat3 = SubvectorData(pf_sub3);
+  
+          pf_sub4 = VectorSubvector(alquimia_data->mineral_reaction_ratePF[mineral],is);
+          pf_dat4 = SubvectorData(pf_sub4);
+    
+          GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+          {
+            pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+            pf_index2 = SubvectorEltIndex(pf_sub2, i, j, k);
+            pf_index3 = SubvectorEltIndex(pf_sub3, i, j, k);
+            pf_index4 = SubvectorEltIndex(pf_sub4, i, j, k);
+  
+            chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+  
+            pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].mineral_volume_fraction.data[mineral];
+            pf_dat2[pf_index2] = alquimia_data->chem_state[chem_index].mineral_specific_surface_area.data[mineral];
+            pf_dat3[pf_index3] = alquimia_data->chem_aux_output[chem_index].mineral_saturation_index.data[mineral];
+            pf_dat4[pf_index4] = alquimia_data->chem_aux_output[chem_index].mineral_reaction_rate.data[mineral];
+        });
+      }
+  
+  
+  
+  
+  
+  
+      for(int surf = 0; surf < num_surf_sites; surf++)
+        {
+          pf_sub1 = VectorSubvector(alquimia_data->surface_site_densityPF[surf],is);
+          pf_dat1 = SubvectorData(pf_sub1);
+    
+          GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+          {
+            pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+            chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+            pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].surface_site_density.data[surf];
+        });
+      }
+  
+  
+  
+  
+      for(int ion = 0; ion < num_ion_exchange_sites; ion++)
+      {
+          pf_sub1 = VectorSubvector(alquimia_data->cation_exchange_capacityPF[ion],is);
+          pf_dat1 = SubvectorData(pf_sub1);
+    
+          GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+          {
+            pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+            chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+            pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].cation_exchange_capacity.data[ion];
+        });
+      }
+  
+  
+  
+  
+      for(int rate = 0; rate < num_aqueous_kinetics; rate++)
+      {
+          pf_sub1 = VectorSubvector(alquimia_data->aqueous_kinetic_ratePF[rate],is);
+          pf_dat1 = SubvectorData(pf_sub1);
+    
+          GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+          {
+            pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+            chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+            pf_dat1[pf_index1] = alquimia_data->chem_aux_output[chem_index].aqueous_kinetic_rate.data[rate];
+        });
+      }
+  
+  
+  
+  
+      for(int complex = 0; complex < num_aqueous_complexes; complex++)
+      {
+          pf_sub1 = VectorSubvector(alquimia_data->secondary_free_ion_concentrationPF[complex],is);
+          pf_dat1 = SubvectorData(pf_sub1);
+  
+          pf_sub2 = VectorSubvector(alquimia_data->secondary_activity_coeffPF[complex],is);
+          pf_dat2 = SubvectorData(pf_sub2);
+    
+          GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+          {
+            pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+            pf_index2 = SubvectorEltIndex(pf_sub2, i, j, k);
+            chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+            pf_dat1[pf_index1] = alquimia_data->chem_aux_output[chem_index].secondary_free_ion_concentration.data[complex];
+            pf_dat2[pf_index2] = alquimia_data->chem_aux_output[chem_index].secondary_activity_coeff.data[complex];
+        });
+      }
+  
+      if (num_sorbed > 0)
+      {
+        for(int sorbed = 0; sorbed < num_primary; sorbed++)
+        {
+            pf_sub1 = VectorSubvector(alquimia_data->total_immobilePF[sorbed],is);
+            pf_dat1 = SubvectorData(pf_sub1);
+      
+            GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+            {
+              pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+              chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+              pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].total_immobile.data[sorbed];
+          });
+        }
+      }
     }
 }
 
@@ -444,6 +697,156 @@ void     CopyConcenWithBoundary(
     {
       yp[i_y] = xp[i_x];
     });
+  }
+}
+
+
+
+
+void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data, int num_ic_conds, NameArray ic_cond_na, Vector * saturation)
+{
+  double water_density = 998.0;    // density of water in kg/m**3
+  double aqueous_pressure = 101325.0; // pressure in Pa.
+  Subgrid       *subgrid;
+  Subvector     *chem_ind_sub;
+  Subvector     *por_sub, *sat_sub;
+  int is = 0;
+  int i, j, k;
+  int ix, iy, iz;
+  int nx, ny, nz;
+  int dx, dy, dz;
+  int r;
+  int chem_index, cond_index, por_index, sat_index;
+  double *chem_ind, *por, *sat;
+  GrGeomSolid   *gr_domain;
+  char* name;
+ 
+  SubgridArray  *subgrids = GridSubgrids(grid);
+  gr_domain = ProblemDataGrDomain(problem_data);
+  subgrid = SubgridArraySubgrid(subgrids, is);
+
+
+
+    // assign interior geochemical conditions
+  if (num_ic_conds > 0)
+  {
+    AllocateAlquimiaGeochemicalConditionVector(num_ic_conds, &alquimia_data->ic_condition_list);
+    for (int i = 0; i < num_ic_conds; i++)
+    {
+      name = NA_IndexToName(ic_cond_na, i);
+      AllocateAlquimiaGeochemicalCondition(strlen(name), 0, 0, &alquimia_data->ic_condition_list.data[i]);
+      strcpy(alquimia_data->ic_condition_list.data[i].name, name);
+    }
+  }
+
+
+  ForSubgridI(is, subgrids)
+  {
+    subgrid = SubgridArraySubgrid(subgrids, is);
+
+    ix = SubgridIX(subgrid);
+    iy = SubgridIY(subgrid);
+    iz = SubgridIZ(subgrid);
+
+    nx = SubgridNX(subgrid);
+    ny = SubgridNY(subgrid);
+    nz = SubgridNZ(subgrid);
+
+    dx = SubgridDX(subgrid);
+    dy = SubgridDY(subgrid);
+    dz = SubgridDZ(subgrid);
+
+    double vol = dx * dy * dz;
+
+    // RDF: assume resolution is the same in all 3 directions 
+    r = SubgridRX(subgrid);
+
+    chem_ind_sub = VectorSubvector(ProblemDataGeochemCond(problem_data), is);
+    chem_ind = SubvectorData(chem_ind_sub);
+
+    por_sub = VectorSubvector(ProblemDataPorosity(problem_data), is);
+    por = SubvectorData(por_sub);
+
+    sat_sub = VectorSubvector(saturation, is);
+    sat = SubvectorData(sat_sub);
+
+    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+    {
+      cond_index = SubvectorEltIndex(chem_ind_sub, i, j, k);
+      por_index = SubvectorEltIndex(por_sub, i, j, k);
+      sat_index = SubvectorEltIndex(sat_sub, i, j, k);
+
+      chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+
+      alquimia_data->chem_properties[chem_index].volume = vol;
+      alquimia_data->chem_properties[chem_index].saturation = sat[sat_index];
+
+      // Set the thermodynamic state.
+      alquimia_data->chem_state[chem_index].water_density = water_density;
+      alquimia_data->chem_state[chem_index].temperature = 20.0;
+      alquimia_data->chem_state[chem_index].porosity = por[por_index];
+      alquimia_data->chem_state[chem_index].aqueous_pressure = aqueous_pressure;
+
+      // Invoke the chemical initial condition.
+      alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
+                                    &alquimia_data->ic_condition_list.data[(int)chem_ind[cond_index]], 
+                                    &alquimia_data->chem_properties[chem_index],
+                                    &alquimia_data->chem_state[chem_index],
+                                    &alquimia_data->chem_aux_data[chem_index],
+                                    &alquimia_data->chem_status);
+      if (alquimia_data->chem_status.error != 0)
+      {
+        printf("TransportDriver: initialization error: %s\n", 
+               alquimia_data->chem_status.message);
+        break;
+      }
+
+    });
+  }
+}
+
+
+
+
+void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArray bc_cond_na)
+{
+  char* name;
+  double water_density = 998.0;    // density of water in kg/m**3
+  double aqueous_pressure = 101325.0; // pressure in Pa.
+  // boundary conditions:
+
+    if (num_bc_conds > 0)
+  {
+    AllocateAlquimiaGeochemicalConditionVector(num_bc_conds, &alquimia_data->bc_condition_list);
+    alquimia_data->chem_bc_properties = ctalloc(AlquimiaProperties, num_bc_conds);
+    alquimia_data->chem_bc_state = ctalloc(AlquimiaState, num_bc_conds);
+    alquimia_data->chem_bc_aux_data = ctalloc(AlquimiaAuxiliaryData, num_bc_conds);
+    
+    for (int i = 0; i < num_bc_conds; i++)
+    {
+      name = NA_IndexToName(bc_cond_na, i);
+      AllocateAlquimiaGeochemicalCondition(strlen(name), 0, 0, &alquimia_data->bc_condition_list.data[i]);
+      strcpy(alquimia_data->bc_condition_list.data[i].name, name);
+
+      AllocateAlquimiaState(&alquimia_data->chem_sizes, &alquimia_data->chem_bc_state[i]);
+      AllocateAlquimiaProperties(&alquimia_data->chem_sizes, &alquimia_data->chem_bc_properties[i]);
+      AllocateAlquimiaAuxiliaryData(&alquimia_data->chem_sizes, &alquimia_data->chem_bc_aux_data[i]);
+    }
+
+    for (int i = 0; i < num_bc_conds; i++)
+    {
+      alquimia_data->chem_bc_state[i].water_density = water_density;
+      alquimia_data->chem_bc_state[i].temperature = 25.0;
+      alquimia_data->chem_bc_state[i].porosity = 0.25;
+      alquimia_data->chem_bc_state[i].aqueous_pressure = aqueous_pressure;
+
+      alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,
+                                    &alquimia_data->bc_condition_list.data[i], 
+                                    &alquimia_data->chem_bc_properties[i],
+                                    &alquimia_data->chem_bc_state[i],
+                                    &alquimia_data->chem_bc_aux_data[i],
+                                    &alquimia_data->chem_status);
+    }
   }
 }
 

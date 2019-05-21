@@ -14,7 +14,7 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        1
+pfset Process.Topology.P        4
 pfset Process.Topology.Q        1
 pfset Process.Topology.R        1
 
@@ -392,6 +392,8 @@ pfset BCConcentration.PatchNames "left"
 pfset Patch.left.BCConcentration.Type Constant
 pfset Patch.left.BCConcentration.Value west
 
+pfset Chemistry.PrintMineralRate True
+
 
 pfset Solver.WriteSiloConcentration True
 
@@ -401,13 +403,13 @@ pfset Solver.WriteSiloConcentration True
 #-----------------------------------------------------------------------------
 pfset Solver.MaxIter 5000
 pfset Solver.CFL 1.0
-pfset Solver.AdvectOrder 1
+pfset Solver.AdvectOrder 2
 
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files
 #-----------------------------------------------------------------------------
-pfrun default_single
-pfundist default_single
+pfrun alquimia_driver
+pfundist alquimia_driver
 
 #-----------------------------------------------------------------------------
 # If running as test; check output.
