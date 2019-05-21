@@ -41,19 +41,19 @@
 #endif
 
 #define CALL_ADVECT(s, sn, uedge, vedge, wedge, phi,\
-                    lo, hi, dlo, dhi, hx, dt, order,\
+                    dlo, dhi, hx, dt, order,\
                     old_sat, sat, iteration, num_iterations, gnx,\
                     gny, gnz, gx, gy, gz,fx,fy,fz,vx,wx,uy,wy,uz,vz,stemp,\
                     smin,smax,sx,sy,sz,sxtemp,sytemp,sztemp)\
              ADVECT(s, sn, uedge, vedge, wedge, phi,\
-                    lo, hi, dlo, dhi, hx, &dt, &order,\
+                    dlo, dhi, hx, &dt, &order,\
                     old_sat, sat, &iteration, &num_iterations, &gnx,\
                     &gny,&gnz,&gx,&gy,&gz,fx,fy,fz,vx,wx,uy,wy,uz,vz,stemp,\
                     smin,smax,sx,sy,sz,sxtemp,sytemp,sztemp)
 
 void ADVECT(double *s, double *sn,
             double *uedge, double *vedge, double *wedge, double *phi,
-            int *lo, int *hi, int *dlo, int *dhi, double *hx, double *dt, int *order,
+            int *dlo, int *dhi, double *hx, double *dt, int *order,
             double *old_sat, double *sat, int *iteration, int *num_iterations, 
             int *gnx, int *gny, int *gnz, int *gx, int* gy, int* gz,double *fx, 
             double *fy,double *fz,double *vx,double *wx,double *uy,double *wy, 

@@ -141,6 +141,45 @@ void         Retardation(
 
         break;
       }
+      
+      case 1:
+      {
+        double value;
+
+        dummy0 = (Type0*)(public_xtra->data[index]);
+
+        value = (dummy0->value)[0];
+
+        for (is = 0; is < GridNumSubgrids(grid); is++)
+        {
+          subgrid = GridSubgrid(grid, is);
+          smf_sub = VectorSubvector(solidmassfactor, is);
+          p_sub = VectorSubvector(porosity, is);
+
+          ix = SubgridIX(subgrid);
+          iy = SubgridIY(subgrid);
+          iz = SubgridIZ(subgrid);
+
+          nx = SubgridNX(subgrid);
+          ny = SubgridNY(subgrid);
+          nz = SubgridNZ(subgrid);
+
+          /* RDF: assume resolution is the same in all 3 directions */
+          r = SubgridRX(subgrid);
+
+          smfp = SubvectorData(smf_sub);
+          pp = SubvectorData(p_sub);
+          GrGeomInLoop(i, j, k, gr_solid, r, ix, iy, iz, nx, ny, nz,
+          {
+            ismf = SubvectorEltIndex(smf_sub, i, j, k);
+            ip = SubvectorEltIndex(p_sub, i, j, k);
+
+            smfp[ismf] = (pp[ip] + (1.0 - pp[ip]) * value);
+          });
+        }
+
+        break;
+      }
     }
   }
 }
@@ -225,6 +264,57 @@ PFModule  *RetardationNewPublicXtra(
    *----------------------------------------------------------*/
   switch_na = NA_NewNameArray("Linear");
 
+
+
+
+  if (GlobalsChemistryFlag)
+  {
+    if (num_contaminants > 0)
+    {
+      public_xtra = ctalloc(PublicXtra, 1);
+  
+      (public_xtra->num_contaminants) = num_contaminants;
+  
+      geo_index_names = GetString("Geom.Retardation.GeomNames");
+      geo_index_na = (public_xtra->geo_indexes_na) =
+        NA_NewNameArray(geo_index_names);
+      num_geo_unit_indexes = NA_Sizeof(geo_index_na);
+  
+      (public_xtra->num_geo_unit_indexes) = num_geo_unit_indexes;
+      (public_xtra->geo_indexes) = ctalloc(int, num_geo_unit_indexes);
+  
+      (public_xtra->type) = ctalloc(int, num_geo_unit_indexes * num_contaminants);
+      (public_xtra->data) = ctalloc(void *, num_geo_unit_indexes * num_contaminants);
+
+      for (ig = 0; ig < num_geo_unit_indexes; ig++)
+      {
+        geom_name = NA_IndexToName(geo_index_na, ig);
+  
+        ind = NA_NameToIndex(GlobalsGeomNames, geom_name);
+  
+        (public_xtra->geo_indexes)[ig] = ind;
+  
+        for (i = 0; i < num_contaminants; i++)
+        {
+          index = num_contaminants * ig + i;
+          public_xtra->type[index] = 1;
+          dummy0 = ctalloc(Type0, 1);
+          (dummy0->value) = ctalloc(double, 1);
+          *(dummy0->value) = 0.0;
+          (public_xtra->data[index]) = (void*)dummy0;
+
+          }
+        }
+      }
+    else
+    {
+      public_xtra = NULL;
+    }
+  }
+  else
+  {
+
+
   if (num_contaminants > 0)
   {
     public_xtra = ctalloc(PublicXtra, 1);
@@ -273,7 +363,7 @@ PFModule  *RetardationNewPublicXtra(
             sprintf(key, "Geom.%s.%s.Retardation.Rate",
                     geom_name,
                     NA_IndexToName(GlobalsContaminatNames, i));
-            *(dummy0->value) = GetDouble(key);
+            *(dummy0->value) = GetDoubleDefault(key,0.0);
 
             (public_xtra->data[index]) = (void*)dummy0;
 
@@ -295,10 +385,10 @@ PFModule  *RetardationNewPublicXtra(
   {
     public_xtra = NULL;
   }
+}
 
-  NA_FreeNameArray(switch_na);
-
-  PFModulePublicXtra(this_module) = public_xtra;
+NA_FreeNameArray(switch_na);
+PFModulePublicXtra(this_module) = public_xtra;
   return this_module;
 }
 

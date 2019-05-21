@@ -158,10 +158,7 @@ void SetChemDataFreePublicXtra(void);
 int SetChemDataSizeOfTempData(void);
 
 
-void Chem2PF_Single(Vector *pf_vector, double *chem_var, ProblemData *problem_data);
-void PF2Chem_Single(Vector *pf_vector, double *chem_var, ProblemData *problem_data);
-void Chem2PF_Multi(Vector *pf_vector, double *chem_var, int num_var, ProblemData *problem_data);
-void PF2Chem_Multi(Vector *pf_vector, double *chem_var, int num_var, ProblemData *problem_data);
+
 int  SubgridNumCells(Grid *grid, ProblemData *problem_data);
 void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data);
 void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data);

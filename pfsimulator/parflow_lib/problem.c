@@ -178,13 +178,15 @@ Problem   *NewProblem(
 
   (problem->contaminant_degradation) = ctalloc(double, num_contaminants);
 
-
-  for (i = 0; i < num_contaminants; i++)
+  if (!(GlobalsChemistryFlag))
   {
-    /* SGS need to add switch on type */
-    sprintf(key, "Contaminants.%s.Degradation.Value",
-            NA_IndexToName(GlobalsContaminatNames, i));
-    problem->contaminant_degradation[i] = GetDouble(key);
+    for (i = 0; i < num_contaminants; i++)
+    {
+      /* SGS need to add switch on type */
+      sprintf(key, "Contaminants.%s.Degradation.Value",
+              NA_IndexToName(GlobalsContaminatNames, i));
+      problem->contaminant_degradation[i] = GetDouble(key);
+    }
   }
 
 

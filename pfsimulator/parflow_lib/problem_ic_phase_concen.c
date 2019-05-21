@@ -160,9 +160,16 @@ void         ICPhaseConcen(
 
       break;
     }
+
+    case 2:
+    {
+      // empty, just exit switch
+
+      break;
+    }
   }
 
-#if 1
+if (public_xtra->type[index] < 2)
   {
     /*************************************************************************
     *             Informational computation and printing.                   *
@@ -176,7 +183,6 @@ void         ICPhaseConcen(
       amps_Printf("Initial concentration volume for phase %2d, contaminant %3d = %f\n", phase, contaminant, field_sum);
     }
   }
-#endif
 }
 
 /*--------------------------------------------------------------------------
@@ -241,102 +247,140 @@ PFModule   *ICPhaseConcenNewPublicXtra(
 
   NameArray type_na;
 
-  type_na = NA_NewNameArray("Constant PFBFile");
-
-  if (num_contaminants > 0)
+  if (GlobalsChemistryFlag)
   {
-    public_xtra = ctalloc(PublicXtra, 1);
-
-    (public_xtra->num_phases) = num_phases;
-    (public_xtra->num_contaminants) = num_contaminants;
-
-    (public_xtra->type) = ctalloc(int, num_phases * num_contaminants);
-    (public_xtra->data) = ctalloc(void *, num_phases * num_contaminants);
-
-    for (phase = 0; phase < num_phases; phase++)
+    if (num_contaminants > 0)
     {
-      for (cont = 0; cont < num_contaminants; cont++)
+      public_xtra = ctalloc(PublicXtra, 1);
+
+      (public_xtra->num_phases) = num_phases;
+      (public_xtra->num_contaminants) = num_contaminants;
+  
+      (public_xtra->type) = ctalloc(int, num_phases * num_contaminants);
+
+      for (phase = 0; phase < num_phases; phase++)
       {
+        for (cont = 0; cont < num_contaminants; cont++)
+        {
         i = phase + cont;
 
-        sprintf(key, "PhaseConcen.%s.%s.Type",
-                NA_IndexToName(GlobalsPhaseNames, phase),
-                NA_IndexToName(GlobalsContaminatNames, cont));
+        public_xtra->type[i] = 2;
 
-        switch_name = GetString(key);
-
-        public_xtra->type[i] = NA_NameToIndex(type_na, switch_name);
-
-        switch ((public_xtra->type[i]))
-        {
-          case 0:
-          {
-            int num_regions, ir;
-
-            dummy0 = ctalloc(Type0, 1);
-
-            sprintf(key, "PhaseConcen.%s.%s.GeomNames",
-                    NA_IndexToName(GlobalsPhaseNames, phase),
-                    NA_IndexToName(GlobalsContaminatNames, cont));
-            switch_name = GetString(key);
-
-            dummy0->regions = NA_NewNameArray(switch_name);
-
-            num_regions =
-              (dummy0->num_regions) = NA_Sizeof(dummy0->regions);
-
-            (dummy0->region_indices) = ctalloc(int, num_regions);
-            (dummy0->values) = ctalloc(double, num_regions);
-
-            for (ir = 0; ir < num_regions; ir++)
-            {
-              dummy0->region_indices[ir] =
-                NA_NameToIndex(GlobalsGeomNames,
-                               NA_IndexToName(dummy0->regions, ir));
-
-              sprintf(key, "PhaseConcen.%s.%s.Geom.%s.Value",
-                      NA_IndexToName(GlobalsPhaseNames, phase),
-                      NA_IndexToName(GlobalsContaminatNames, cont),
-                      NA_IndexToName(dummy0->regions, ir));
-              dummy0->values[ir] = GetDouble(key);
-            }
-
-            (public_xtra->data[i]) = (void*)dummy0;
-
-            break;
-          }
-
-          case 1:
-          {
-            dummy1 = ctalloc(Type1, 1);
-
-
-            sprintf(key, "PhaseConcen.%s.%s.FileName",
-                    NA_IndexToName(GlobalsPhaseNames, phase),
-                    NA_IndexToName(GlobalsContaminatNames, cont));
-
-            dummy1->filename = GetString(key);
-
-            (public_xtra->data[i]) = (void*)dummy1;
-
-            break;
-          }
-
-          default:
-          {
-            InputError("Error: invalid type <%s> for key <%s>\n",
-                       switch_name, key);
-          }
         }
       }
+    }
+    else
+    {
+      public_xtra = NULL;
     }
   }
   else
   {
-    public_xtra = NULL;
+
+    type_na = NA_NewNameArray("Constant PFBFile");
+  
+    if (num_contaminants > 0)
+    {
+      public_xtra = ctalloc(PublicXtra, 1);
+  
+      (public_xtra->num_phases) = num_phases;
+      (public_xtra->num_contaminants) = num_contaminants;
+  
+      (public_xtra->type) = ctalloc(int, num_phases * num_contaminants);
+      (public_xtra->data) = ctalloc(void *, num_phases * num_contaminants);
+  
+      for (phase = 0; phase < num_phases; phase++)
+      {
+        for (cont = 0; cont < num_contaminants; cont++)
+        {
+          i = phase + cont;
+  
+          sprintf(key, "PhaseConcen.%s.%s.Type",
+                  NA_IndexToName(GlobalsPhaseNames, phase),
+                  NA_IndexToName(GlobalsContaminatNames, cont));
+  
+          switch_name = GetString(key);
+  
+          public_xtra->type[i] = NA_NameToIndex(type_na, switch_name);
+  
+          switch ((public_xtra->type[i]))
+          {
+            case 0:
+            {
+              int num_regions, ir;
+  
+              dummy0 = ctalloc(Type0, 1);
+  
+              sprintf(key, "PhaseConcen.%s.%s.GeomNames",
+                      NA_IndexToName(GlobalsPhaseNames, phase),
+                      NA_IndexToName(GlobalsContaminatNames, cont));
+              switch_name = GetString(key);
+  
+              dummy0->regions = NA_NewNameArray(switch_name);
+  
+              num_regions =
+                (dummy0->num_regions) = NA_Sizeof(dummy0->regions);
+  
+              (dummy0->region_indices) = ctalloc(int, num_regions);
+              (dummy0->values) = ctalloc(double, num_regions);
+  
+              for (ir = 0; ir < num_regions; ir++)
+              {
+                dummy0->region_indices[ir] =
+                  NA_NameToIndex(GlobalsGeomNames,
+                                 NA_IndexToName(dummy0->regions, ir));
+  
+                sprintf(key, "PhaseConcen.%s.%s.Geom.%s.Value",
+                        NA_IndexToName(GlobalsPhaseNames, phase),
+                        NA_IndexToName(GlobalsContaminatNames, cont),
+                        NA_IndexToName(dummy0->regions, ir));
+                dummy0->values[ir] = GetDouble(key);
+              }
+  
+              (public_xtra->data[i]) = (void*)dummy0;
+  
+              break;
+            }
+  
+            case 1:
+            {
+              dummy1 = ctalloc(Type1, 1);
+  
+  
+              sprintf(key, "PhaseConcen.%s.%s.FileName",
+                      NA_IndexToName(GlobalsPhaseNames, phase),
+                      NA_IndexToName(GlobalsContaminatNames, cont));
+  
+              dummy1->filename = GetString(key);
+  
+              (public_xtra->data[i]) = (void*)dummy1;
+  
+              break;
+            }
+
+            case 2:
+            {
+              // empty, just exit switch  
+              break;
+            }
+  
+            default:
+            {
+              InputError("Error: invalid type <%s> for key <%s>\n",
+                         switch_name, key);
+            }
+          }
+        }
+      }
+    }
+    else
+    {
+      public_xtra = NULL;
+    }
+  NA_FreeNameArray(type_na);
   }
 
-  NA_FreeNameArray(type_na);
+  
 
   PFModulePublicXtra(this_module) = public_xtra;
 

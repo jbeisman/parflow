@@ -118,10 +118,12 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   int num_cells;
   bool hands_off = true;
+  double field_sum;
 
   BeginTiming(public_xtra->time_index);
 
   gr_domain = ProblemDataGrDomain(problem_data);
+
 
   // gather print flags
   alquimia_data->print_mineral_rate = public_xtra->print_mineral_rate;
@@ -192,6 +194,15 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	}
 
 
+
+  // assert that PF num_contams == chem.num_primary
+  if (ProblemNumContaminants(problem) != alquimia_data->chem_sizes.num_primary)
+  {
+    amps_Printf("Input Error: mismatch between PF number of Contaminants.Names: <%d> and Alquimia num_primary: <%d>.  \n", ProblemNumContaminants(problem), alquimia_data->chem_sizes.num_primary);
+    exit(0);
+  }
+
+
   // Allocate space for alquimia data
   AllocateAlquimiaProblemMetaData(&alquimia_data->chem_sizes, &alquimia_data->chem_metadata);
   alquimia_data->chem_properties = ctalloc(AlquimiaProperties, num_cells);
@@ -251,6 +262,16 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   // copy alquimia data to PF Vectors for printing
   ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
 
+  // print initial concen volume 
+  for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)
+  {
+    field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data), grid, concentrations[concen]);
+    if (!amps_Rank(amps_CommWorld))
+    {
+      amps_Printf("Initial concentration volume for contaminant %s = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], field_sum);
+    }
+  }
+
 
 EndTiming(public_xtra->time_index);
 }
@@ -287,7 +308,7 @@ PFModule  *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid)
     PFModuleReNewInstanceType(SetChemDataInitInstanceXtraInvoke,
                               (instance_xtra->set_chem_data),
                               (problem, grid));
-    PFModuleReNewInstance((instance_xtra -> bc_concentration), ());
+    PFModuleReNewInstance((instance_xtra->bc_concentration), ());
   }
 
   /*-----------------------------------------------------------------------
@@ -331,7 +352,7 @@ void  InitializeChemistryFreeInstanceXtra()
   if (instance_xtra)
   {
     PFModuleFreeInstance((instance_xtra->set_chem_data));
-    PFModuleFreeInstance(instance_xtra -> bc_concentration);
+    PFModuleFreeInstance(instance_xtra->bc_concentration);
 
     tfree(instance_xtra);
   }
@@ -348,9 +369,12 @@ PFModule   *InitializeChemistryNewPublicXtra()
   PublicXtra   *public_xtra;
   char key[IDB_MAX_KEY_LEN];
   char* ic_cond_names, *bc_cond_names;
+  NameArray      switch_na;
+  char          *switch_name;
+  int            switch_value;
+  switch_na = NA_NewNameArray("False True");
 
   public_xtra = ctalloc(PublicXtra, 1);
-
   (public_xtra->set_chem_data) = PFModuleNewModule(SetChemData, ());
   (public_xtra->time_index) = RegisterTiming("Chemistry Initialization");
 
@@ -378,321 +402,256 @@ PFModule   *InitializeChemistryNewPublicXtra()
   public_xtra->num_ic_conds = NA_Sizeof(public_xtra->ic_cond_na);
 
   PFModulePublicXtra(this_module) = public_xtra;
+  sprintf(key, "Chemistry.PrintMineralRate");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_mineral_rate = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloMineralRate");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_mineral_rate = switch_value;
 
-
-
-
-
-
-
-
-	NameArray      switch_na;
-	char          *switch_name;
-    int            switch_value;
-	switch_na = NA_NewNameArray("False True");
-
-
-
-   sprintf(key, "Chemistry.PrintMineralRate");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_mineral_rate = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloMineralRate");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_mineral_rate = switch_value;
-
-
-
-   sprintf(key, "Chemistry.PrintMineralVolFrac");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_mineral_volfx = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloMineralVolFrac");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_mineral_volfx = switch_value;
-
-
-
-
-   sprintf(key, "Chemistry.PrintMineralSurfArea");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_mineral_surfarea = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloMineralSurfArea");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_mineral_surfarea = switch_value;
-
-
-
-
-
-
-
-
-
-
-
-
-   sprintf(key, "Chemistry.PrintSurfSiteDens");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_surf_dens = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloSurfSiteDens");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_surf_dens = switch_value;
-
-
-
-   sprintf(key, "Chemistry.PrintCEC");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_CEC = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloCEC");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_CEC = switch_value;
-
-
-
-   sprintf(key, "Chemistry.PrintpH");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_pH = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSilopH");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_pH = switch_value;
-
-
-
-
-
-
-
-   sprintf(key, "Chemistry.PrintAqueousRate");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_aqueous_rate = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloAqueousRate");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_aqueous_rate = switch_value;
-
-
-   sprintf(key, "Chemistry.PrintMineralSI");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_mineral_SI = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloMineralSI");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_mineral_SI = switch_value;
-
-
-   sprintf(key, "Chemistry.PrintPrimaryFreeIon");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_primary_freeion = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloPrimaryFreeIon");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_primary_freeion = switch_value;
-
-
-   sprintf(key, "Chemistry.PrintPrimaryActivity");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_primary_activity = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloPrimaryActivity");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_primary_activity = switch_value;
-
-
-   sprintf(key, "Chemistry.PrintSecondaryFreeIon");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_secondary_freeion = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloSecondaryFreeIon");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_secondary_freeion = switch_value;
-
-
-   sprintf(key, "Chemistry.PrintSecondaryActivity");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_secondary_activity = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloSecondaryActivity");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_secondary_activity = switch_value;
-
-
-
-   sprintf(key, "Chemistry.PrintSorbed");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-	 InputError("Error: invalid print switch value <%s> for key <%s>\n",
-		     switch_name, key );
-   }
-   public_xtra -> print_sorbed = switch_value;
-   
-   sprintf(key, "Chemistry.WriteSiloSorbed");
-   switch_name = GetStringDefault(key, "False");
-   switch_value = NA_NameToIndex(switch_na, switch_name);
-   if(switch_value < 0)
-   {
-      InputError("Error: invalid value <%s> for key <%s>\n",
-      switch_name, key );
-   }
-   public_xtra -> silo_sorbed = switch_value;
-   
-
-
-
-
-
-   NA_FreeNameArray(switch_na);
-
+  sprintf(key, "Chemistry.PrintMineralVolFrac");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_mineral_volfx = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloMineralVolFrac");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_mineral_volfx = switch_value;
+  sprintf(key, "Chemistry.PrintMineralSurfArea");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_mineral_surfarea = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloMineralSurfArea");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_mineral_surfarea = switch_value;
+  sprintf(key, "Chemistry.PrintSurfSiteDens");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_surf_dens = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloSurfSiteDens");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_surf_dens = switch_value;
+  sprintf(key, "Chemistry.PrintCEC");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_CEC = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloCEC");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_CEC = switch_value;
+  sprintf(key, "Chemistry.PrintpH");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_pH = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSilopH");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_pH = switch_value;
+  sprintf(key, "Chemistry.PrintAqueousRate");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_aqueous_rate = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloAqueousRate");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_aqueous_rate = switch_value;
+  sprintf(key, "Chemistry.PrintMineralSI");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_mineral_SI = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloMineralSI");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_mineral_SI = switch_value;
+  sprintf(key, "Chemistry.PrintPrimaryFreeIon");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_primary_freeion = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloPrimaryFreeIon");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_primary_freeion = switch_value;
+  sprintf(key, "Chemistry.PrintPrimaryActivity");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_primary_activity = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloPrimaryActivity");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_primary_activity = switch_value;
+  sprintf(key, "Chemistry.PrintSecondaryFreeIon");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_secondary_freeion = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloSecondaryFreeIon");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_secondary_freeion = switch_value;
+  sprintf(key, "Chemistry.PrintSecondaryActivity");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_secondary_activity = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloSecondaryActivity");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_secondary_activity = switch_value;
+  sprintf(key, "Chemistry.PrintSorbed");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>\n",
+	     switch_name, key );
+  }
+  public_xtra -> print_sorbed = switch_value;
+  
+  sprintf(key, "Chemistry.WriteSiloSorbed");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_sorbed = switch_value;
+  
+  NA_FreeNameArray(switch_na);
 
   return this_module;
 }
@@ -711,6 +670,8 @@ void InitializeChemistryFreePublicXtra()
   if (public_xtra)
   {
     PFModuleFreeModule(public_xtra->set_chem_data);
+    NA_FreeNameArray(public_xtra->ic_cond_na);
+    NA_FreeNameArray(public_xtra->bc_cond_na);
     tfree(public_xtra);
   }
 }

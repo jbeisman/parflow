@@ -309,17 +309,8 @@ void     Godunov(
 
         subregion = SubregionArraySubregion(subregion_array, sg);
 
-        /**** Compute the extents of computational subregion *****/
-        lo[0] = SubregionIX(subregion);
-        lo[1] = SubregionIY(subregion);
-        lo[2] = SubregionIZ(subregion);
-
-        hi[0] = SubregionIX(subregion) + (SubregionNX(subregion) - 1);
-        hi[1] = SubregionIY(subregion) + (SubregionNY(subregion) - 1);
-        hi[2] = SubregionIZ(subregion) + (SubregionNZ(subregion) - 1);
-
         /***** Make the call to the Godunov advection routine *****/
-        CALL_ADVECT(c,cn,uedge,vedge,wedge,phi,lo,hi,dlo,
+        CALL_ADVECT(c,cn,uedge,vedge,wedge,phi,dlo,
                    dhi,hx,dt,order,old_sat,sat,iteration,
                    num_iterations,gnx,gny,gnz,gx,gy,gz,fx,
                    fy,fz,vx,wx,uy,wy,uz,vz,stemp,smin,

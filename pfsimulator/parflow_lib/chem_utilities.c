@@ -37,152 +37,6 @@
 #include "alquimia/alquimia_memory.h"
 #include "alquimia/alquimia_util.h"
 
-void Chem2PF_Single(Vector *pf_vector, double *chem_var, ProblemData *problem_data)
-{
-  Grid          *grid = VectorGrid(pf_vector);
-  SubgridArray  *subgrids = GridSubgrids(grid);
-  GrGeomSolid   *gr_domain;
-  Subgrid       *subgrid;
-  Subvector     *subvector;
-  int is;
-  int i, j, k;
-  int ix, iy, iz;
-  int nx, ny, nz;
-  int r;
-  int chem_index, pf_index;
-  double *pf_data;
-
-  gr_domain = ProblemDataGrDomain(problem_data);
-
-  ForSubgridI(is, subgrids)
-  {
-    subgrid = SubgridArraySubgrid(subgrids, is);
-
-    ix = SubgridIX(subgrid);
-    iy = SubgridIY(subgrid);
-    iz = SubgridIZ(subgrid);
-
-    nx = SubgridNX(subgrid);
-    ny = SubgridNY(subgrid);
-    nz = SubgridNZ(subgrid);
-
-    /* RDF: assume resolution is the same in all 3 directions */
-    r = SubgridRX(subgrid);
-
-    subvector = VectorSubvector(pf_vector, is);
-    pf_data = SubvectorData(subvector);
-
-    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
-    {
-      pf_index = SubvectorEltIndex(subvector, i, j, k);
-      chem_index = (i-ix ) + (j- iy) * (nx) + (k- iz) * (nx) * (ny);
-      pf_data[pf_index] = chem_var[chem_index];
-    });
-  }
-}
-
-
-void PF2Chem_Single(Vector *pf_vector, double *chem_var, ProblemData *problem_data)
-{
-  Grid          *grid = VectorGrid(pf_vector);
-  SubgridArray  *subgrids = GridSubgrids(grid);
-  GrGeomSolid   *gr_domain;
-  Subgrid       *subgrid;
-  Subvector     *subvector;
-  int is;
-  int i, j, k;
-  int ix, iy, iz;
-  int nx, ny, nz;
-  int r;
-  int chem_index, pf_index;
-  double *pf_data;
-
-  gr_domain = ProblemDataGrDomain(problem_data);
-
-  ForSubgridI(is, subgrids)
-  {
-    subgrid = SubgridArraySubgrid(subgrids, is);
-
-    ix = SubgridIX(subgrid);
-    iy = SubgridIY(subgrid);
-    iz = SubgridIZ(subgrid);
-
-    nx = SubgridNX(subgrid);
-    ny = SubgridNY(subgrid);
-    nz = SubgridNZ(subgrid);
-
-    /* RDF: assume resolution is the same in all 3 directions */
-    r = SubgridRX(subgrid);
-
-    subvector = VectorSubvector(pf_vector, is);
-    pf_data = SubvectorData(subvector);
-
-    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
-    {
-      pf_index = SubvectorEltIndex(subvector, i, j, k);
-      chem_index = (i-ix ) + (j- iy) * (nx) + (k- iz) * (nx) * (ny);
-      chem_var[chem_index] = pf_data[pf_index];
-    });
-  }
-}
-
-
-
-
-
-void Chem2PF_Multi(Vector *pf_vector, double *chem_var, int num_var, ProblemData *problem_data)
-{
-  Grid          *grid = VectorGrid(pf_vector);
-  SubgridArray  *subgrids = GridSubgrids(grid);
-  GrGeomSolid   *gr_domain;
-  Subgrid       *subgrid;
-  Subvector     *subvector;
-  int is, var;
-  int i, j, k;
-  int ix, iy, iz;
-  int nx, ny, nz;
-  int r;
-  int chem_index, pf_index;
-  double *pf_data;
-
-  gr_domain = ProblemDataGrDomain(problem_data);
-
-  for(var = 0; var < num_var; var++)
-  {
-
-    ForSubgridI(is, subgrids)
-    {
-      subgrid = SubgridArraySubgrid(subgrids, is);
-  
-      ix = SubgridIX(subgrid);
-      iy = SubgridIY(subgrid);
-      iz = SubgridIZ(subgrid);
-  
-      nx = SubgridNX(subgrid);
-      ny = SubgridNY(subgrid);
-      nz = SubgridNZ(subgrid);
-  
-      /* RDF: assume resolution is the same in all 3 directions */
-      r = SubgridRX(subgrid);
-  
-      subvector = VectorSubvector(pf_vector, is);
-      pf_data = SubvectorData(subvector);
-  
-      GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
-      {
-        pf_index = SubvectorEltIndex(subvector, i, j, k);
-        chem_index = var + (i-ix ) * num_var 
-                         + (j- iy) * (nx) * num_var 
-                         + (k- iz) * (nx) * (ny) * num_var;
-        pf_data[pf_index] = chem_var[chem_index];
-      });
-    }
-  }
-}
-
-
-
-
 
 int SubgridNumCells(Grid *grid, ProblemData *problem_data)
 {
@@ -704,7 +558,7 @@ void     CopyConcenWithBoundary(
 
 void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data, int num_ic_conds, NameArray ic_cond_na, Vector * saturation)
 {
-  double water_density = 998.0;    // density of water in kg/m**3
+  double water_density = 900.0;    // density of water in kg/m**3
   double aqueous_pressure = 101325.0; // pressure in Pa.
   Subgrid       *subgrid;
   Subvector     *chem_ind_sub;
@@ -810,7 +664,7 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
 void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArray bc_cond_na)
 {
   char* name;
-  double water_density = 998.0;    // density of water in kg/m**3
+  double water_density = 900.0;    // density of water in kg/m**3
   double aqueous_pressure = 101325.0; // pressure in Pa.
   // boundary conditions:
 
@@ -848,9 +702,6 @@ void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArra
     }
   }
 }
-
-
-
 
 
 

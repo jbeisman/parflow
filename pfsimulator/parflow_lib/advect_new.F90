@@ -34,14 +34,13 @@
 !---------------------------------------------------------------------
 
       subroutine advect(s,sn,uedge,vedge,wedge,phi, &
-          lo,hi,dlo,dhi,hx,dt,order,old_sat,sat, &
+          dlo,dhi,hx,dt,order,old_sat,sat, &
           iteration,num_iterations,gnx,gny,gnz, &
           gx,gy,gz,fx,fy,fz,vx,wx,uy,wy,uz,vz, &
           stemp,smin,smax,sx,sy,sz,sxtemp,sytemp,sztemp)
 
       implicit none
       integer, parameter :: dp = selected_real_kind(15)
-      integer lo(3), hi(3)
       integer dlo(3), dhi(3)
       real(dp) hx(3), dt
       integer order
@@ -432,11 +431,11 @@
     
 
       !! dispersion calculations -- likely need to be updated for boundary conditions
-      subroutine disperse(sn,uedge,vedge,wedge,lo,hi,dlo,dhi,hx,dt) 
+      subroutine disperse(sn,uedge,vedge,wedge,dlo,dhi,hx,dt) 
       implicit none
 
       integer, parameter :: dp = selected_real_kind(15)            
-      integer lo(3), hi(3),i,j,k,ie,is,je,js,ke,ks
+      integer i,j,k,ie,is,je,js,ke,ks
       integer dlo(3), dhi(3)
       real(dp)  hx(3), dt, al, at,dx,dy,dz
       
