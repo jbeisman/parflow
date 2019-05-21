@@ -52,40 +52,40 @@
  *--------------------------------------------------------------------------*/
 
 typedef struct {
-  int           time_index;
-  char*         engine_name;
-  char*         chemistry_input_file;
-  PFModule      *set_chem_data;
-  NameArray     ic_cond_na;
-  NameArray     bc_cond_na;
-  int           num_ic_conds;
-  int           num_bc_conds;
-  int 			print_mineral_rate;
-  int 			silo_mineral_rate;
-  int 			print_mineral_volfx;
-  int 			silo_mineral_volfx;
-  int 			print_mineral_surfarea;
-  int 			silo_mineral_surfarea;
-  int 			print_surf_dens;
-  int 			silo_surf_dens;
-  int 			print_CEC;
-  int 			silo_CEC;
-  int 			print_pH;
-  int 			silo_pH;
-  int 			print_aqueous_rate;
-  int 			silo_aqueous_rate;
-  int 			print_mineral_SI;
-  int 			silo_mineral_SI;
-  int 			print_primary_freeion;
-  int 			silo_primary_freeion;
-  int 			print_primary_activity;
-  int 			silo_primary_activity;
-  int 			print_secondary_freeion;
-  int 			silo_secondary_freeion;
-  int 			print_secondary_activity;
-  int 			silo_secondary_activity;
-  int 			print_sorbed;
-  int 			silo_sorbed;
+  int time_index;
+  char* engine_name;
+  char* chemistry_input_file;
+  PFModule *set_chem_data;
+  NameArray ic_cond_na;
+  NameArray bc_cond_na;
+  int num_ic_conds;
+  int num_bc_conds;
+  int print_mineral_rate;
+  int silo_mineral_rate;
+  int print_mineral_volfx;
+  int silo_mineral_volfx;
+  int print_mineral_surfarea;
+  int silo_mineral_surfarea;
+  int print_surf_dens;
+  int silo_surf_dens;
+  int print_CEC;
+  int silo_CEC;
+  int print_pH;
+  int silo_pH;
+  int print_aqueous_rate;
+  int silo_aqueous_rate;
+  int print_mineral_SI;
+  int silo_mineral_SI;
+  int print_primary_freeion;
+  int silo_primary_freeion;
+  int print_primary_activity;
+  int silo_primary_activity;
+  int print_secondary_freeion;
+  int silo_secondary_freeion;
+  int print_secondary_activity;
+  int silo_secondary_activity;
+  int print_sorbed;
+  int silo_sorbed;
 } PublicXtra;
 
 typedef struct {
@@ -103,21 +103,19 @@ typedef struct {
  * InitializeChemistry
  *--------------------------------------------------------------------------*/
 
-void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *phi, Vector *saturation)
+void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   Problem       *problem = (instance_xtra->problem);
   Grid          *grid = (instance_xtra->grid);
-  Subgrid       *subgrid;
 
   PFModule      *set_chem_data = (instance_xtra->set_chem_data);
   PFModule      *bc_concentration = (instance_xtra -> bc_concentration);
 
   GrGeomSolid   *gr_domain;
 
-  char* name;
   int num_cells;
   bool hands_off = true;
 
@@ -174,6 +172,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   		amps_Printf("Successful creation of Alquimia interface\n");
   	}
 
+
   // read input file, setup chem problem 
   alquimia_data->chem.Setup(public_xtra->chemistry_input_file,
                      hands_off,
@@ -218,8 +217,9 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	{
     	amps_Printf("Successful GetProblemMetaData() of Alquimia interface\n");
   	}
- 
 
+ 
+  // process geochem conds on a cell by cell basis, fill alquimia data structs
   ProcessGeochemICs(alquimia_data, grid, problem_data, public_xtra->num_ic_conds, public_xtra->ic_cond_na, saturation);
   	if (alquimia_data->chem_status.error != 0) 
   	{
@@ -231,9 +231,8 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
     	amps_Printf("Successful ProcessGeochemICs() of Alquimia interface\n");
   	}
 
-  CopyChemDataToPF(alquimia_data,concentrations,problem_data);
 
-  
+  // process assigned boundary conditions
   ProcessGeochemBCs(alquimia_data, public_xtra->num_bc_conds, public_xtra->bc_cond_na);
   	if (alquimia_data->chem_status.error != 0) 
   	{
@@ -245,8 +244,12 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
     	amps_Printf("Successful ProcessGeochemBCs() of Alquimia interface\n");
   	}
 
+
+  // fill concen vector with assigned boundaries
   PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state, gr_domain));
 
+  // copy alquimia data to PF Vectors for printing
+  ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
 
 
 EndTiming(public_xtra->time_index);

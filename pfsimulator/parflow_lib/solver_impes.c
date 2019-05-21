@@ -522,7 +522,6 @@ void      SolverImpes()
         PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
                           (problem_data, instance_xtra->alquimia_data,
                            concentrations, 
-                           ProblemDataPorosity(problem_data),
                            saturations[0]));
 
         PrintAlquimiaSizes(&instance_xtra->alquimia_data->chem_sizes,stdout);
@@ -1457,6 +1456,17 @@ void      SolverImpes()
     PrintWellData(ProblemDataWellData(problem_data),
                   (WELLDATA_PRINTSTATS));
   }
+
+
+  /*-------------------------------------------------------------------
+   * Free Alquimia chemistry data vand corresponding PF Vectors
+   *-------------------------------------------------------------------*/
+
+  if (chem_flag)
+    {
+      FreeAlquimiaDataPF(instance_xtra->alquimia_data, grid, problem_data);
+    }
+
 
   /*----------------------------------------------------------------------
    * Print log

@@ -189,7 +189,7 @@ int SubgridNumCells(Grid *grid, ProblemData *problem_data)
   SubgridArray  *subgrids = GridSubgrids(grid);
   GrGeomSolid   *gr_domain;
   Subgrid       *subgrid;
-  int is, var;
+  int is;
   int i, j, k;
   int ix, iy, iz;
   int nx, ny, nz;
@@ -268,12 +268,7 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
 
 void AllocatePFChemData(AlquimiaDataPF *alquimia_data, Grid *grid)
 {
-  int is;
-  int i, j, k;
-  int ix, iy, iz;
-  int nx, ny, nz;
-  int r;
-  int chem_index;
+  int i;
 
   //pH
   alquimia_data->pH = NewVectorType( grid, 1, 0, vector_cell_centered );
@@ -401,7 +396,7 @@ void FindIndexFromNameCaseInsensitive(const char* const name,
 } 
 
 
-void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data)
+void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data)
 {
   Grid          *grid = VectorGrid(concentrations[0]);
   SubgridArray  *subgrids = GridSubgrids(grid);
@@ -441,6 +436,20 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
       /* RDF: assume resolution is the same in all 3 directions */
       r = SubgridRX(subgrid);
 
+      // pH
+      if (num_primary > 0)
+      {
+        pf_sub1 = VectorSubvector(alquimia_data->pH,is);
+        pf_dat1 = SubvectorData(pf_sub1);
+        GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+        {
+          pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
+          chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+          pf_dat1[pf_index1] = alquimia_data->chem_aux_output[chem_index].pH;
+        });
+      }
+
+      //num_primary - concen (total_mobile), primary activity and free ion
       for(int concen = 0; concen < num_primary; concen++)
       {
         pf_sub1 = VectorSubvector(concentrations[concen],is);
@@ -466,8 +475,7 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
         });
       }
 
-
-
+      // num_minerals -volfx, SI, SSA, rate
       for(int mineral = 0; mineral < num_minerals; mineral++)
         {
           pf_sub1 = VectorSubvector(alquimia_data->mineral_volume_fractionsPF[mineral],is);
@@ -497,12 +505,8 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
             pf_dat4[pf_index4] = alquimia_data->chem_aux_output[chem_index].mineral_reaction_rate.data[mineral];
         });
       }
-  
-  
-  
-  
-  
-  
+
+      //num_surf_sites - site density  
       for(int surf = 0; surf < num_surf_sites; surf++)
         {
           pf_sub1 = VectorSubvector(alquimia_data->surface_site_densityPF[surf],is);
@@ -515,10 +519,8 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
             pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].surface_site_density.data[surf];
         });
       }
-  
-  
-  
-  
+
+      // num_ion_exchange_sites - CEC
       for(int ion = 0; ion < num_ion_exchange_sites; ion++)
       {
           pf_sub1 = VectorSubvector(alquimia_data->cation_exchange_capacityPF[ion],is);
@@ -531,10 +533,8 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
             pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].cation_exchange_capacity.data[ion];
         });
       }
-  
-  
-  
-  
+
+      // num_aqueous_kinetics - aqueous kinetic rate
       for(int rate = 0; rate < num_aqueous_kinetics; rate++)
       {
           pf_sub1 = VectorSubvector(alquimia_data->aqueous_kinetic_ratePF[rate],is);
@@ -547,10 +547,8 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
             pf_dat1[pf_index1] = alquimia_data->chem_aux_output[chem_index].aqueous_kinetic_rate.data[rate];
         });
       }
-  
-  
-  
-  
+
+      // num_aqueous_complexes - activity andd free ion
       for(int complex = 0; complex < num_aqueous_complexes; complex++)
       {
           pf_sub1 = VectorSubvector(alquimia_data->secondary_free_ion_concentrationPF[complex],is);
@@ -568,7 +566,8 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
             pf_dat2[pf_index2] = alquimia_data->chem_aux_output[chem_index].secondary_activity_coeff.data[complex];
         });
       }
-  
+
+      // num_sorbed - total_immobile- 1 per primary
       if (num_sorbed > 0)
       {
         for(int sorbed = 0; sorbed < num_primary; sorbed++)
@@ -589,7 +588,7 @@ void CopyChemDataToPF(AlquimiaDataPF *alquimia_data, Vector **concentrations, Pr
 
 
 
-void CopyPFStateToChem(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vector **concentrations, ProblemData *problem_data)
+void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vector **concentrations, ProblemData *problem_data)
 {
   Grid          *grid = VectorGrid(concentrations[0]);
   SubgridArray  *subgrids = GridSubgrids(grid);
@@ -796,7 +795,7 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
                                     &alquimia_data->chem_status);
       if (alquimia_data->chem_status.error != 0)
       {
-        printf("TransportDriver: initialization error: %s\n", 
+        printf("ProcessGeochemICs: initialization error: %s\n", 
                alquimia_data->chem_status.message);
         break;
       }
@@ -850,3 +849,168 @@ void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArra
   }
 }
 
+
+
+
+
+
+void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data)
+{
+  SubgridArray  *subgrids = GridSubgrids(grid);
+  GrGeomSolid   *gr_domain;
+  Subgrid       *subgrid;
+  int is;
+  int i, j, k;
+  int ix, iy, iz;
+  int nx, ny, nz;
+  int r;
+  int chem_index;
+  gr_domain = ProblemDataGrDomain(problem_data);
+
+  int num_primary = alquimia_data->chem_sizes.num_primary;
+  int num_minerals = alquimia_data->chem_sizes.num_minerals;
+  int num_surf_sites = alquimia_data->chem_sizes.num_surface_sites;
+  int num_ion_exchange_sites = alquimia_data->chem_sizes.num_ion_exchange_sites;
+  int num_aqueous_kinetics = alquimia_data->chem_sizes.num_aqueous_kinetics;
+  int num_aqueous_complexes = alquimia_data->chem_sizes.num_aqueous_complexes;
+  int num_sorbed = alquimia_data->chem_sizes.num_sorbed;
+
+  // pH
+  //num_primary - concen (total_mobile), primary activity and free ion
+  if (num_primary > 0)
+  {
+    for(int concen = 0; concen < num_primary; concen++)
+    {
+      FreeVector(alquimia_data->primary_free_ion_concentrationPF[concen]);
+      FreeVector(alquimia_data->primary_activity_coeffPF[concen]);
+    }
+    
+    FreeVector(alquimia_data->pH);
+    tfree(alquimia_data->primary_free_ion_concentrationPF);
+    tfree(alquimia_data->primary_activity_coeffPF);
+  }
+
+
+  if (num_minerals > 0)
+  {
+    for(int mineral = 0; mineral < num_primary; mineral++)
+    {
+      FreeVector(alquimia_data->mineral_volume_fractionsPF[mineral]);
+      FreeVector(alquimia_data->mineral_specific_surfacePF[mineral]);
+      FreeVector(alquimia_data->mineral_saturation_indexPF[mineral]);
+      FreeVector(alquimia_data->mineral_reaction_ratePF[mineral]);
+    }
+    
+    tfree(alquimia_data->mineral_volume_fractionsPF);
+    tfree(alquimia_data->mineral_volume_fractionsPF);
+    tfree(alquimia_data->mineral_saturation_indexPF);
+    tfree(alquimia_data->mineral_reaction_ratePF);
+  }
+
+
+  if (num_surf_sites > 0)
+  {
+    for(int surf = 0; surf < num_surf_sites; surf++)
+    {
+      FreeVector(alquimia_data->surface_site_densityPF[surf]);
+    }
+    
+    tfree(alquimia_data->surface_site_densityPF);
+  }
+
+
+  if (num_ion_exchange_sites > 0)
+  {
+    for(int ion = 0; ion < num_ion_exchange_sites; ion++)
+    {
+      FreeVector(alquimia_data->cation_exchange_capacityPF[ion]);
+    }
+    
+    tfree(alquimia_data->cation_exchange_capacityPF);
+  }
+
+
+  if (num_aqueous_kinetics > 0)
+  {
+    for(int rate = 0; rate < num_aqueous_kinetics; rate++)
+    {
+      FreeVector(alquimia_data->aqueous_kinetic_ratePF[rate]);
+    }
+    
+    tfree(alquimia_data->aqueous_kinetic_ratePF);
+  }
+
+
+  if (num_aqueous_complexes > 0)
+  {
+    for(int complex = 0; complex < num_aqueous_complexes; complex++)
+    {
+      FreeVector(alquimia_data->secondary_free_ion_concentrationPF[complex]);
+      FreeVector(alquimia_data->secondary_activity_coeffPF[complex]);
+    }
+    
+    tfree(alquimia_data->secondary_free_ion_concentrationPF);
+    tfree(alquimia_data->secondary_activity_coeffPF);
+  }
+
+
+  if (num_sorbed > 0)
+  {
+    for(int sorbed = 0; sorbed < num_primary; sorbed++)
+    {
+      FreeVector(alquimia_data->total_immobilePF[sorbed]);
+    }
+    
+    tfree(alquimia_data->total_immobilePF);
+  }
+
+
+  // Destroy boundary and initial conditions.
+  for (int i = 0; i < alquimia_data->bc_condition_list.size; i++)
+  {
+    FreeAlquimiaState(&alquimia_data->chem_bc_state[i]);
+    FreeAlquimiaAuxiliaryData(&alquimia_data->chem_bc_aux_data[i]);
+    FreeAlquimiaProperties(&alquimia_data->chem_bc_properties[i]);
+  }
+  FreeAlquimiaGeochemicalConditionVector(&alquimia_data->bc_condition_list);
+  FreeAlquimiaGeochemicalConditionVector(&alquimia_data->ic_condition_list);
+
+  ForSubgridI(is, subgrids)
+  {
+    subgrid = SubgridArraySubgrid(subgrids, is);
+
+    ix = SubgridIX(subgrid);
+    iy = SubgridIY(subgrid);
+    iz = SubgridIZ(subgrid);
+
+    nx = SubgridNX(subgrid);
+    ny = SubgridNY(subgrid);
+    nz = SubgridNZ(subgrid);
+
+    /* RDF: assume resolution is the same in all 3 directions */
+    r = SubgridRX(subgrid);
+
+    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+    {
+      
+      chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+     
+      FreeAlquimiaState(&alquimia_data->chem_state[chem_index]);
+      FreeAlquimiaProperties(&alquimia_data->chem_properties[chem_index]);
+      FreeAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data[chem_index]);
+      FreeAlquimiaAuxiliaryOutputData(&alquimia_data->chem_aux_output[chem_index]);
+    });
+  }
+  
+  free(alquimia_data->chem_state);
+  free(alquimia_data->chem_properties);
+  free(alquimia_data->chem_aux_data);
+  free(alquimia_data->chem_aux_output);
+  FreeAlquimiaProblemMetaData(&alquimia_data->chem_metadata);
+
+  // Destroy chemistry engine.
+  alquimia_data->chem.Shutdown(&alquimia_data->chem_engine, 
+                        &alquimia_data->chem_status);
+  FreeAlquimiaEngineStatus(&alquimia_data->chem_status);
+  free(alquimia_data);
+}

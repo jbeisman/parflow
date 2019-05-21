@@ -399,7 +399,7 @@
       sz=sz+sztemp
 
       !!call limiter to enforce min/max
-      call limit(smax,smin,stemp,sx,sy,sz,fx,fy,fz,lo,hi,&
+      call limit(smax,smin,stemp,sx,sy,sz,fx,fy,fz,&
         dlo,dhi,dt,dx,dy,dz,vx,wx,uy,wy,uz,vz)
 
       do k=ks,ke
@@ -580,11 +580,10 @@
   
 
 
-      subroutine limit(smax,smin,sn,sx,sy,sz,cx,cy,cz,lo,hi,dlo,dhi,dt,dx,&
+      subroutine limit(smax,smin,sn,sx,sy,sz,cx,cy,cz,dlo,dhi,dt,dx,&
                        dy,dz,p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
       implicit none
       integer, parameter :: dp = selected_real_kind(15)
-      integer  lo(3), hi(3)
       integer  dlo(3), dhi(3)
       integer  is,ie,js,je,ks,ke,i,j,k 
       real(dp) dt,dx,dy,dz

@@ -61,9 +61,7 @@ void          SetChemData(ProblemData *problem_data)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
-  Problem       *problem = instance_xtra->problem;
-
-  PFModule      *geochemcond        = (instance_xtra -> geochemcond);
+  PFModule      *geochemcond   = (instance_xtra -> geochemcond);
 
   PFModuleInvokeType(GeochemCondInvoke, geochemcond,            //JJB
                     (problem_data,
