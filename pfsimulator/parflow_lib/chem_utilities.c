@@ -460,7 +460,6 @@ void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes,
 
   gr_domain = ProblemDataGrDomain(problem_data);
   int num_primary = chem_sizes->num_primary;
-  printf("NUM_PRIMARY %d \n",num_primary);
 
     ForSubgridI(is, subgrids)
     {

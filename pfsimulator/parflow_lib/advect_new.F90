@@ -84,8 +84,9 @@
       real(dp) dx,dy,dz,dx_inv,dy_inv,dz_inv
       real(dp) half,third
       real(dp) rx,ry,rz,mclimit,limx,thetax,thetay,thetaz,limy,limz
-      real(dp) transvel,sat_diff,iter,num_iter,abs_smin,num_iter_inv
+      real(dp) transvel,sat_diff,iter,num_iter,num_iter_inv
       real(dp) minmod4,minmod2,median
+      real(dp) abs_smin,abs_smax
 
       is = dlo(1)
       ie = dhi(1)
@@ -105,10 +106,13 @@
       iter=DBLE(iteration)
       num_iter=DBLE(num_iterations)
       num_iter_inv = 1.0_dp/num_iter
+
+      iter=0.0
+      num_iter=1.0
      
 
      !! initialization
-      stemp = sn
+      stemp = s
 
       fx = 0.0_dp
       fy = 0.0_dp
@@ -133,14 +137,10 @@
 
       ! compute acceptable min and max values for each cell
       abs_smin = minval(s(is:ie,js:je,ks:ke))
-      do k=ks-2,ke+2
-        do j=js-2,je+2
-          do i=is-2,ie+2
-            smin(i,j,k) = max(minval(s(i-1:i+1,j-1:j+1,k-1:k+1)),abs_smin)
-            smax(i,j,k) = maxval(s(i-1:i+1,j-1:j+1,k-1:k+1))
-          enddo
-        enddo
-      enddo
+      abs_smax = maxval(s(is:ie,js:je,ks:ke))
+
+      smin(:,:,:) = abs_smin
+      smax(:,:,:) = abs_smax
 
 
       !! make smaller and faster for lower D problems
@@ -216,6 +216,9 @@
             kk2 = k-1
             kk3 = k+1
           endif
+
+          smin(i,j,k) = min(s(i,j,k),s(ii,j,k),s(i,jj,k),s(i,j,kk))
+          smax(i,j,k) = max(s(i,j,k),s(ii,j,k),s(i,jj,k),s(i,j,kk))
     
           !these values give a first order scheme
           fx(i,j,k)=fx(i,j,k)+uedge(i,j,k)*s(ii,j,k) 
@@ -345,16 +348,23 @@
       !! first-order transport 
       do k=ks2-1,ke2+1
         do j=js2-1,je2+1
-          do i=is2-1,ie2+1  
+          do i=is2-1,ie2+1
             sat_diff=(sat(i,j,k) - old_sat(i,j,k)) * num_iter_inv
+
             stemp(i,j,k)= ((iter*sat_diff + old_sat(i,j,k))*phi(i,j,k)*s(i,j,k) + &
             ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
             (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
           enddo
         enddo
       enddo
+
+
+    !  stemp(i,j,k) = ((iter*sat_diff + old_sat(i,j,k)) * phi(i,j,k) * (s(i,j,k) + &
+    !        (dt/dx) * (fx(i,j,k) -fx(i+1,j,k)) + (dt/dy) * (fy(i,j,k)-fy(i,j+1,k)) + &
+    !        (dt/dz) * (fz(i,j,k)-fz(i,j,k+1)))) / ((iter + 1.0_dp) * sat_diff + old_sat(i,j,k) * phi(i,j,k))
      
       sn(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3)) = stemp(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+
      
       if (order == 2) then
 
@@ -426,10 +436,10 @@
       do k=ks,ke
         do j=js,je
           do i=is,ie
-       
+
             !!cutoff any values that violate min/max
-            if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
-            if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)
+           if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
+           if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)
 
           enddo
         enddo

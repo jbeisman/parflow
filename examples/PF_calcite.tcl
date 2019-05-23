@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 2.0
-pfset ComputationalGrid.DY                   2.0
-pfset ComputationalGrid.DZ	                 0.1
+pfset ComputationalGrid.DX	                 5.0
+pfset ComputationalGrid.DY                   5.0
+pfset ComputationalGrid.DZ	                 3.0
 
-pfset ComputationalGrid.NX                      50
-pfset ComputationalGrid.NY                      50
-pfset ComputationalGrid.NZ                      30
+pfset ComputationalGrid.NX                      20
+pfset ComputationalGrid.NY                      20
+pfset ComputationalGrid.NZ                      1
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -168,7 +168,7 @@ pfset TimingInfo.DumpInterval	     1
 pfset Geom.Porosity.GeomNames          background
 
 pfset Geom.background.Porosity.Type    Constant
-pfset Geom.background.Porosity.Value   0.25
+pfset Geom.background.Porosity.Value   0.1
 
 #-----------------------------------------------------------------------------
 # Domain

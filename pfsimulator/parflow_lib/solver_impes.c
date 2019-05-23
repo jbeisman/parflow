@@ -526,7 +526,6 @@ void      SolverImpes()
                           (problem_data, instance_xtra->alquimia_data,
                            concentrations, 
                            saturations[0]));
-
       }
       /*****************************************************************/
       /*          Print out any of the requested initial data          */
@@ -755,13 +754,13 @@ void      SolverImpes()
           PFModuleInvokeType(PhaseVelocityFaceInvoke,
                              phase_velocity_face,
                              (phase_x_velocity[phase],
-                              phase_y_velocity[phase],
-                              phase_z_velocity[phase],
-                              problem_data,
-                              pressure,
-                              saturations,
-                              phase,
-                              t));
+                             phase_y_velocity[phase],
+                             phase_z_velocity[phase],
+                             problem_data,
+                             pressure,
+                             saturations,
+                             phase,
+                             t));
 
           phase_maximum = MaxPhaseFieldValue(phase_x_velocity[phase],
                                              phase_y_velocity[phase],
@@ -1185,7 +1184,6 @@ void      SolverImpes()
 
               InitVectorAll(ctemp, 0.0);
               CopyConcenWithBoundary(concentrations[indx], ctemp);
-              //Copy(concentrations[indx], ctemp);
 
               PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
                                 (problem_data, phase, concen,
@@ -1210,7 +1208,6 @@ void      SolverImpes()
 
            if (chem_flag) /*Initialize the geochemical system*/
      {
-       amps_Printf("Solving chemical reaction system\n");
        PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
                          (problem_data, instance_xtra->alquimia_data,
                           concentrations, 

@@ -244,9 +244,9 @@ double  MaxPhaseFieldValue(
       v_sub = VectorSubvector(velocity, i_s);
       p_sub = VectorSubvector(phi, i_s);
 
-      nx_v = SubvectorNX(v_sub);
-      ny_v = SubvectorNY(v_sub);
-      nz_v = SubvectorNZ(v_sub);
+      nx_v = SubvectorNX(v_sub)+1;
+      ny_v = SubvectorNY(v_sub)+1;
+      nz_v = SubvectorNZ(v_sub)+1;
 
       nx_p = SubvectorNX(p_sub);
       ny_p = SubvectorNY(p_sub);

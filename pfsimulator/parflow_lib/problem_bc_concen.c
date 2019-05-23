@@ -180,7 +180,6 @@ void          BCConcentration(  Problem *problem,
               concen_dat[iv + 3 * sv] = chem_bc_state[condition].total_mobile.data[concen];
               concen_dat[iv + sv] = chem_bc_state[condition].total_mobile.data[concen]; 
               concen_dat[iv + 2 * sv] = chem_bc_state[condition].total_mobile.data[concen];
-                    printf("case 0, concen: %d bc: %f\n",concen, chem_bc_state[condition].total_mobile.data[concen]);
             });
           }
         }
@@ -331,7 +330,6 @@ PFModule  *BCConcentrationNewPublicXtra()
       switch_name = GetStringDefault(key,"");
       public_xtra->input_types[j] = NA_NameToIndex(type_na, switch_name);
       public_xtra->patch_indexes[j] = j;
-      printf("PATCH_TYPE: %d \n",public_xtra->input_types[j]);
 
       switch ((public_xtra->input_types[j]))
       {
