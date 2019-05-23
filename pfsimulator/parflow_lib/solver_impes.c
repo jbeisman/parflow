@@ -1208,15 +1208,14 @@ void      SolverImpes()
       /*          Call the geochemical engine         */
       /*****************************************************************/
 
- //          if (chem_flag) /*Initialize the geochemical system*/
- //    {
- //      amps_Printf("Solving chemical reaction system\n");
-
- //      PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
- //                        (problem_data, instance_xtra->alquimia_data,
- //                         concentrations, 
- //                         saturations[0], dt));
- //    }
+           if (chem_flag) /*Initialize the geochemical system*/
+     {
+       amps_Printf("Solving chemical reaction system\n");
+       PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
+                         (problem_data, instance_xtra->alquimia_data,
+                          concentrations, 
+                          saturations[0], dt));
+     }
 
 
 
@@ -1942,6 +1941,7 @@ void  SolverImpesFreeInstanceXtra()
     if (chem_flag)
     {
       PFModuleFreeInstance((instance_xtra->init_chem));
+      PFModuleFreeInstance((instance_xtra->advance_chem));
     }
 
     if (is_multiphase)
@@ -2260,6 +2260,7 @@ void   SolverImpesFreePublicXtra()
         if (chem_flag)
     {
       PFModuleFreeModule(public_xtra->init_chem);
+      PFModuleFreeModule(public_xtra->advance_chem);
     }
 
 

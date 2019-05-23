@@ -502,7 +502,7 @@ void          PhaseVelocityFace(
                                   i + dir[dir0][0],
                                   j + dir[dir0][1],
                                   k + dir[dir0][2]);
-z
+            
             mob = SubvectorElt(subvector_mob, i, j, k);
             den = SubvectorElt(subvector_d, i, j, k);
             pres = SubvectorElt(subvector_p, i, j, k);

@@ -14,8 +14,8 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        1
-pfset Process.Topology.Q        1
+pfset Process.Topology.P        2
+pfset Process.Topology.Q        2
 pfset Process.Topology.R        1
 
 #-----------------------------------------------------------------------------
@@ -27,11 +27,11 @@ pfset ComputationalGrid.Lower.Z                  0.0
 
 pfset ComputationalGrid.DX	                 2.0
 pfset ComputationalGrid.DY                   2.0
-pfset ComputationalGrid.DZ	                 3.0
+pfset ComputationalGrid.DZ	                 0.1
 
 pfset ComputationalGrid.NX                      50
 pfset ComputationalGrid.NY                      50
-pfset ComputationalGrid.NZ                      1
+pfset ComputationalGrid.NZ                      30
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -417,8 +417,8 @@ pfset Solver.Nonlinear.ResidualTol 1.0e-15
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files
 #-----------------------------------------------------------------------------
-pfrun alquimia_driver
-pfundist alquimia_driver
+pfrun PF_calcite
+pfundist PF_calcite
 
 #-----------------------------------------------------------------------------
 # If running as test; check output.
