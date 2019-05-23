@@ -107,6 +107,8 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
 
   dt_seconds = dt * public_xtra->time_conversion_factor;
 
+  printf("mineral rate: %d \n", alquimia_data->print_flags->print_mineral_rate);
+
 
   AdvectedPrimaryToChem(alquimia_data->chem_state, &alquimia_data->chem_sizes, concentrations, problem_data);
 
@@ -185,6 +187,16 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
   }
 
   ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
+
+    // print initial concen volume 
+  for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)
+  {
+    field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data), grid, concentrations[concen]);
+    if (!amps_Rank(amps_CommWorld))
+    {
+      amps_Printf("Initial concentration volume for contaminant %s = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], field_sum);
+    }
+  }
 
 
   

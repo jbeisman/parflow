@@ -1219,31 +1219,43 @@ void      SolverImpes()
         /* Print the concentration values at this time-step? */
         if (dump_files)
         {
-          if (ProblemNumContaminants(problem) > 0)
+          if (chem_flag)
           {
-            indx = 0;
-            for (phase = 0; phase < ProblemNumPhases(problem); phase++)
+            PrintChemistryData(&instance_xtra->alquimia_data->print_flags, &instance_xtra->alquimia_data->chem_sizes, &instance_xtra->alquimia_data->chem_metadata, t, file_number, file_prefix, concentrations, 
+                               instance_xtra->alquimia_data->total_immobilePF, instance_xtra->alquimia_data->mineral_specific_surfacePF, instance_xtra->alquimia_data->surface_site_densityPF, 
+                               instance_xtra->alquimia_data->cation_exchange_capacityPF, instance_xtra->alquimia_data->pH, instance_xtra->alquimia_data->aqueous_kinetic_ratePF, instance_xtra->alquimia_data->mineral_saturation_indexPF, 
+                               instance_xtra->alquimia_data->mineral_reaction_ratePF, instance_xtra->alquimia_data->primary_free_ion_concentrationPF, instance_xtra->alquimia_data->primary_activity_coeffPF, 
+                               instance_xtra->alquimia_data->secondary_free_ion_concentrationPF,instance_xtra->alquimia_data->secondary_activity_coeffPF);
+          }
+          else
+          {
+
+            if (ProblemNumContaminants(problem) > 0)
             {
-              for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
+              indx = 0;
+              for (phase = 0; phase < ProblemNumPhases(problem); phase++)
               {
-                if (print_concen)
+                for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
                 {
-                  sprintf(file_postfix, "concen.%01d.%02d.%05d", phase, concen, file_number);
-                  WritePFSBinary(file_prefix, file_postfix,
-                                 concentrations[indx], drop_tol);
-                  any_file_dumped = 1;
-                }
+                  if (print_concen)
+                  {
+                    sprintf(file_postfix, "concen.%01d.%02d.%05d", phase, concen, file_number);
+                    WritePFSBinary(file_prefix, file_postfix,
+                                   concentrations[indx], drop_tol);
+                    any_file_dumped = 1;
+                  }
 
-                if (public_xtra->write_silo_concen)
-                {
-                  sprintf(file_postfix, "%01d.%02d.%05d", phase, concen, file_number);
-                  sprintf(file_type, "concen");
-                  WriteSilo(file_prefix, file_type, file_postfix, concentrations[indx],
-                            t, file_number, "Concentration");
-                  any_file_dumped = 1;
-                }
+                  if (public_xtra->write_silo_concen)
+                  {
+                    sprintf(file_postfix, "%01d.%02d.%05d", phase, concen, file_number);
+                    sprintf(file_type, "concen");
+                    WriteSilo(file_prefix, file_type, file_postfix, concentrations[indx],
+                              t, file_number, "Concentration");
+                    any_file_dumped = 1;
+                  }
 
-                indx++;
+                  indx++;
+                }
               }
             }
           }

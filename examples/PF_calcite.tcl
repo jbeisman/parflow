@@ -15,7 +15,7 @@ pfset FileVersion 4
 #-----------------------------------------------------------------------------
 
 pfset Process.Topology.P        2
-pfset Process.Topology.Q        2
+pfset Process.Topology.Q        1
 pfset Process.Topology.R        1
 
 #-----------------------------------------------------------------------------
@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 5.0
-pfset ComputationalGrid.DY                   5.0
-pfset ComputationalGrid.DZ	                 3.0
+pfset ComputationalGrid.DX	                 2.0
+pfset ComputationalGrid.DY                   2.0
+pfset ComputationalGrid.DZ	                 0.3
 
-pfset ComputationalGrid.NX                      20
-pfset ComputationalGrid.NY                      20
-pfset ComputationalGrid.NZ                      1
+pfset ComputationalGrid.NX                      50
+pfset ComputationalGrid.NY                      50
+pfset ComputationalGrid.NZ                      10
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -168,7 +168,7 @@ pfset TimingInfo.DumpInterval	     1
 pfset Geom.Porosity.GeomNames          background
 
 pfset Geom.background.Porosity.Type    Constant
-pfset Geom.background.Porosity.Value   0.1
+pfset Geom.background.Porosity.Value   0.25
 
 #-----------------------------------------------------------------------------
 # Domain
@@ -397,11 +397,14 @@ pfset Patch.front.BCConcentration.Type Constant
 pfset Patch.front.BCConcentration.Value west
 
 pfset Chemistry.PrintMineralRate True
-pfset Chemistry.ParFlowTimeUnits minutes
+pfset Chemistry.ParFlowTimeUnits years
 
 
 pfset Solver.WriteSiloConcentration True
 pfset Solver.WriteSiloPressure True
+
+pfset Chemistry.WriteSiloPrimaryMobile True
+pfset Chemistry.PrintPrimaryMobile True
 
 #-----------------------------------------------------------------------------
 # The Solver Impes MaxIter default value changed so to get previous

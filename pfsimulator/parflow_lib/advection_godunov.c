@@ -1078,9 +1078,9 @@ PFModule  *GodunovInitInstanceXtra(
     (instance_xtra->sz) = temp_data;
     temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
     (instance_xtra->smin) = temp_data;
-    temp_data += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2);
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
     (instance_xtra->smax) = temp_data;
-    temp_data += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2);
+    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
     (instance_xtra->fx) = temp_data;
     temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
     (instance_xtra->fy) = temp_data;
@@ -1171,8 +1171,8 @@ int  GodunovSizeOfTempData()
   /* add local TempData size to `sz' */
   sz += (max_nx + 3 + 3) * (max_ny + 3 + 3) * (max_nz + 3 + 3);
   sz += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3) * 6;
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2) * 2;
-  sz += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2) * 9;
+  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2);
+  sz += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2) * 10;
 
   return sz;
 }

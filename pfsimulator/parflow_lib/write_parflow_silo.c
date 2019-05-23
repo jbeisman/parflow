@@ -287,10 +287,11 @@ void     WriteSiloInit(char *file_prefix)
                              "evaptrans",
                              "evaptranssum",
                              "overlandsum",
-                             "overland_bc_flux", };
+                             "overland_bc_flux",
+                             "TotalMobile", };
 
     // IMF -- added second '+2' to next line...
-    for (i = 0; i < 31 + 2; i++)
+    for (i = 0; i < 31 + 2 + 1; i++) // added 1, will add more
     {
       sprintf(filename, "%s/%s", file_prefix, output_types[i]);
       pf_mk_dir(filename);

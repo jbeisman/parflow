@@ -11,6 +11,7 @@ set (SRC_FILES advect_new.F90
   chebyshev.c
   chem_advance.c
   chem_initialize.c
+  chem_printdata.c
   chem_utilities.c
   comm_pkg.c
   communication.c

@@ -63,8 +63,8 @@
       real(dp) wy(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
       real(dp) uz(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
       real(dp) vz(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)  
-      real(dp) smin(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
-      real(dp) smax(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
+      real(dp) smin(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+2) 
+      real(dp) smax(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+2) 
       real(dp) sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)  
       real(dp) sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
       real(dp) sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
@@ -86,7 +86,6 @@
       real(dp) rx,ry,rz,mclimit,limx,thetax,thetay,thetaz,limy,limz
       real(dp) transvel,sat_diff,iter,num_iter,num_iter_inv
       real(dp) minmod4,minmod2,median
-      real(dp) abs_smin,abs_smax
 
       is = dlo(1)
       ie = dhi(1)
@@ -133,14 +132,6 @@
       sxtemp = 0.0_dp
       sytemp = 0.0_dp
       sztemp = 0.0_dp
-
-
-      ! compute acceptable min and max values for each cell
-      abs_smin = minval(s(is:ie,js:je,ks:ke))
-      abs_smax = maxval(s(is:ie,js:je,ks:ke))
-
-      smin(:,:,:) = abs_smin
-      smax(:,:,:) = abs_smax
 
 
       !! make smaller and faster for lower D problems
@@ -358,10 +349,6 @@
         enddo
       enddo
 
-
-    !  stemp(i,j,k) = ((iter*sat_diff + old_sat(i,j,k)) * phi(i,j,k) * (s(i,j,k) + &
-    !        (dt/dx) * (fx(i,j,k) -fx(i+1,j,k)) + (dt/dy) * (fy(i,j,k)-fy(i,j+1,k)) + &
-    !        (dt/dz) * (fz(i,j,k)-fz(i,j,k+1)))) / ((iter + 1.0_dp) * sat_diff + old_sat(i,j,k) * phi(i,j,k))
      
       sn(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3)) = stemp(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
 
@@ -609,8 +596,8 @@
       integer  dlo(3), dhi(3)
       integer  is,ie,js,je,ks,ke,i,j,k 
       real(dp) dt,dx_inv,dy_inv,dz_inv
-      real(dp) smin(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
-      real(dp) smax(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
+      real(dp) smin(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
+      real(dp) smax(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
       real(dp) sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
       real(dp) sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
       real(dp) sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)

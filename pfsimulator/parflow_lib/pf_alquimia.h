@@ -40,6 +40,41 @@
 
 
 
+
+typedef struct _ChemPrintFlags {
+  int print_primary_mobile;
+  int silo_primary_mobile;
+  int print_mineral_rate;
+  int silo_mineral_rate;
+  int print_mineral_volfx;
+  int silo_mineral_volfx;
+  int print_mineral_surfarea;
+  int silo_mineral_surfarea;
+  int print_surf_dens;
+  int silo_surf_dens;
+  int print_CEC;
+  int silo_CEC;
+  int print_pH;
+  int silo_pH;
+  int print_aqueous_rate;
+  int silo_aqueous_rate;
+  int print_mineral_SI;
+  int silo_mineral_SI;
+  int print_primary_freeion;
+  int silo_primary_freeion;
+  int print_primary_activity;
+  int silo_primary_activity;
+  int print_secondary_freeion;
+  int silo_secondary_freeion;
+  int print_secondary_activity;
+  int silo_secondary_activity;
+  int print_sorbed;
+  int silo_sorbed;
+} ChemPrintFlags;
+
+
+
+
 typedef struct _AlquimiaDataPF {
   // Per-cell chemistry data.
   AlquimiaProperties* chem_properties;
@@ -84,37 +119,14 @@ typedef struct _AlquimiaDataPF {
   Vector **secondary_free_ion_concentrationPF; // num_aqueous_complexes
   Vector **secondary_activity_coeffPF; // num_aqueous_complexes
 
-  //printing flags, also useful for allocating?
-  int print_mineral_rate;
-  int silo_mineral_rate;
-  int print_mineral_volfx;
-  int silo_mineral_volfx;
-  int print_mineral_surfarea;
-  int silo_mineral_surfarea;
-  int print_surf_dens;
-  int silo_surf_dens;
-  int print_CEC;
-  int silo_CEC;
-  int print_pH;
-  int silo_pH;
-  int print_aqueous_rate;
-  int silo_aqueous_rate;
-  int print_mineral_SI;
-  int silo_mineral_SI;
-  int print_primary_freeion;
-  int silo_primary_freeion;
-  int print_primary_activity;
-  int silo_primary_activity;
-  int print_secondary_freeion;
-  int silo_secondary_freeion;
-  int print_secondary_activity;
-  int silo_secondary_activity;
-  int print_sorbed;
-  int silo_sorbed;
+  //printing flags
+ChemPrintFlags *print_flags;
+
 } AlquimiaDataPF;
 
 
-  void FindIndexFromNameCaseInsensitive(const char* const name,
+
+void FindIndexFromNameCaseInsensitive(const char* const name,
                                  const AlquimiaVectorString* const names,
                                  int* index);
 
@@ -185,6 +197,11 @@ void BCConcentrationFreePublicXtra(void);
 int BCConcentrationSizeOfTempData(void);
 
 void CopyConcenWithBoundary(Vector *x, Vector *y);
+
+void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata, double t, int file_number, char* file_prefix, Vector **concentrations, Vector **total_immobilePF, Vector **mineral_specific_surfacePF, 
+  Vector **surface_site_densityPF, Vector **cation_exchange_capacityPF, Vector *pH, Vector **aqueous_kinetic_ratePF, Vector **mineral_saturation_indexPF, 
+  Vector **mineral_reaction_ratePF, Vector **primary_free_ion_concentrationPF, Vector **primary_activity_coeffPF, Vector **secondary_free_ion_concentrationPF,
+  Vector **secondary_activity_coeffPF);
 
 
 #endif

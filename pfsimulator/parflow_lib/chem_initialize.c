@@ -55,11 +55,10 @@ typedef struct {
   int time_index;
   char* engine_name;
   char* chemistry_input_file;
-  PFModule *set_chem_data;
-  NameArray ic_cond_na;
-  NameArray bc_cond_na;
   int num_ic_conds;
   int num_bc_conds;
+  int print_primary_mobile;
+  int silo_primary_mobile;
   int print_mineral_rate;
   int silo_mineral_rate;
   int print_mineral_volfx;
@@ -86,6 +85,9 @@ typedef struct {
   int silo_secondary_activity;
   int print_sorbed;
   int silo_sorbed;
+  PFModule *set_chem_data;
+  NameArray ic_cond_na;
+  NameArray bc_cond_na;
 } PublicXtra;
 
 typedef struct {
@@ -124,34 +126,38 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   gr_domain = ProblemDataGrDomain(problem_data);
 
+  alquimia_data->print_flags=ctalloc(ChemPrintFlags, 1);
+
 
   // gather print flags
-  alquimia_data->print_mineral_rate = public_xtra->print_mineral_rate;
-  alquimia_data->silo_mineral_rate = public_xtra->silo_mineral_rate;
-  alquimia_data->print_mineral_volfx = public_xtra->print_mineral_volfx;
-  alquimia_data->silo_mineral_volfx = public_xtra->silo_mineral_volfx;
-  alquimia_data->print_mineral_surfarea = public_xtra->print_mineral_surfarea;
-  alquimia_data->silo_mineral_surfarea = public_xtra->silo_mineral_surfarea;
-  alquimia_data->print_surf_dens = public_xtra->print_surf_dens;
-  alquimia_data->silo_surf_dens = public_xtra->silo_surf_dens;
-  alquimia_data->print_CEC = public_xtra->print_CEC;
-  alquimia_data->silo_CEC = public_xtra->silo_CEC;
-  alquimia_data->print_pH = public_xtra->print_pH;
-  alquimia_data->silo_pH = public_xtra->silo_pH;
-  alquimia_data->print_aqueous_rate = public_xtra->print_aqueous_rate;
-  alquimia_data->silo_aqueous_rate = public_xtra->silo_aqueous_rate;
-  alquimia_data->print_mineral_SI = public_xtra->print_mineral_SI;
-  alquimia_data->silo_mineral_SI = public_xtra->silo_mineral_SI;
-  alquimia_data->print_primary_freeion = public_xtra->print_primary_freeion;
-  alquimia_data->silo_primary_freeion = public_xtra->silo_primary_freeion;
-  alquimia_data->print_primary_activity = public_xtra->print_primary_activity;
-  alquimia_data->silo_primary_activity = public_xtra->silo_primary_activity;
-  alquimia_data->print_secondary_freeion = public_xtra->print_secondary_freeion;
-  alquimia_data->silo_secondary_freeion = public_xtra->silo_secondary_freeion;
-  alquimia_data->print_secondary_activity = public_xtra->print_secondary_activity;
-  alquimia_data->silo_secondary_activity = public_xtra->silo_secondary_activity;
-  alquimia_data->print_sorbed = public_xtra->print_sorbed;
-  alquimia_data->silo_sorbed = public_xtra->silo_sorbed; 
+  alquimia_data->print_flags->print_primary_mobile = public_xtra->print_primary_mobile;
+  alquimia_data->print_flags->silo_primary_mobile = public_xtra->silo_primary_mobile;
+  alquimia_data->print_flags->print_mineral_rate = public_xtra->print_mineral_rate;
+  alquimia_data->print_flags->silo_mineral_rate = public_xtra->silo_mineral_rate;
+  alquimia_data->print_flags->print_mineral_volfx = public_xtra->print_mineral_volfx;
+  alquimia_data->print_flags->silo_mineral_volfx = public_xtra->silo_mineral_volfx;
+  alquimia_data->print_flags->print_mineral_surfarea = public_xtra->print_mineral_surfarea;
+  alquimia_data->print_flags->silo_mineral_surfarea = public_xtra->silo_mineral_surfarea;
+  alquimia_data->print_flags->print_surf_dens = public_xtra->print_surf_dens;
+  alquimia_data->print_flags->silo_surf_dens = public_xtra->silo_surf_dens;
+  alquimia_data->print_flags->print_CEC = public_xtra->print_CEC;
+  alquimia_data->print_flags->silo_CEC = public_xtra->silo_CEC;
+  alquimia_data->print_flags->print_pH = public_xtra->print_pH;
+  alquimia_data->print_flags->silo_pH = public_xtra->silo_pH;
+  alquimia_data->print_flags->print_aqueous_rate = public_xtra->print_aqueous_rate;
+  alquimia_data->print_flags->silo_aqueous_rate = public_xtra->silo_aqueous_rate;
+  alquimia_data->print_flags->print_mineral_SI = public_xtra->print_mineral_SI;
+  alquimia_data->print_flags->silo_mineral_SI = public_xtra->silo_mineral_SI;
+  alquimia_data->print_flags->print_primary_freeion = public_xtra->print_primary_freeion;
+  alquimia_data->print_flags->silo_primary_freeion = public_xtra->silo_primary_freeion;
+  alquimia_data->print_flags->print_primary_activity = public_xtra->print_primary_activity;
+  alquimia_data->print_flags->silo_primary_activity = public_xtra->silo_primary_activity;
+  alquimia_data->print_flags->print_secondary_freeion = public_xtra->print_secondary_freeion;
+  alquimia_data->print_flags->silo_secondary_freeion = public_xtra->silo_secondary_freeion;
+  alquimia_data->print_flags->print_secondary_activity = public_xtra->print_secondary_activity;
+  alquimia_data->print_flags->silo_secondary_activity = public_xtra->silo_secondary_activity;
+  alquimia_data->print_flags->print_sorbed = public_xtra->print_sorbed;
+  alquimia_data->print_flags->silo_sorbed = public_xtra->silo_sorbed; 
 
   // set chem data 
   // this ivokes the geochemcond function and makes available a pfvector of 
@@ -404,12 +410,36 @@ PFModule   *InitializeChemistryNewPublicXtra()
   public_xtra->ic_cond_na = NA_NewNameArray(ic_cond_names);
   public_xtra->num_ic_conds = NA_Sizeof(public_xtra->ic_cond_na);
 
+  
+
+   sprintf(key, "Chemistry.PrintPrimaryMobile");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
+       switch_name, key );
+  }
+  public_xtra -> print_primary_mobile = switch_value;
+
+    sprintf(key, "Chemistry.WriteSiloPrimaryMobile");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  public_xtra -> silo_primary_mobile = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintMineralRate");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_mineral_rate = switch_value;
@@ -424,12 +454,14 @@ PFModule   *InitializeChemistryNewPublicXtra()
   }
   public_xtra -> silo_mineral_rate = switch_value;
 
+
+
   sprintf(key, "Chemistry.PrintMineralVolFrac");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_mineral_volfx = switch_value;
@@ -443,12 +475,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_mineral_volfx = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintMineralSurfArea");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_mineral_surfarea = switch_value;
@@ -462,12 +497,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_mineral_surfarea = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintSurfSiteDens");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_surf_dens = switch_value;
@@ -481,12 +519,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_surf_dens = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintCEC");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_CEC = switch_value;
@@ -500,12 +541,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_CEC = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintpH");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_pH = switch_value;
@@ -519,12 +563,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_pH = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintAqueousRate");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_aqueous_rate = switch_value;
@@ -538,12 +585,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_aqueous_rate = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintMineralSI");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_mineral_SI = switch_value;
@@ -557,12 +607,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_mineral_SI = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintPrimaryFreeIon");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_primary_freeion = switch_value;
@@ -576,12 +629,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_primary_freeion = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintPrimaryActivity");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_primary_activity = switch_value;
@@ -595,12 +651,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_primary_activity = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintSecondaryFreeIon");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_secondary_freeion = switch_value;
@@ -614,12 +673,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_secondary_freeion = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintSecondaryActivity");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_secondary_activity = switch_value;
@@ -633,12 +695,15 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_secondary_activity = switch_value;
+
+
+
   sprintf(key, "Chemistry.PrintSorbed");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>\n",
+      InputError("Error: invalid print switch value <%s> for key <%s>\n",
 	     switch_name, key );
   }
   public_xtra -> print_sorbed = switch_value;
@@ -652,9 +717,9 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_sorbed = switch_value;
+
   
   NA_FreeNameArray(switch_na);
-
   PFModulePublicXtra(this_module) = public_xtra;
   return this_module;
 }
