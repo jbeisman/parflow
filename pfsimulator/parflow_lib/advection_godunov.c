@@ -192,7 +192,7 @@ void     Godunov(
   double           *phi;
 
   int cycle_number, interval_number;
-  int lo[3], hi[3], dlo[3], dhi[3];
+  int dlo[3], dhi[3];
   double hx[3];
   double dt, t;
   int fstord;
@@ -232,9 +232,9 @@ void     Godunov(
 
   subgrids = GridSubgrids(grid);
 
-  nx_cells = IndexSpaceNX(0) - 3;
-  ny_cells = IndexSpaceNY(0) - 3;
-  nz_cells = IndexSpaceNZ(0) - 3;
+  nx_cells = IndexSpaceNX(0);
+  ny_cells = IndexSpaceNY(0);
+  nz_cells = IndexSpaceNZ(0);
 
 
   /*-----------------------------------------------------------------------
@@ -242,19 +242,11 @@ void     Godunov(
    *-----------------------------------------------------------------------*/
   // need to reestimate this, the new scheme is not as efficient
   flopest =
-    ((nz_cells + 1) *
-     ((ny_cells + 3) * ((nx_cells + 5) * 8 + ((nx_cells + 3) * 6)) +
-      (nx_cells + 3) * ((ny_cells + 5) * 8 + ((ny_cells + 3) * 6)) +
-      30 * (ny_cells + 3) * (nx_cells + 3))
-     +
-     (ny_cells + 1) * (nx_cells + 1) * (7 * (nz_cells + 1) + 140)
-     +
-     (nz_cells + 1) * ((ny_cells + 3) * (nx_cells + 3) * 123 +
-                       (ny_cells + 1) * (nx_cells + 1) * 7 +
-                       (ny_cells + 1) * (nx_cells + 1) * 10 +
-                       (ny_cells + 1) * (nx_cells + 1) * 4)
-     +
-     (nz_cells * ny_cells * nx_cells + 3));
+  5 + ((nx_cells + 3) * (ny_cells + 3) * (nz_cells + 3)) * (6 + 18 + 3 + 18 + 18 + 21 + 54 + 54) +
+  ((nx_cells + 3) * (ny_cells + 3) * (nz_cells + 3)) * (26) +
+  ((nx_cells + 5) * (ny_cells + 5) * (nz_cells + 5)) * (3) +
+  ((nx_cells) * (ny_cells) * (nz_cells)) * (28) +
+  ((nx_cells + 2) * (ny_cells + 2) * (nz_cells + 2)) * (22 + 2 + 4);
 
   compute_pkg = GridComputePkg(VectorGrid(old_concentration), VectorUpdateGodunov);
 
@@ -950,11 +942,12 @@ void     Godunov(
   }
 
 
-#if 1
+
   /*-----------------------------------------------------------------------
    * Informational computation and printing.
    *-----------------------------------------------------------------------*/
-
+if (!(GlobalsChemistryFlag))
+{
   field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data),
                                  grid, new_concentration);
 
@@ -963,10 +956,9 @@ void     Godunov(
   {
     amps_Printf("Concentration volume for phase %1d, component %2d at time %f = %f\n", phase, concentration, time, field_sum);
   }
+}
 
-  IncFLOPCount(VectorSize(new_concentration));
-#endif
-
+IncFLOPCount(VectorSize(new_concentration));
 
   /*-----------------------------------------------------------------------
    * Free temp vectors

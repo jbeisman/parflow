@@ -81,10 +81,10 @@
       integer is1,is2,ie1,ie2
       integer ii,ii2,ii3,jj,jj2,jj3,kk,kk2,kk3
       integer iiz,iiz2,jjx,jjx2,kky,kky2,iiy,jjz,kkx
-      real(dp) dx,dy,dz
+      real(dp) dx,dy,dz,dx_inv,dy_inv,dz_inv
       real(dp) half,third
       real(dp) rx,ry,rz,mclimit,limx,thetax,thetay,thetaz,limy,limz
-      real(dp) transvel,sat_diff,iter,num_iter,abs_smin
+      real(dp) transvel,sat_diff,iter,num_iter,abs_smin,num_iter_inv
       real(dp) minmod4,minmod2,median
 
       is = dlo(1)
@@ -96,11 +96,15 @@
       dx = hx(1)
       dy = hx(2)
       dz = hx(3)
+      dx_inv = 1.0_dp/dx
+      dy_inv = 1.0_dp/dy
+      dz_inv = 1.0_dp/dz
       half = 0.5_dp
       third = 1.0_dp/3.0_dp
 
       iter=DBLE(iteration)
       num_iter=DBLE(num_iterations)
+      num_iter_inv = 1.0_dp/num_iter
      
 
      !! initialization
@@ -219,12 +223,12 @@
           fz(i,j,k)=fz(i,j,k)+wedge(i,j,k)*s(i,j,kk)
     
           !! transverse velocities - 0 if both don't have same sign
-          vx(i,j,k) = (dt/dx)*transvel(vedge(ii2,j,k),vedge(ii2,j+1,k)) 
-          wx(i,j,k) = (dt/dx)*transvel(wedge(ii2,j,k),wedge(ii2,j,k+1)) 
-          uy(i,j,k) = (dt/dy)*transvel(uedge(i,jj2,k),uedge(i+1,jj2,k)) 
-          wy(i,j,k) = (dt/dy)*transvel(wedge(i,jj2,k),wedge(i,jj2,k+1))
-          uz(i,j,k) = (dt/dz)*transvel(uedge(i,j,kk2),uedge(i+1,j,kk2))
-          vz(i,j,k) = (dt/dz)*transvel(vedge(i,j,kk2),vedge(i,j+1,kk2))
+          vx(i,j,k) = (dt*dx_inv)*transvel(vedge(ii2,j,k),vedge(ii2,j+1,k)) 
+          wx(i,j,k) = (dt*dx_inv)*transvel(wedge(ii2,j,k),wedge(ii2,j,k+1)) 
+          uy(i,j,k) = (dt*dy_inv)*transvel(uedge(i,jj2,k),uedge(i+1,jj2,k)) 
+          wy(i,j,k) = (dt*dy_inv)*transvel(wedge(i,jj2,k),wedge(i,jj2,k+1))
+          uz(i,j,k) = (dt*dz_inv)*transvel(uedge(i,j,kk2),uedge(i+1,j,kk2))
+          vz(i,j,k) = (dt*dz_inv)*transvel(vedge(i,j,kk2),vedge(i,j+1,kk2))
     
           !gradient
           rx=s(i,j,k)-s(i-1,j,k)
@@ -234,15 +238,15 @@
           !second order - LW flux - monotone centered limiter
           thetax=(s(ii3,j,k)-s(ii3-1,j,k))/(s(i,j,k)-s(i-1,j,k))
           limx=mclimit(thetax)
-          sx(i,j,k)=half*abs(uedge(i,j,k))*(1.0_dp-(dt/dx)*abs(uedge(i,j,k)))*rx*limx
+          sx(i,j,k)=half*abs(uedge(i,j,k))*(1.0_dp-(dt*dx_inv)*abs(uedge(i,j,k)))*rx*limx
     
           thetay=(s(i,jj3,k)-s(i,jj3-1,k))/(s(i,j,k)-s(i,j-1,k))
           limy=mclimit(thetay)
-          sy(i,j,k) = half*abs(vedge(i,j,k))*(1.0_dp-(dt/dy)*abs(vedge(i,j,k)))*ry*limy
+          sy(i,j,k) = half*abs(vedge(i,j,k))*(1.0_dp-(dt*dy_inv)*abs(vedge(i,j,k)))*ry*limy
     
           thetaz=(s(i,j,kk3)-s(i,j,kk3-1))/(s(i,j,k)-s(i,j,k-1))
           limz=mclimit(thetaz)
-          sz(i,j,k)= half*abs(wedge(i,j,k))*(1.0_dp-(dt/dz)*abs(wedge(i,j,k)))*rz*limz
+          sz(i,j,k)= half*abs(wedge(i,j,k))*(1.0_dp-(dt*dz_inv)*abs(wedge(i,j,k)))*rz*limz
     
           
           if (vx(i,j,k) .gt. 0.0)then
@@ -342,10 +346,10 @@
       do k=ks2-1,ke2+1
         do j=js2-1,je2+1
           do i=is2-1,ie2+1  
-            sat_diff=(sat(i,j,k) - old_sat(i,j,k)) / num_iter
+            sat_diff=(sat(i,j,k) - old_sat(i,j,k)) * num_iter_inv
             stemp(i,j,k)= ((iter*sat_diff + old_sat(i,j,k))*phi(i,j,k)*s(i,j,k) + &
-            ((dt/dx)*(fx(i,j,k) - fx(i+1,j,k)) + (dt/dy)*(fy(i,j,k)-fy(i,j+1,k)) + &
-            (dt/dz)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+            ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
+            (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
           enddo
         enddo
       enddo
@@ -399,28 +403,37 @@
 
       !!call limiter to enforce min/max
       call limit(smax,smin,stemp,sx,sy,sz,fx,fy,fz,&
-        dlo,dhi,dt,dx,dy,dz,vx,wx,uy,wy,uz,vz)
+        dlo,dhi,dt,dx_inv,dy_inv,dz_inv,vx,wx,uy,wy,uz,vz)
 
       do k=ks,ke
         do j=js,je
           do i=is,ie
        
-            sat_diff=(sat(i,j,k)-old_sat(i,j,k))/num_iter
+            sat_diff=(sat(i,j,k)-old_sat(i,j,k)) * num_iter_inv
       
-            sn(i,j,k)=sn(i,j,k) + ((dt/dx)*(fx(i,j,k)*sx(i,j,k) - fx(i+1,j,k)*sx(i+1,j,k)) & 
-            + (dt/dy)*(fy(i,j,k)*sy(i,j,k)-fy(i,j+1,k)*sy(i,j+1,k)) + & 
-            (dt/dz)*(fz(i,j,k)*sz(i,j,k)-fz(i,j,k+1)*sz(i,j,k+1))) / &
+            sn(i,j,k)=sn(i,j,k) + ((dt*dx_inv)*(fx(i,j,k)*sx(i,j,k) - fx(i+1,j,k)*sx(i+1,j,k)) & 
+            + (dt*dy_inv)*(fy(i,j,k)*sy(i,j,k)-fy(i,j+1,k)*sy(i,j+1,k)) + & 
+            (dt*dz_inv)*(fz(i,j,k)*sz(i,j,k)-fz(i,j,k+1)*sz(i,j,k+1))) / &
             (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
 
+          enddo
+        enddo
+      enddo    
+
+      endif
+
+
+      do k=ks,ke
+        do j=js,je
+          do i=is,ie
+       
             !!cutoff any values that violate min/max
             if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
             if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)
 
           enddo
         enddo
-      enddo    
-
-      endif 
+      enddo 
        
       !! needs work
       !!call disperse(sn,uedge,vedge,wedge,lo,hi,dlo,dhi,hx,dt)
@@ -579,13 +592,13 @@
   
 
 
-      subroutine limit(smax,smin,sn,sx,sy,sz,cx,cy,cz,dlo,dhi,dt,dx,&
-                       dy,dz,p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
+      subroutine limit(smax,smin,sn,sx,sy,sz,cx,cy,cz,dlo,dhi,dt,dx_inv,&
+                       dy_inv,dz_inv,p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
       implicit none
       integer, parameter :: dp = selected_real_kind(15)
       integer  dlo(3), dhi(3)
       integer  is,ie,js,je,ks,ke,i,j,k 
-      real(dp) dt,dx,dy,dz
+      real(dp) dt,dx_inv,dy_inv,dz_inv
       real(dp) smin(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
       real(dp) smax(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
       real(dp) sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
@@ -625,28 +638,28 @@
         do j=js-1,je+1
           do i=is-1,ie+1 
             
-            p_plus(i,j,k) = (dt/dx)*(max(0.0,sx(i,j,k)) - min(0.0,sx(i+1,j,k))) + &
-            (dt/dy)*(max(0.0,sy(i,j,k)) - min(0.0,sy(i,j+1,k))) + &
-            (dt/dz)*(max(0.0,sz(i,j,k)) - min(0.0,sz(i,j,k+1)))
+            p_plus(i,j,k) = (dt*dx_inv)*(max(0.0_dp,sx(i,j,k)) - min(0.0_dp,sx(i+1,j,k))) + &
+            (dt*dy_inv)*(max(0.0_dp,sy(i,j,k)) - min(0.0_dp,sy(i,j+1,k))) + &
+            (dt*dz_inv)*(max(0.0_dp,sz(i,j,k)) - min(0.0_dp,sz(i,j,k+1)))
 
-            p_minus(i,j,k) = (dt/dx)*(max(0.0,sx(i+1,j,k)) - min(0.0,sx(i,j,k))) + &
-            (dt/dy)*(max(0.0,sy(i,j+1,k)) - min(0.0,sy(i,j,k))) + &
-            (dt/dz)*(max(0.0,sz(i,j,k+1)) - min(0.0,sz(i,j,k)))
+            p_minus(i,j,k) = (dt*dx_inv)*(max(0.0_dp,sx(i+1,j,k)) - min(0.0_dp,sx(i,j,k))) + &
+            (dt*dy_inv)*(max(0.0_dp,sy(i,j+1,k)) - min(0.0_dp,sy(i,j,k))) + &
+            (dt*dz_inv)*(max(0.0_dp,sz(i,j,k+1)) - min(0.0_dp,sz(i,j,k)))
 
             q_plus(i,j,k) = max(smax(i,j,k),maxval(sn(i-1:i+1,j-1:j+1,k-1:k+1))) - sn(i,j,k)
 
             q_minus(i,j,k) = sn(i,j,k) - min(smin(i,j,k),minval(sn(i-1:i+1,j-1:j+1,k-1:k+1)))
 
-            if (p_plus(i,j,k) .gt. 0.0) then
-              r_plus(i,j,k) = min(q_plus(i,j,k)/p_plus(i,j,k),1.0)
+            if (p_plus(i,j,k) .gt. 0.0_dp) then
+              r_plus(i,j,k) = min(q_plus(i,j,k)/p_plus(i,j,k),1.0_dp)
             else
-              r_plus(i,j,k) = 0.0
+              r_plus(i,j,k) = 0.0_dp
             endif 
    
-            if (p_minus(i,j,k) .gt. 0.0) then
-              r_minus(i,j,k) = min(q_minus(i,j,k)/p_minus(i,j,k),1.0)
+            if (p_minus(i,j,k) .gt. 0.0_dp) then
+              r_minus(i,j,k) = min(q_minus(i,j,k)/p_minus(i,j,k),1.0_dp)
             else
-              r_minus(i,j,k) = 0.0
+              r_minus(i,j,k) = 0.0_dp
             endif 
           
           enddo
@@ -658,19 +671,19 @@
         do j=js,je+1
           do i=is,ie+1
        
-            if (sx(i,j,k) .ge. 0.0) then
+            if (sx(i,j,k) .ge. 0.0_dp) then
               cx(i,j,k) = min(r_plus(i,j,k),r_minus(i-1,j,k))
             else
               cx(i,j,k) = min(r_plus(i-1,j,k),r_minus(i,j,k))
             endif
             
-            if (sy(i,j,k) .ge. 0.0) then
+            if (sy(i,j,k) .ge. 0.0_dp) then
               cy(i,j,k) = min(r_plus(i,j,k),r_minus(i,j-1,k))
             else
               cy(i,j,k) = min(r_plus(i,j-1,k),r_minus(i,j,k))
             endif
       
-            if (sz(i,j,k) .ge. 0.0) then
+            if (sz(i,j,k) .ge. 0.0_dp) then
               cz(i,j,k) = min(r_plus(i,j,k),r_minus(i,j,k-1))
             else
               cz(i,j,k) = min(r_plus(i,j,k-1),r_minus(i,j,k))

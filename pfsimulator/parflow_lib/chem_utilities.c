@@ -442,7 +442,7 @@ void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations,
 
 
 
-void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vector **concentrations, ProblemData *problem_data)
+void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data)
 {
   Grid          *grid = VectorGrid(concentrations[0]);
   SubgridArray  *subgrids = GridSubgrids(grid);
@@ -459,9 +459,8 @@ void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, 
   double *concen_dat;
 
   gr_domain = ProblemDataGrDomain(problem_data);
-  int num_primary = chem_sizes.num_primary;
-
-
+  int num_primary = chem_sizes->num_primary;
+  printf("NUM_PRIMARY %d \n",num_primary);
 
     ForSubgridI(is, subgrids)
     {
@@ -496,9 +495,7 @@ void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, 
 }
 
 
-void     CopyConcenWithBoundary(
-              Vector *x,
-              Vector *y)
+void     CopyConcenWithBoundary(Vector *x, Vector *y)
 {
   Grid       *grid = VectorGrid(x);
   Subgrid    *subgrid;
@@ -558,7 +555,7 @@ void     CopyConcenWithBoundary(
 
 void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data, int num_ic_conds, NameArray ic_cond_na, Vector * saturation)
 {
-  double water_density = 900.0;    // density of water in kg/m**3
+  double water_density = 998.0;    // density of water in kg/m**3
   double aqueous_pressure = 101325.0; // pressure in Pa.
   Subgrid       *subgrid;
   Subvector     *chem_ind_sub;
@@ -636,7 +633,7 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
 
       // Set the thermodynamic state.
       alquimia_data->chem_state[chem_index].water_density = water_density;
-      alquimia_data->chem_state[chem_index].temperature = 20.0;
+      alquimia_data->chem_state[chem_index].temperature = 25.0;
       alquimia_data->chem_state[chem_index].porosity = por[por_index];
       alquimia_data->chem_state[chem_index].aqueous_pressure = aqueous_pressure;
 
@@ -664,7 +661,7 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
 void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArray bc_cond_na)
 {
   char* name;
-  double water_density = 900.0;    // density of water in kg/m**3
+  double water_density = 998.0;    // density of water in kg/m**3
   double aqueous_pressure = 101325.0; // pressure in Pa.
   // boundary conditions:
 
@@ -744,7 +741,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
 
   if (num_minerals > 0)
   {
-    for(int mineral = 0; mineral < num_primary; mineral++)
+    for(int mineral = 0; mineral < num_minerals; mineral++)
     {
       FreeVector(alquimia_data->mineral_volume_fractionsPF[mineral]);
       FreeVector(alquimia_data->mineral_specific_surfacePF[mineral]);
@@ -753,7 +750,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
     }
     
     tfree(alquimia_data->mineral_volume_fractionsPF);
-    tfree(alquimia_data->mineral_volume_fractionsPF);
+    tfree(alquimia_data->mineral_specific_surfacePF);
     tfree(alquimia_data->mineral_saturation_indexPF);
     tfree(alquimia_data->mineral_reaction_ratePF);
   }

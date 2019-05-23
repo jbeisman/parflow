@@ -88,26 +88,17 @@ void          BCConcentration(  Problem *problem,
   int            *bc_types = (public_xtra->bc_types);
 
   SubgridArray   *subgrids = GridSubgrids(grid);
-  Subgrid        *subgrid;
   Subvector      *concen_sub, *subvector;
   double         *concen_dat, *tmpp;
   Vector         *pfb_indicator;
   BCStruct       *bc_struct;
-  int patch_index;
 
+  int condition;
   int nx_v, ny_v, nz_v;
   int sx_v, sy_v, sz_v;
-
-  int            *fdir;
-
-  int indx, ipatch, is, i, j, k, ival, iv, sv;
+  int *fdir;
+  int ipatch, is, i, j, k, ival, iv, sv;
   int num_concen, itmp;
-
-  /*-----------------------------------------------------------------------
-   * Get an offset into the PublicXtra data
-   *-----------------------------------------------------------------------*/
-
-  indx = num_domain_patches;
 
   /*-----------------------------------------------------------------------
    * Set up bc_struct with NULL values component
@@ -120,135 +111,124 @@ void          BCConcentration(  Problem *problem,
    * Implement BC's
    *-----------------------------------------------------------------------*/
 
-num_concen =  ProblemNumContaminants(problem);
+  num_concen =  ProblemNumContaminants(problem);
 
 
   for (ipatch = 0; ipatch < num_domain_patches; ipatch++)
   {
-
-    patch_index = patch_indexes[ipatch];
-
-    ForSubgridI(is, GridSubgrids(grid))
-    { 
-      subgrid = SubgridArraySubgrid(subgrids, is);
-      concen_sub = VectorSubvector(concentrations[0],is);
-
-      nx_v = SubvectorNX(concen_sub);
-   	  ny_v = SubvectorNY(concen_sub);
-   	  nz_v = SubvectorNZ(concen_sub);
-   	  sx_v = 1;
-   	  sy_v = nx_v;
-   	  sz_v = ny_v * nx_v;
-
-
-      switch (input_types[ipatch])
+    switch (input_types[ipatch])
+    {
+      case -1:
       {
-        case -1:
+        for (int concen = 0; concen < num_concen; concen++)
         {
-          for (int concen = 0; concen < num_concen; concen++)
-            {
-
-              concen_sub = VectorSubvector(concentrations[concen], is);
-              concen_dat = SubvectorData(concen_sub);
-
-              BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
-              {
-              	iv   = SubvectorEltIndex(concen_sub, i, j, k);
-                sv = 0;
-
-               	if (fdir[0])
-                 sv = fdir[0] * sx_v;
-               	else if (fdir[1])
-                 sv = fdir[1] * sy_v;
-               	else if (fdir[2])
-                 sv = fdir[2] * sz_v;
-
-                concen_dat[iv + 3 * sv] = concen_dat[iv -sv]; 
- 				concen_dat[iv + sv] = concen_dat[iv -sv];
- 				concen_dat[iv + 2 * sv] =concen_dat[iv -sv];         
-              });
-            }
-      
-          break;
-        }
-
-        case 0:
-        {
-
-          int condition;
-
-          dummy0 = (Type0*)(public_xtra->data[ipatch]);
-
-          condition = (dummy0->condition);
-
-          for (int concen = 0; concen < num_concen; concen++)
+          ForSubgridI(is, GridSubgrids(grid))
           {
-            concen_sub = VectorSubvector(concentrations[concen], is);
+            concen_sub = VectorSubvector(concentrations[concen],is);
             concen_dat = SubvectorData(concen_sub);
-  
+            nx_v = SubvectorNX(concen_sub);
+            ny_v = SubvectorNY(concen_sub);
+            nz_v = SubvectorNZ(concen_sub);
+            sx_v = 1;
+            sy_v = nx_v;
+            sz_v = ny_v * nx_v;
             BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
             {
+              iv = SubvectorEltIndex(concen_sub, i, j, k);
               sv = 0;
               if (fdir[0])
-                sv = fdir[0] * sx_v;
+               sv = fdir[0] * sx_v;
               else if (fdir[1])
-                sv = fdir[1] * sy_v;
+               sv = fdir[1] * sy_v;
               else if (fdir[2])
-                sv = fdir[2] * sz_v;
-  
+               sv = fdir[2] * sz_v;
+              concen_dat[iv + 3 * sv] = concen_dat[iv]; 
+              concen_dat[iv + sv] = concen_dat[iv];
+              concen_dat[iv + 2 * sv] =concen_dat[iv];
+            });
+          }
+        }
+        break;
+      }
+      case 0:
+      {
+        dummy0 = (Type0*)(public_xtra->data[ipatch]);
+        condition = (dummy0->condition);
+        
+        for (int concen = 0; concen < num_concen; concen++)
+        {
+          ForSubgridI(is, GridSubgrids(grid))
+          {
+            concen_sub = VectorSubvector(concentrations[concen],is);
+            concen_dat = SubvectorData(concen_sub);
+            nx_v = SubvectorNX(concen_sub);
+            ny_v = SubvectorNY(concen_sub);
+            nz_v = SubvectorNZ(concen_sub);
+            sx_v = 1;
+            sy_v = nx_v;
+            sz_v = ny_v * nx_v;
+            BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
+            {
               iv = SubvectorEltIndex(concen_sub, i, j, k);
-  
+              sv = 0;
+              if (fdir[0])
+               sv = fdir[0] * sx_v;
+              else if (fdir[1])
+               sv = fdir[1] * sy_v;
+              else if (fdir[2])
+               sv = fdir[2] * sz_v;
               concen_dat[iv + 3 * sv] = chem_bc_state[condition].total_mobile.data[concen];
               concen_dat[iv + sv] = chem_bc_state[condition].total_mobile.data[concen]; 
               concen_dat[iv + 2 * sv] = chem_bc_state[condition].total_mobile.data[concen];
+                    printf("case 0, concen: %d bc: %f\n",concen, chem_bc_state[condition].total_mobile.data[concen]);
             });
           }
-
-          break;
         }
-
-        case 1:
+        break;
+      }
+      case 1:
+      {
+        dummy1 = (Type1*)(public_xtra->data[ipatch]);
+        pfb_indicator = NewVectorType(grid, 1, 0, vector_cell_centered);
+        ReadPFBinary((dummy1->filename), pfb_indicator);
+        subvector = VectorSubvector(pfb_indicator, is);
+        tmpp = SubvectorData(subvector);
+        for (int concen = 0; concen < num_concen; concen++)
         {
-
-          dummy1 = (Type1*)(public_xtra->data[ipatch]);
-          pfb_indicator = NewVectorType(grid, 1, 0, vector_cell_centered);
-          ReadPFBinary((dummy1->filename), pfb_indicator);
-
-          subvector = VectorSubvector(pfb_indicator, is);
-          tmpp = SubvectorData(subvector);
-
-          for (int concen = 0; concen < num_concen; concen++)
+          ForSubgridI(is, GridSubgrids(grid))
+          {
+            concen_sub = VectorSubvector(concentrations[concen],is);
+            concen_dat = SubvectorData(concen_sub);
+            nx_v = SubvectorNX(concen_sub);
+            ny_v = SubvectorNY(concen_sub);
+            nz_v = SubvectorNZ(concen_sub);
+            sx_v = 1;
+            sy_v = nx_v;
+            sz_v = ny_v * nx_v;
+            BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
             {
-              concen_sub = VectorSubvector(concentrations[concen], is);
-              concen_dat = SubvectorData(concen_sub); 
+              iv = SubvectorEltIndex(concen_sub, i, j, k);
+              itmp = SubvectorEltIndex(subvector, i, j, k);  
+              sv = 0;
+              if (fdir[0])
+               sv = fdir[0] * sx_v;
+              else if (fdir[1])
+               sv = fdir[1] * sy_v;
+              else if (fdir[2])
+               sv = fdir[2] * sz_v;
 
-              BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
-              {
-                sv = 0;
-                if (fdir[0])
-                  sv = fdir[0] * sx_v;
-                else if (fdir[1])
-                 sv = fdir[1] * sy_v;
-                else if (fdir[2])
-                 sv = fdir[2] * sz_v;
-
-
-                itmp = SubvectorEltIndex(subvector, i, j, k);  
-                iv = SubvectorEltIndex(concen_sub, i, j, k);
-  
-                concen_dat[iv + 3 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
-                concen_dat[iv + sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen]; 
-                concen_dat[iv + 2 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
-              });
-              FreeVector(pfb_indicator);
-            }  
-          
-          break;
+              concen_dat[iv + 3 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
+              concen_dat[iv + sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen]; 
+              concen_dat[iv + 2 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
+              //printf("case 1, concen: %d bc: %f\n",concen, chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen]);
+            });
+          }
         }
+        FreeVector(pfb_indicator);
+        break;
       }
     }
-  }
-  
+  }  
   FreeBCStruct(bc_struct);  
 }
 
@@ -351,6 +331,7 @@ PFModule  *BCConcentrationNewPublicXtra()
       switch_name = GetStringDefault(key,"");
       public_xtra->input_types[j] = NA_NameToIndex(type_na, switch_name);
       public_xtra->patch_indexes[j] = j;
+      printf("PATCH_TYPE: %d \n",public_xtra->input_types[j]);
 
       switch ((public_xtra->input_types[j]))
       {

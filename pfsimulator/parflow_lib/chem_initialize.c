@@ -167,7 +167,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	if (alquimia_data->chem_status.error != 0) 
   	{
   	  	alquimia_error("Alquimia interface creation error: %s", alquimia_data->chem_status.message);
-  	  	exit(1);
+  	  	exit(0);
   	}
   	else if (!amps_Rank(amps_CommWorld))
   	{
@@ -191,6 +191,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	else if (!amps_Rank(amps_CommWorld))
   	{
   	  	amps_Printf("Successful setup() of Alquimia interface\n");
+        PrintAlquimiaSizes(&alquimia_data->chem_sizes,stdout);
   	}
 
 
@@ -256,11 +257,13 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	}
 
 
+  // copy alquimia data to PF Vectors for printing
+  ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
+
   // fill concen vector with assigned boundaries
   PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state, gr_domain));
 
-  // copy alquimia data to PF Vectors for printing
-  ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
+  
 
   // print initial concen volume 
   for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)
@@ -401,7 +404,6 @@ PFModule   *InitializeChemistryNewPublicXtra()
   public_xtra->ic_cond_na = NA_NewNameArray(ic_cond_names);
   public_xtra->num_ic_conds = NA_Sizeof(public_xtra->ic_cond_na);
 
-  PFModulePublicXtra(this_module) = public_xtra;
   sprintf(key, "Chemistry.PrintMineralRate");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
@@ -653,6 +655,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
   
   NA_FreeNameArray(switch_na);
 
+  PFModulePublicXtra(this_module) = public_xtra;
   return this_module;
 }
 

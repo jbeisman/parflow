@@ -84,6 +84,7 @@ typedef struct {
   int write_silo_concen;                          /* print concentrations? */
 
   PFModule          *init_chem;
+  PFModule          *advance_chem;
 } PublicXtra;
 
 typedef struct {
@@ -115,7 +116,8 @@ typedef struct {
   double            *temp_data;
   int               test_var;
   PFModule          *init_chem;
-  AlquimiaDataPF      *alquimia_data;
+  PFModule          *advance_chem;
+  AlquimiaDataPF    *alquimia_data;
   
 } InstanceXtra;
 
@@ -237,6 +239,7 @@ void      SolverImpes()
   int chem_flag;
   chem_flag = GlobalsChemistryFlag;
   PFModule     *init_chem = (instance_xtra->init_chem);
+  PFModule     *advance_chem = (instance_xtra->advance_chem);
 
 
   //this is how we define an alquimia string
@@ -523,8 +526,6 @@ void      SolverImpes()
                           (problem_data, instance_xtra->alquimia_data,
                            concentrations, 
                            saturations[0]));
-
-        PrintAlquimiaSizes(&instance_xtra->alquimia_data->chem_sizes,stdout);
 
       }
       /*****************************************************************/
@@ -1184,6 +1185,7 @@ void      SolverImpes()
 
               InitVectorAll(ctemp, 0.0);
               CopyConcenWithBoundary(concentrations[indx], ctemp);
+              //Copy(concentrations[indx], ctemp);
 
               PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
                                 (problem_data, phase, concen,
@@ -1199,6 +1201,24 @@ void      SolverImpes()
             }
           }
         }
+
+
+
+      /*****************************************************************/
+      /*          Call the geochemical engine         */
+      /*****************************************************************/
+
+ //          if (chem_flag) /*Initialize the geochemical system*/
+ //    {
+ //      amps_Printf("Solving chemical reaction system\n");
+
+ //      PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
+ //                        (problem_data, instance_xtra->alquimia_data,
+ //                         concentrations, 
+ //                         saturations[0], dt));
+ //    }
+
+
 
         /* Print the concentration values at this time-step? */
         if (dump_files)
@@ -1692,6 +1712,10 @@ PFModule *SolverImpesInitInstanceXtra()
       PFModuleNewInstanceType(InitializeChemistryInitInstanceXtraType,
                               (public_xtra->init_chem),
                               (problem, grid));
+      (instance_xtra->advance_chem) = 
+      PFModuleNewInstanceType(AdvanceChemistryInitInstanceXtraType,
+                              (public_xtra->advance_chem),
+                              (problem, grid));
     }
 
     if (is_multiphase)
@@ -1749,6 +1773,9 @@ PFModule *SolverImpesInitInstanceXtra()
     {
       PFModuleReNewInstanceType(InitializeChemistryInitInstanceXtraType,
                              (instance_xtra->init_chem),
+                             (problem, grid));
+      PFModuleReNewInstanceType(AdvanceChemistryInitInstanceXtraType,
+                             (instance_xtra->advance_chem),
                              (problem, grid));
     }
 
@@ -2050,6 +2077,7 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
   if (chem_flag)
 {
   (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
+  (public_xtra->advance_chem) = PFModuleNewModule(AdvanceChemistry, ());
 }
   (public_xtra->set_problem_data) = PFModuleNewModule(SetProblemData, ());
 

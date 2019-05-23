@@ -26,40 +26,164 @@
  *  USA
  **********************************************************************EHEADER*/
 
-/***************************************************************************
+/*****************************************************************************
 *
+* Module for initializing the geochemical problem. This code reads the PF input 
+* file chemistry options, starts the alquimia interface, allocates the alquimia 
+* and PF data storage, and processes and assigns geochemical initial and boundary
+* conditions. The data is saved in a large struct, AlquimiaDataPF 
 *
-*---------------------------------------------------------------------------
+*-----------------------------------------------------------------------------
 *
-***************************************************************************/
+*****************************************************************************/
+
+
+
 
 #include "parflow.h"
+#include "pf_alquimia.h"
+#include "alquimia/alquimia_constants.h"
 #include "alquimia/alquimia_interface.h"
 #include "alquimia/alquimia_memory.h"
 #include "alquimia/alquimia_util.h"
 
-#include <stdio.h>
+/*--------------------------------------------------------------------------
+ * Structures
+ *--------------------------------------------------------------------------*/
 
 typedef struct {
   int time_index;
+  double time_conversion_factor;
 } PublicXtra;
 
 typedef struct {
-  /* InitInstanceXtra arguments */
-  Problem *problem;
-  Grid    *grid;
-  double  *temp_data;
+  Problem       *problem;
+  Grid          *grid;
 } InstanceXtra;
 
 
 
 
 
+/*--------------------------------------------------------------------------
+ * AdvanceChemistry
+ *--------------------------------------------------------------------------*/
 
-PFModule  *ChemAdvanceInstanceXtra(
-                                   Problem *problem,
-                                   Grid *   grid,
-                                   double * temp_data)
+void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt)
+{
+  PFModule      *this_module = ThisPFModule;
+  InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
+  PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
+  Problem       *problem = (instance_xtra->problem);
+  Grid          *grid = (instance_xtra->grid);
+  GrGeomSolid   *gr_domain;
+
+  int num_cells;
+  bool hands_off = true;
+  double field_sum;
+  double dt_seconds;
+
+  BeginTiming(public_xtra->time_index);
+
+  gr_domain = ProblemDataGrDomain(problem_data);
+
+
+  double water_density = 900.0;    // density of water in kg/m**3
+  double aqueous_pressure = 101325.0; // pressure in Pa.
+  Subgrid       *subgrid;
+  Subvector     *por_sub, *sat_sub;
+  int is = 0;
+  int i, j, k;
+  int ix, iy, iz;
+  int nx, ny, nz;
+  int dx, dy, dz;
+  int r;
+  int chem_index, por_index, sat_index;
+  double *por, *sat;
+  char* name;
+ 
+  SubgridArray  *subgrids = GridSubgrids(grid);
+  subgrid = SubgridArraySubgrid(subgrids, is);
+
+  dt_seconds = dt * public_xtra->time_conversion_factor;
+
+
+  AdvectedPrimaryToChem(alquimia_data->chem_state, &alquimia_data->chem_sizes, concentrations, problem_data);
+
+
+  ForSubgridI(is, subgrids)
+  {
+    subgrid = SubgridArraySubgrid(subgrids, is);
+
+    ix = SubgridIX(subgrid);
+    iy = SubgridIY(subgrid);
+    iz = SubgridIZ(subgrid);
+
+    nx = SubgridNX(subgrid);
+    ny = SubgridNY(subgrid);
+    nz = SubgridNZ(subgrid);
+
+    dx = SubgridDX(subgrid);
+    dy = SubgridDY(subgrid);
+    dz = SubgridDZ(subgrid);
+
+    double vol = dx * dy * dz;
+
+    // RDF: assume resolution is the same in all 3 directions 
+    r = SubgridRX(subgrid);
+
+    por_sub = VectorSubvector(ProblemDataPorosity(problem_data), is);
+    por = SubvectorData(por_sub);
+
+    sat_sub = VectorSubvector(saturation, is);
+    sat = SubvectorData(sat_sub);
+
+    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+    {
+      por_index = SubvectorEltIndex(por_sub, i, j, k);
+      sat_index = SubvectorEltIndex(sat_sub, i, j, k);
+
+      chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+
+      alquimia_data->chem_properties[chem_index].volume = vol;
+      alquimia_data->chem_properties[chem_index].saturation = sat[sat_index];
+
+      // Set the thermodynamic state.
+      alquimia_data->chem_state[chem_index].water_density = water_density;
+      alquimia_data->chem_state[chem_index].temperature = 20.0;
+      alquimia_data->chem_state[chem_index].porosity = por[por_index];
+      alquimia_data->chem_state[chem_index].aqueous_pressure = aqueous_pressure;
+
+      // Invoke the chemical initial condition.
+      alquimia_data->chem.ReactionStepOperatorSplit(&alquimia_data->chem_engine,
+                                             dt_seconds, &alquimia_data->chem_properties[chem_index],
+                                             &alquimia_data->chem_state[chem_index],
+                                             &alquimia_data->chem_aux_data[chem_index],
+                                             &alquimia_data->chem_status);
+      if (alquimia_data->chem_status.error != 0)
+      {
+        printf("ProcessGeochemICs: initialization error: %s\n", 
+               alquimia_data->chem_status.message);
+        break;
+      }
+
+    });
+  }
+
+  ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
+
+
+  
+
+  EndTiming(public_xtra->time_index);
+}
+
+
+/*--------------------------------------------------------------------------
+ * AdvanceChemistryInitInstanceXtra
+ *--------------------------------------------------------------------------*/
+
+PFModule  *AdvanceChemistryInitInstanceXtra(Problem *problem, Grid *grid)
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra;
@@ -68,6 +192,7 @@ PFModule  *ChemAdvanceInstanceXtra(
 
   Subgrid      *subgrid;
 
+  int max_nx, max_ny, max_nz;
   int sg;
 
 
@@ -92,35 +217,23 @@ PFModule  *ChemAdvanceInstanceXtra(
     /* free old data */
     if ((instance_xtra->grid) != NULL)
     {
-      // Does something need to be freed here?
     }
 
     /* set new data */
     (instance_xtra->grid) = grid;
   }
 
+
   PFModuleInstanceXtra(this_module) = instance_xtra;
   return this_module;
 }
 
 
+/*--------------------------------------------------------------------------
+ * AdvanceChemistryFreeInstanceXtra
+ *--------------------------------------------------------------------------*/
 
-PFModule  *ChemAdvanceNewPublicXtra()
-{
-  PFModule     *this_module = ThisPFModule;
-  PublicXtra   *public_xtra;
-
-
-  public_xtra = ctalloc(PublicXtra, 1);
-
-  (public_xtra->time_index) = RegisterTiming("Geochemical Engine");
-
-  PFModulePublicXtra(this_module) = public_xtra;
-  return this_module;
-}
-
-
-void  ChemAdvanceFreeInstanceXtra()
+void  AdvanceChemistryFreeInstanceXtra()
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -131,7 +244,73 @@ void  ChemAdvanceFreeInstanceXtra()
   }
 }
 
-void ChemAdvanceFreePublicXtra()
+
+/*--------------------------------------------------------------------------
+ * AdvanceChemistryNewPublicXtra
+ *--------------------------------------------------------------------------*/
+
+PFModule   *AdvanceChemistryNewPublicXtra()
+{
+  PFModule     *this_module = ThisPFModule;
+  PublicXtra   *public_xtra;
+  char key[IDB_MAX_KEY_LEN];
+  NameArray      switch_na;
+  char*          switch_name;
+  int            switch_value;
+  switch_na = NA_NewNameArray("s S SECONDS Seconds seconds m M MINUTES Minutes minutes h H HOURS Hours hours d D DAYS Days days y Y YEARS Years years");
+
+
+  public_xtra = ctalloc(PublicXtra, 1);
+
+  (public_xtra->time_index) = RegisterTiming("Chemistry Solver");
+
+  sprintf(key, "Chemistry.ParFlowTimeUnits");
+  switch_name = GetString(key);
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+ InputError("Error: invalid print switch value <%s> for key <%s>. Available options are one of <s S SECONDS Seconds seconds m M MINUTES Minutes minutes h H HOURS Hours hours d D DAYS Days days y Y YEARS Years years>\n",
+       switch_name, key );
+  }
+
+  if (switch_value < 5)
+    {
+      //PF in seconds
+      public_xtra->time_conversion_factor = 1.0;
+    }
+    else if (switch_value > 4 && switch_value < 10)
+    {
+      //PF in minutes
+      public_xtra->time_conversion_factor = 60.0;
+    }
+    else if (switch_value > 9 && switch_value < 15)
+    {
+      //PF in hours
+      public_xtra->time_conversion_factor = 3600.0; 
+    }
+    else if (switch_value > 14 && switch_value < 20)
+    {
+      //PF in days
+      public_xtra->time_conversion_factor = 3600.0 * 24.0;
+    }
+    else if (switch_value > 19)
+    {
+      //PF in years
+      public_xtra->time_conversion_factor = 3600.0 * 24.0 * 365.25;
+    }
+
+  NA_FreeNameArray(switch_na);
+
+  PFModulePublicXtra(this_module) = public_xtra;
+  return this_module;
+}
+
+
+/*--------------------------------------------------------------------------
+ * AdvanceChemistryFreePublicXtra
+ *--------------------------------------------------------------------------*/
+
+void AdvanceChemistryFreePublicXtra()
 {
   PFModule     *this_module = ThisPFModule;
   PublicXtra   *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
@@ -142,7 +321,19 @@ void ChemAdvanceFreePublicXtra()
   }
 }
 
-int  ChemAdvanceSizeOfTempData()
+
+/*--------------------------------------------------------------------------
+ * AdvanceChemistrySizeOfTempData
+ *--------------------------------------------------------------------------*/
+
+int AdvanceChemistrySizeOfTempData()
 {
-  return 0;
+
+  int sz = 0;
+
+  return sz;
 }
+
+
+
+

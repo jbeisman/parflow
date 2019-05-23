@@ -9,6 +9,7 @@ set (SRC_FILES advect_new.F90
   cghs.c
   char_vector.c
   chebyshev.c
+  chem_advance.c
   chem_initialize.c
   chem_utilities.c
   comm_pkg.c

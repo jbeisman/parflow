@@ -141,45 +141,6 @@ void         Retardation(
 
         break;
       }
-      
-      case 1:
-      {
-        double value;
-
-        dummy0 = (Type0*)(public_xtra->data[index]);
-
-        value = (dummy0->value)[0];
-
-        for (is = 0; is < GridNumSubgrids(grid); is++)
-        {
-          subgrid = GridSubgrid(grid, is);
-          smf_sub = VectorSubvector(solidmassfactor, is);
-          p_sub = VectorSubvector(porosity, is);
-
-          ix = SubgridIX(subgrid);
-          iy = SubgridIY(subgrid);
-          iz = SubgridIZ(subgrid);
-
-          nx = SubgridNX(subgrid);
-          ny = SubgridNY(subgrid);
-          nz = SubgridNZ(subgrid);
-
-          /* RDF: assume resolution is the same in all 3 directions */
-          r = SubgridRX(subgrid);
-
-          smfp = SubvectorData(smf_sub);
-          pp = SubvectorData(p_sub);
-          GrGeomInLoop(i, j, k, gr_solid, r, ix, iy, iz, nx, ny, nz,
-          {
-            ismf = SubvectorEltIndex(smf_sub, i, j, k);
-            ip = SubvectorEltIndex(p_sub, i, j, k);
-
-            smfp[ismf] = (pp[ip] + (1.0 - pp[ip]) * value);
-          });
-        }
-
-        break;
-      }
     }
   }
 }
@@ -297,7 +258,7 @@ PFModule  *RetardationNewPublicXtra(
         for (i = 0; i < num_contaminants; i++)
         {
           index = num_contaminants * ig + i;
-          public_xtra->type[index] = 1;
+          public_xtra->type[index] = 0;
           dummy0 = ctalloc(Type0, 1);
           (dummy0->value) = ctalloc(double, 1);
           *(dummy0->value) = 0.0;

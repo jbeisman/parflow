@@ -129,11 +129,16 @@ void GeochemCondPublicXtra (void );
 void GeochemCondFreePublicXtra(void);
 int GeochemCondSizeOfTempData (void );
 
-PFModule *ChemAdvanceInitInstanceXtra(Problem *problem, Grid *grid);
-void ChemAdvanceFreeInstanceXtra(void);
-PFModule *ChemAdvanceNewPublicXtra(void);
-void ChemAdvanceFreePublicXtra(void);
-int ChemAdvanceSizeOfTempData(void);
+
+/* chem_advance.c*/
+typedef void (*AdvanceChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt);
+typedef PFModule *(*AdvanceChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
+void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt);
+PFModule *AdvanceChemistryInitInstanceXtra(Problem *problem, Grid *grid);
+void AdvanceChemistryFreeInstanceXtra(void);
+PFModule *AdvanceChemistryNewPublicXtra(void);
+void AdvanceChemistryFreePublicXtra(void);
+int AdvanceChemistrySizeOfTempData(void);
 
 
 /* chem_initialize.c*/
@@ -162,7 +167,7 @@ int SetChemDataSizeOfTempData(void);
 int  SubgridNumCells(Grid *grid, ProblemData *problem_data);
 void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data);
 void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data);
-void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes chem_sizes, Vector **concentrations, ProblemData *problem_data);
+void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data);
 void AllocatePFChemData(AlquimiaDataPF *alquimia_data, Grid *grid);
 void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data, int num_ic_conds, NameArray ic_cond_na, Vector * saturation);
 void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArray bc_cond_na);
