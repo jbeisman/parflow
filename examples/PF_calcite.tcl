@@ -14,7 +14,7 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        4
+pfset Process.Topology.P        1
 pfset Process.Topology.Q        1
 pfset Process.Topology.R        1
 
@@ -25,12 +25,12 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 1.0
-pfset ComputationalGrid.DY                   1.0
+pfset ComputationalGrid.DX	                 2.0
+pfset ComputationalGrid.DY                   2.0
 pfset ComputationalGrid.DZ	                 3.0
 
-pfset ComputationalGrid.NX                      100
-pfset ComputationalGrid.NY                      100
+pfset ComputationalGrid.NX                      50
+pfset ComputationalGrid.NY                      50
 pfset ComputationalGrid.NZ                      1
 
 #-----------------------------------------------------------------------------
@@ -142,7 +142,7 @@ pfset Phase.water.Viscosity.Value	1.0
 #-----------------------------------------------------------------------------
 # Contaminants
 #-----------------------------------------------------------------------------
-pfset Contaminants.Names			"tce"
+pfset Contaminants.Names			"tce dummy dummy2"
 pfset Contaminants.tce.Degradation.Value	 0.0
 
 #-----------------------------------------------------------------------------
@@ -158,7 +158,7 @@ pfset Gravity				1.0
 pfset TimingInfo.BaseUnit		0.5
 pfset TimingInfo.StartCount		0
 pfset TimingInfo.StartTime		0.0
-pfset TimingInfo.StopTime            200.0
+pfset TimingInfo.StopTime            60.0
 pfset TimingInfo.DumpInterval	     1
 
 #-----------------------------------------------------------------------------
@@ -168,7 +168,7 @@ pfset TimingInfo.DumpInterval	     1
 pfset Geom.Porosity.GeomNames          background
 
 pfset Geom.background.Porosity.Type    Constant
-pfset Geom.background.Porosity.Value   1.0
+pfset Geom.background.Porosity.Value   0.25
 
 #-----------------------------------------------------------------------------
 # Domain
@@ -221,25 +221,25 @@ pfset Patch.front.BCPressure.Type			DirEquilRefPatch
 pfset Patch.front.BCPressure.Cycle			"constant"
 pfset Patch.front.BCPressure.RefGeom			domain
 pfset Patch.front.BCPressure.RefPatch			bottom
-pfset Patch.front.BCPressure.alltime.Value		5.0
+pfset Patch.front.BCPressure.alltime.Value		15.0
 
 pfset Patch.back.BCPressure.Type			DirEquilRefPatch
 pfset Patch.back.BCPressure.Cycle			"constant"
 pfset Patch.back.BCPressure.RefGeom			domain
 pfset Patch.back.BCPressure.RefPatch			bottom
-pfset Patch.back.BCPressure.alltime.Value		0.0
+pfset Patch.back.BCPressure.alltime.Value		10.0
 
 pfset Patch.left.BCPressure.Type			DirEquilRefPatch
 pfset Patch.left.BCPressure.Cycle			"constant"
 pfset Patch.left.BCPressure.RefGeom			domain
 pfset Patch.left.BCPressure.RefPatch			bottom
-pfset Patch.left.BCPressure.alltime.Value		5.0
+pfset Patch.left.BCPressure.alltime.Value		15.0
 
 pfset Patch.right.BCPressure.Type			DirEquilRefPatch
 pfset Patch.right.BCPressure.Cycle			"constant"
 pfset Patch.right.BCPressure.RefGeom			domain
 pfset Patch.right.BCPressure.RefPatch			bottom
-pfset Patch.right.BCPressure.alltime.Value		0.0
+pfset Patch.right.BCPressure.alltime.Value		10.0
 
 pfset Patch.top.BCPressure.Type				FluxConst
 pfset Patch.top.BCPressure.Cycle			"constant"
@@ -318,7 +318,8 @@ pfset PhaseSources.Geom.background.Value               0.0
 
 pfset PhaseConcen.water.tce.Type                      Constant
 pfset PhaseConcen.water.tce.GeomNames                 "concen_region"
-pfset PhaseConcen.water.tce.Geom.concen_region.Value  0.8
+pfset PhaseConcen.water.tce.Geom.concen_region.Value  0.1
+
 
 #-----------------------------------------------------------------------------
 # Temperature sources:
@@ -374,7 +375,7 @@ pfset Mannings.Geom.domain.Value 2.3e-7
 #---------------------------------------------------------
 pfset Solver.Chemistry True
 pfset Chemistry.Engine CrunchFlow
-pfset Chemistry.InputFile tracer-1d-crunch.in
+pfset Chemistry.InputFile calcite-1d-crunch.in
 
 
 # order of geomnames matters
@@ -388,23 +389,30 @@ pfset GeochemCondition.Geom.source_region.Value "initial"
 pfset GeochemCondition.Geom.concen_region.Value "west"
 
 pfset BCConcentration.GeochemCondition.Names "west"
-pfset BCConcentration.PatchNames "left"
+pfset BCConcentration.PatchNames "left front"
 pfset Patch.left.BCConcentration.Type Constant
 pfset Patch.left.BCConcentration.Value west
 
+pfset Patch.front.BCConcentration.Type Constant
+pfset Patch.front.BCConcentration.Value west
+
 pfset Chemistry.PrintMineralRate True
-pfset Chemistry.ParFlowTimeUnits m
+pfset Chemistry.ParFlowTimeUnits minutes
 
 
 pfset Solver.WriteSiloConcentration True
+pfset Solver.WriteSiloPressure True
 
 #-----------------------------------------------------------------------------
 # The Solver Impes MaxIter default value changed so to get previous
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
 pfset Solver.MaxIter 5000
-pfset Solver.CFL 1.0
-pfset Solver.AdvectOrder 1
+pfset Solver.CFL 0.9
+pfset Solver.AdvectOrder 2
+pfset Solver.RelTol 1.0e-35
+pfset Solver.AbsTol 1.0e-50
+pfset Solver.Nonlinear.ResidualTol 1.0e-15
 
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files
