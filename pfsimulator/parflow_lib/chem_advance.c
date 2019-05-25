@@ -28,17 +28,11 @@
 
 /*****************************************************************************
 *
-* Module for initializing the geochemical problem. This code reads the PF input 
-* file chemistry options, starts the alquimia interface, allocates the alquimia 
-* and PF data storage, and processes and assigns geochemical initial and boundary
-* conditions. The data is saved in a large struct, AlquimiaDataPF 
+* Advances the geochemical problem for a time step of size dt
 *
 *-----------------------------------------------------------------------------
 *
 *****************************************************************************/
-
-
-
 
 #include "parflow.h"
 #include "pf_alquimia.h"
@@ -60,9 +54,6 @@ typedef struct {
   Problem       *problem;
   Grid          *grid;
 } InstanceXtra;
-
-
-
 
 
 /*--------------------------------------------------------------------------
@@ -106,12 +97,10 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
 
   dt_seconds = dt * public_xtra->time_conversion_factor;
 
-  printf("mineral rate: %d \n", alquimia_data->print_flags->print_mineral_rate);
-
-
+  // copy the transported primary mobile concentrations to alquimia
   AdvectedPrimaryToChem(alquimia_data->chem_state, &alquimia_data->chem_sizes, concentrations, problem_data);
 
-
+  // solve chemistry cell-by-cell
   ForSubgridI(is, subgrids)
   {
     subgrid = SubgridArraySubgrid(subgrids, is);
@@ -185,9 +174,10 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
     });
   }
 
+  // transfer the new chemistry state and aux_output to PF Vectors
   ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
 
-    // print the concen volume 
+  // print the concen volume 
   for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)
   {
     field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data), grid, concentrations[concen]);
@@ -197,6 +187,7 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
     }
   }
 
+  // print PFB or silo files if user requested
   if (dump_files)
   {
     PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,
@@ -205,9 +196,6 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
                       alquimia_data->mineral_reaction_ratePF, alquimia_data->primary_free_ion_concentrationPF, alquimia_data->primary_activity_coeffPF, 
                       alquimia_data->secondary_free_ion_concentrationPF,alquimia_data->secondary_activity_coeffPF);
   }
-
-
-  
 
   EndTiming(public_xtra->time_index);
 }
@@ -283,7 +271,7 @@ PFModule   *AdvanceChemistryNewPublicXtra()
   NameArray      switch_na;
   char*          switch_name;
   int            switch_value;
-  switch_na = NA_NewNameArray("s S SECONDS Seconds seconds m M MINUTES Minutes minutes h H HOURS Hours hours d D DAYS Days days y Y YEARS Years years");
+  switch_na = NA_NewNameArray("s sec S SECONDS Seconds seconds m min M MINUTES Minutes minutes h hr H HOURS Hours hours d D DAYS Days days y yr Y YEARS Years years");
 
 
   public_xtra = ctalloc(PublicXtra, 1);
@@ -295,31 +283,31 @@ PFModule   *AdvanceChemistryNewPublicXtra()
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>. Available options are one of <s S SECONDS Seconds seconds m M MINUTES Minutes minutes h H HOURS Hours hours d D DAYS Days days y Y YEARS Years years>\n",
+ InputError("Error: invalid print switch value <%s> for key <%s>. Available options are one of <s sec S SECONDS Seconds seconds m min M MINUTES Minutes minutes h hr H HOURS Hours hours d D DAYS Days days y yr Y YEARS Years years>\n",
        switch_name, key );
   }
 
-  if (switch_value < 5)
+  if (switch_value < 6)
     {
       //PF in seconds
       public_xtra->time_conversion_factor = 1.0;
     }
-    else if (switch_value > 4 && switch_value < 10)
+    else if (switch_value > 5 && switch_value < 12)
     {
       //PF in minutes
       public_xtra->time_conversion_factor = 60.0;
     }
-    else if (switch_value > 9 && switch_value < 15)
+    else if (switch_value > 11 && switch_value < 18)
     {
       //PF in hours
       public_xtra->time_conversion_factor = 3600.0; 
     }
-    else if (switch_value > 14 && switch_value < 20)
+    else if (switch_value > 17 && switch_value < 23)
     {
       //PF in days
       public_xtra->time_conversion_factor = 3600.0 * 24.0;
     }
-    else if (switch_value > 19)
+    else if (switch_value > 22)
     {
       //PF in years
       public_xtra->time_conversion_factor = 3600.0 * 24.0 * 365.25;
@@ -359,7 +347,4 @@ int AdvanceChemistrySizeOfTempData()
 
   return sz;
 }
-
-
-
 

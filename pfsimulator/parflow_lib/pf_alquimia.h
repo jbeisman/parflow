@@ -120,7 +120,7 @@ typedef struct _AlquimiaDataPF {
   Vector **secondary_activity_coeffPF; // num_aqueous_complexes
 
   //printing flags
-ChemPrintFlags *print_flags;
+  ChemPrintFlags *print_flags;
 
 } AlquimiaDataPF;
 

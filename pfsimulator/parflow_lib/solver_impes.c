@@ -234,20 +234,10 @@ void      SolverImpes()
 
   t = start_time;
 
-
-// sandbox
-  int chem_flag;
-  chem_flag = GlobalsChemistryFlag;
+  // Alquimia
+  int chem_flag = GlobalsChemistryFlag;
   PFModule     *init_chem = (instance_xtra->init_chem);
   PFModule     *advance_chem = (instance_xtra->advance_chem);
-
-
-  //this is how we define an alquimia string
-  //const char * strtest = "CrunchFlow";
-  //char* chemistry_engine = AlquimiaStringDup(strtest);
-  //printf( "%s\n", chemistry_engine);
-   
-
 
 
   /*-------------------------------------------------------------------

@@ -10,6 +10,11 @@ set (SRC_FILES advect_new.F90
   char_vector.c
   chebyshev.c
   chem_advance.c
+  chem_allocate.c
+  chem_bndryconds.c
+  chem_datatransfer.c
+  chem_destroy.c
+  chem_initconds.c
   chem_initialize.c
   chem_printdata.c
   chem_utilities.c

@@ -31,7 +31,8 @@
 * Module for initializing the geochemical problem. This code reads the PF input 
 * file chemistry options, starts the alquimia interface, allocates the alquimia 
 * and PF data storage, and processes and assigns geochemical initial and boundary
-* conditions. The data is saved in a large struct, AlquimiaDataPF 
+* conditions. The data is saved in a large struct, AlquimiaDataPF. Initial 
+* variables are printed if the user has requested them.  
 *
 *-----------------------------------------------------------------------------
 *
@@ -167,7 +168,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   // find number of active cells for this subgrid
   num_cells = SubgridNumCells(grid, problem_data);
 
-  // start making alquimia calls
+  // create alquimia interface
   AllocateAlquimiaEngineStatus(&alquimia_data->chem_status);
   CreateAlquimiaInterface(public_xtra->engine_name, &alquimia_data->chem, &alquimia_data->chem_status);
   	if (alquimia_data->chem_status.error != 0) 
@@ -205,7 +206,8 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   // assert that PF num_contams == chem.num_primary
   if (ProblemNumContaminants(problem) != alquimia_data->chem_sizes.num_primary)
   {
-    amps_Printf("Input Error: mismatch between PF number of Contaminants.Names: <%d> and Alquimia num_primary: <%d>.  \n", ProblemNumContaminants(problem), alquimia_data->chem_sizes.num_primary);
+    amps_Printf("Input Error: mismatch between PF number of Contaminants.Names: <%d> and Alquimia num_primary: <%d>\n",
+      ProblemNumContaminants(problem), alquimia_data->chem_sizes.num_primary);
     exit(0);
   }
 
@@ -283,11 +285,20 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   if (dump_files)
   {
-    PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,
-                      concentrations, alquimia_data->total_immobilePF, alquimia_data->mineral_specific_surfacePF, alquimia_data->mineral_volume_fractionsPF, alquimia_data->surface_site_densityPF, 
-                      alquimia_data->cation_exchange_capacityPF, alquimia_data->pH, alquimia_data->aqueous_kinetic_ratePF, alquimia_data->mineral_saturation_indexPF, 
-                      alquimia_data->mineral_reaction_ratePF, alquimia_data->primary_free_ion_concentrationPF, alquimia_data->primary_activity_coeffPF, 
-                      alquimia_data->secondary_free_ion_concentrationPF,alquimia_data->secondary_activity_coeffPF);
+    PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, 
+      &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,
+      concentrations, alquimia_data->total_immobilePF, 
+      alquimia_data->mineral_specific_surfacePF, 
+      alquimia_data->mineral_volume_fractionsPF, 
+      alquimia_data->surface_site_densityPF, 
+      alquimia_data->cation_exchange_capacityPF, 
+      alquimia_data->pH, alquimia_data->aqueous_kinetic_ratePF, 
+      alquimia_data->mineral_saturation_indexPF, 
+      alquimia_data->mineral_reaction_ratePF, 
+      alquimia_data->primary_free_ion_concentrationPF, 
+      alquimia_data->primary_activity_coeffPF, 
+      alquimia_data->secondary_free_ion_concentrationPF,
+      alquimia_data->secondary_activity_coeffPF);
   }
 
 EndTiming(public_xtra->time_index);
@@ -783,7 +794,4 @@ int InitializeChemistrySizeOfTempData()
 
   return sz;
 }
-
-
-
 
