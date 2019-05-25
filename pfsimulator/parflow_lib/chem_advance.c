@@ -69,7 +69,7 @@ typedef struct {
  * AdvanceChemistry
  *--------------------------------------------------------------------------*/
 
-void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt)
+void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char* file_prefix)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -86,7 +86,6 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
   BeginTiming(public_xtra->time_index);
 
   gr_domain = ProblemDataGrDomain(problem_data);
-
 
   double water_density = 900.0;    // density of water in kg/m**3
   double aqueous_pressure = 101325.0; // pressure in Pa.
@@ -188,14 +187,23 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
 
   ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
 
-    // print initial concen volume 
+    // print the concen volume 
   for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)
   {
     field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data), grid, concentrations[concen]);
     if (!amps_Rank(amps_CommWorld))
     {
-      amps_Printf("Initial concentration volume for contaminant %s = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], field_sum);
+      amps_Printf("Concentration volume for component %s at time %f = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], t, field_sum);
     }
+  }
+
+  if (dump_files)
+  {
+    PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,
+                      concentrations, alquimia_data->total_immobilePF, alquimia_data->mineral_specific_surfacePF, alquimia_data->mineral_volume_fractionsPF, alquimia_data->surface_site_densityPF, 
+                      alquimia_data->cation_exchange_capacityPF, alquimia_data->pH, alquimia_data->aqueous_kinetic_ratePF, alquimia_data->mineral_saturation_indexPF, 
+                      alquimia_data->mineral_reaction_ratePF, alquimia_data->primary_free_ion_concentrationPF, alquimia_data->primary_activity_coeffPF, 
+                      alquimia_data->secondary_free_ion_concentrationPF,alquimia_data->secondary_activity_coeffPF);
   }
 
 
@@ -213,14 +221,6 @@ PFModule  *AdvanceChemistryInitInstanceXtra(Problem *problem, Grid *grid)
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra;
-
-  SubgridArray *subgrids;
-
-  Subgrid      *subgrid;
-
-  int max_nx, max_ny, max_nz;
-  int sg;
-
 
   if (PFModuleInstanceXtra(this_module) == NULL)
     instance_xtra = ctalloc(InstanceXtra, 1);

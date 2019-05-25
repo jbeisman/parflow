@@ -512,10 +512,16 @@ void      SolverImpes()
       }
 
       /*****************************************************************/
+      /*          Print out any of the requested initial data          */
+      /*****************************************************************/
+
+      any_file_dumped = 0;
+
+      /*****************************************************************/
       /*          Call the geochemical engine         */
       /*****************************************************************/
 
-            if (chem_flag) /*Initialize the geochemical system*/
+      if (chem_flag) /*Initialize the geochemical system*/
       {
       	amps_Printf("Initializing chemical system\n");
 
@@ -524,14 +530,10 @@ void      SolverImpes()
 
         PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
                           (problem_data, instance_xtra->alquimia_data,
-                           concentrations, 
-                           saturations[0]));
+                           concentrations, saturations[0], 
+                           &any_file_dumped, dump_files, t, 
+                           file_number, file_prefix));
       }
-      /*****************************************************************/
-      /*          Print out any of the requested initial data          */
-      /*****************************************************************/
-
-      any_file_dumped = 0;
 
       /*----------------------------------------------------------------
        * Print out the initial saturations?
@@ -1027,7 +1029,7 @@ void      SolverImpes()
          * this iteration.
          *------------------------------------------------------------*/
 
-        if (print_press || print_velocities || print_satur || print_concen || print_wells)
+        if (print_press || print_velocities || print_satur || print_concen || print_wells || chem_flag)
         {
           dump_files = 0;
 
@@ -1206,30 +1208,19 @@ void      SolverImpes()
       /*          Call the geochemical engine         */
       /*****************************************************************/
 
-           if (chem_flag) /*Initialize the geochemical system*/
+           if (chem_flag) /*advance the geochemical system*/
      {
        PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
                          (problem_data, instance_xtra->alquimia_data,
-                          concentrations, 
-                          saturations[0], dt));
+                          concentrations, saturations[0], dt, t, 
+                          &any_file_dumped, dump_files,
+                          file_number-1, file_prefix));
      }
 
 
-
-        /* Print the concentration values at this time-step? */
-        if (dump_files)
-        {
-          if (chem_flag)
+          /* Print the concentration values at this time-step? */
+          if (dump_files)
           {
-            PrintChemistryData(&instance_xtra->alquimia_data->print_flags, &instance_xtra->alquimia_data->chem_sizes, &instance_xtra->alquimia_data->chem_metadata, t, file_number, file_prefix, concentrations, 
-                               instance_xtra->alquimia_data->total_immobilePF, instance_xtra->alquimia_data->mineral_specific_surfacePF, instance_xtra->alquimia_data->surface_site_densityPF, 
-                               instance_xtra->alquimia_data->cation_exchange_capacityPF, instance_xtra->alquimia_data->pH, instance_xtra->alquimia_data->aqueous_kinetic_ratePF, instance_xtra->alquimia_data->mineral_saturation_indexPF, 
-                               instance_xtra->alquimia_data->mineral_reaction_ratePF, instance_xtra->alquimia_data->primary_free_ion_concentrationPF, instance_xtra->alquimia_data->primary_activity_coeffPF, 
-                               instance_xtra->alquimia_data->secondary_free_ion_concentrationPF,instance_xtra->alquimia_data->secondary_activity_coeffPF);
-          }
-          else
-          {
-
             if (ProblemNumContaminants(problem) > 0)
             {
               indx = 0;
@@ -1260,7 +1251,6 @@ void      SolverImpes()
             }
           }
         }
-      }
 
       /******************************************************************/
       /*                  Print the Well Data                           */
@@ -1487,7 +1477,7 @@ void      SolverImpes()
 
 
   /*-------------------------------------------------------------------
-   * Free Alquimia chemistry data vand corresponding PF Vectors
+   * Free Alquimia chemistry data and corresponding PF Vectors
    *-------------------------------------------------------------------*/
 
   if (chem_flag)
@@ -2155,7 +2145,7 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
   public_xtra->print_satur = switch_value;
 
   sprintf(key, "%s.PrintConcentration", name);
-  switch_name = GetStringDefault(key, "True");
+  switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if (switch_value < 0)
   {

@@ -647,7 +647,20 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
       {
         printf("ProcessGeochemICs: initialization error: %s\n", 
                alquimia_data->chem_status.message);
-        break;
+        exit(0);
+      }
+
+      alquimia_data->chem.GetAuxiliaryOutput(&alquimia_data->chem_engine, 
+                                &alquimia_data->chem_properties[chem_index],
+                                &alquimia_data->chem_state[chem_index],
+                                &alquimia_data->chem_aux_data[chem_index],
+                                &alquimia_data->chem_aux_output[chem_index],
+                                &alquimia_data->chem_status);
+      if (alquimia_data->chem_status.error != 0)
+      {
+        amps_Printf("GetAuxiliaryOutput() auxiliary output fetch failed: %s\n", 
+              alquimia_data->chem_status.message);
+        exit(0);
       }
 
     });

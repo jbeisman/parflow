@@ -143,9 +143,9 @@ int GeochemCondSizeOfTempData (void );
 
 
 /* chem_advance.c*/
-typedef void (*AdvanceChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt);
+typedef void (*AdvanceChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char* file_prefix);
 typedef PFModule *(*AdvanceChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
-void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt);
+void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char* file_prefix);
 PFModule *AdvanceChemistryInitInstanceXtra(Problem *problem, Grid *grid);
 void AdvanceChemistryFreeInstanceXtra(void);
 PFModule *AdvanceChemistryNewPublicXtra(void);
@@ -154,9 +154,9 @@ int AdvanceChemistrySizeOfTempData(void);
 
 
 /* chem_initialize.c*/
-typedef void (*InitializeChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation);
+typedef void (*InitializeChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, int *any_file_dumped, int dump_files, double t, int file_number, char* file_prefix);
 typedef PFModule *(*InitializeChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
-void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation);
+void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, int *any_file_dumped, int dump_files, double t, int file_number, char* file_prefix);
 PFModule *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid);
 void InitializeChemistryFreeInstanceXtra(void);
 PFModule *InitializeChemistryNewPublicXtra(void);
@@ -198,10 +198,12 @@ int BCConcentrationSizeOfTempData(void);
 
 void CopyConcenWithBoundary(Vector *x, Vector *y);
 
-void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata, double t, int file_number, char* file_prefix, Vector **concentrations, Vector **total_immobilePF, Vector **mineral_specific_surfacePF, 
-  Vector **surface_site_densityPF, Vector **cation_exchange_capacityPF, Vector *pH, Vector **aqueous_kinetic_ratePF, Vector **mineral_saturation_indexPF, 
-  Vector **mineral_reaction_ratePF, Vector **primary_free_ion_concentrationPF, Vector **primary_activity_coeffPF, Vector **secondary_free_ion_concentrationPF,
-  Vector **secondary_activity_coeffPF);
+void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata,
+                        double t, int file_number, char* file_prefix, int *any_file_dumped, Vector **concentrations, 
+                        Vector **total_immobilePF, Vector **mineral_specific_surfacePF, Vector **mineral_volume_fractionsPF, Vector **surface_site_densityPF, 
+                        Vector **cation_exchange_capacityPF, Vector *pH, Vector **aqueous_kinetic_ratePF, Vector **mineral_saturation_indexPF, 
+                        Vector **mineral_reaction_ratePF, Vector **primary_free_ion_concentrationPF, Vector **primary_activity_coeffPF, 
+                        Vector **secondary_free_ion_concentrationPF, Vector **secondary_activity_coeffPF);
 
 
 #endif

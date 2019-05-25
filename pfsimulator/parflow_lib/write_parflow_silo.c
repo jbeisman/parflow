@@ -288,10 +288,24 @@ void     WriteSiloInit(char *file_prefix)
                              "evaptranssum",
                              "overlandsum",
                              "overland_bc_flux",
-                             "TotalMobile", };
+                             "PrimaryMobile",
+                             "PrimarySorbed",
+                             "MineralVolfx",
+                             "MineralSurfArea",
+                             "SurfSiteDens",
+                             "CEC",
+                             "pH",
+                             "AqueousRate",
+                             "MineralSI",
+                             "MineralRate",
+                             "PrimaryFreeIon",
+                             "SecondaryFreeIon",
+                             "PrimaryActivity",
+                             "SecondaryActivity", };
 
     // IMF -- added second '+2' to next line...
-    for (i = 0; i < 31 + 2 + 1; i++) // added 1, will add more
+    // JJB -- added 14 extra silo print vars
+    for (i = 0; i < 31 + 2 + 14; i++)
     {
       sprintf(filename, "%s/%s", file_prefix, output_types[i]);
       pf_mk_dir(filename);

@@ -396,15 +396,17 @@ pfset Patch.left.BCConcentration.Value west
 pfset Patch.front.BCConcentration.Type Constant
 pfset Patch.front.BCConcentration.Value west
 
-pfset Chemistry.PrintMineralRate True
+#pfset Solver.WriteSiloConcentration True
 pfset Chemistry.ParFlowTimeUnits years
 
 
-pfset Solver.WriteSiloConcentration True
-pfset Solver.WriteSiloPressure True
 
 pfset Chemistry.WriteSiloPrimaryMobile True
-pfset Chemistry.PrintPrimaryMobile True
+pfset Chemistry.WriteSiloMineralVolfx True
+pfset Chemistry.WriteSiloMineralSurfArea True
+pfset Chemistry.WriteSiloMineralRate True
+pfset Chemistry.WriteSiloPrimaryFreeIon True
+pfset Chemistry.WriteSiloSecondaryFreeIon True
 
 #-----------------------------------------------------------------------------
 # The Solver Impes MaxIter default value changed so to get previous

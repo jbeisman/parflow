@@ -105,7 +105,7 @@ typedef struct {
  * InitializeChemistry
  *--------------------------------------------------------------------------*/
 
-void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation)
+void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, int *any_file_dumped, int dump_files, double t, int file_number, char* file_prefix)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -277,10 +277,18 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
     field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data), grid, concentrations[concen]);
     if (!amps_Rank(amps_CommWorld))
     {
-      amps_Printf("Initial concentration volume for contaminant %s = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], field_sum);
+      amps_Printf("Initial concentration volume for component %s = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], field_sum);
     }
   }
 
+  if (dump_files)
+  {
+    PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,
+                      concentrations, alquimia_data->total_immobilePF, alquimia_data->mineral_specific_surfacePF, alquimia_data->mineral_volume_fractionsPF, alquimia_data->surface_site_densityPF, 
+                      alquimia_data->cation_exchange_capacityPF, alquimia_data->pH, alquimia_data->aqueous_kinetic_ratePF, alquimia_data->mineral_saturation_indexPF, 
+                      alquimia_data->mineral_reaction_ratePF, alquimia_data->primary_free_ion_concentrationPF, alquimia_data->primary_activity_coeffPF, 
+                      alquimia_data->secondary_free_ion_concentrationPF,alquimia_data->secondary_activity_coeffPF);
+  }
 
 EndTiming(public_xtra->time_index);
 }
@@ -456,7 +464,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
 
 
 
-  sprintf(key, "Chemistry.PrintMineralVolFrac");
+  sprintf(key, "Chemistry.PrintMineralVolfx");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
@@ -466,7 +474,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
   }
   public_xtra -> print_mineral_volfx = switch_value;
   
-  sprintf(key, "Chemistry.WriteSiloMineralVolFrac");
+  sprintf(key, "Chemistry.WriteSiloMineralVolfx");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
@@ -698,7 +706,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
 
 
 
-  sprintf(key, "Chemistry.PrintSorbed");
+  sprintf(key, "Chemistry.PrintPrimarySorbed");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
@@ -708,7 +716,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
   }
   public_xtra -> print_sorbed = switch_value;
   
-  sprintf(key, "Chemistry.WriteSiloSorbed");
+  sprintf(key, "Chemistry.WriteSiloPrimarySorbed");
   switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
@@ -717,6 +725,25 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_sorbed = switch_value;
+
+  if (public_xtra->silo_sorbed ||
+      public_xtra->silo_secondary_activity ||
+      public_xtra->silo_secondary_freeion ||
+      public_xtra->silo_primary_activity ||
+      public_xtra->silo_primary_freeion ||
+      public_xtra->silo_mineral_SI ||
+      public_xtra->silo_aqueous_rate ||
+      public_xtra->silo_pH ||
+      public_xtra->silo_CEC ||
+      public_xtra->silo_surf_dens ||
+      public_xtra->silo_mineral_surfarea ||
+      public_xtra->silo_mineral_volfx ||
+      public_xtra->silo_mineral_rate ||
+      public_xtra->silo_primary_mobile 
+      )
+  {
+    WriteSiloInit(GlobalsOutFileName);
+  }
 
   
   NA_FreeNameArray(switch_na);
