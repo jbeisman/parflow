@@ -206,4 +206,9 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
                         Vector **secondary_free_ion_concentrationPF, Vector **secondary_activity_coeffPF);
 
 
+void SelectReactTransTimeStep(double max_velocity, double CFL, 
+                double PF_dt, double *advect_react_dt, 
+                double *num_rt_iterations);
+
+
 #endif

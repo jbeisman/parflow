@@ -190,6 +190,7 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
   // print PFB or silo files if user requested
   if (dump_files)
   {
+    printf("EBTERING PRINTCHEM\n");
     PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,
                       concentrations, alquimia_data->total_immobilePF, alquimia_data->mineral_specific_surfacePF, alquimia_data->mineral_volume_fractionsPF, alquimia_data->surface_site_densityPF, 
                       alquimia_data->cation_exchange_capacityPF, alquimia_data->pH, alquimia_data->aqueous_kinetic_ratePF, alquimia_data->mineral_saturation_indexPF, 

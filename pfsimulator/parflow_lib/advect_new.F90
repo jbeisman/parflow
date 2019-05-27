@@ -9,7 +9,7 @@
 !  http://www.llnl.gov/casc/parflow
 !
 !  Please read the COPYRIGHT file or Our Notice and the LICENSE file
-!  for the GNU Lesser General Publi!License.
+!  for the GNU Lesser General Public License.
 !
 !  This program is free software; you can redistribute it and/or modify
 !  it under the terms of the GNU General Publi!License (as published
@@ -108,7 +108,7 @@
 
       iter=0.0
       num_iter=1.0
-     
+     print*,"INSIDE ADVECTION!"
 
      !! initialization
       stemp = s

@@ -46,7 +46,9 @@
 #include <float.h>
 #include <limits.h>
 #include "alquimia/alquimia_interface.h"
-
+#include "alquimia/alquimia_memory.h"
+#include "alquimia/alquimia_util.h"
+#include "pf_alquimia.h"
 
 #define PF_CLM_MAX_ROOT_NZ 20
 
@@ -193,6 +195,9 @@ typedef struct {
 
   int nc_evap_trans_file_transient;     /* read NetCDF evap_trans as a transient file before advance richards timestep */
   char *nc_evap_trans_filename; /* NetCDF File name for evap trans */
+
+  PFModule *init_chem;
+  PFModule *advance_chem; 
 } PublicXtra;
 
 typedef struct {
@@ -290,6 +295,14 @@ typedef struct {
   int iteration_number;
   double dump_index;
   double clm_dump_index;
+
+  // alquimia
+  Vector *ctemp;
+  Vector *solidmassfactor;
+  Vector **concentrations;
+  PFModule *init_chem;
+  PFModule *advance_chem;
+  AlquimiaDataPF *alquimia_data;
 } InstanceXtra;
 
 void
@@ -307,6 +320,12 @@ SetupRichards(PFModule * this_module)
   int print_satur = (public_xtra->print_satur);
   int print_wells = (public_xtra->print_wells);
   int print_velocities = (public_xtra->print_velocities);       //jjb
+
+  // alquimia coupling
+  int chem_flag = GlobalsChemistryFlag;
+  PFModule *ic_phase_concen = (instance_xtra->ic_phase_concen); //jjb
+  PFModule *init_chem = (instance_xtra->init_chem);
+
 
   ProblemData *problem_data = (instance_xtra->problem_data);
   PFModule *set_problem_data = (instance_xtra->set_problem_data);
@@ -681,11 +700,11 @@ SetupRichards(PFModule * this_module)
 
     /* intialize vel vectors - jjb */
     instance_xtra->x_velocity =
-      NewVectorType(x_grid, 1, 1, vector_side_centered_x);
+      NewVectorType(x_grid, 1, 2, vector_side_centered_x);
     InitVectorAll(instance_xtra->x_velocity, 0.0);
 
     instance_xtra->y_velocity =
-      NewVectorType(y_grid, 1, 1, vector_side_centered_y);
+      NewVectorType(y_grid, 1, 2, vector_side_centered_y);
     InitVectorAll(instance_xtra->y_velocity, 0.0);
 
     instance_xtra->z_velocity =
@@ -1039,11 +1058,54 @@ SetupRichards(PFModule * this_module)
     FinalizeVectorUpdate(handle);
 
 
+    any_file_dumped = 0;
+
+    // alquimia
+    
+    
+    instance_xtra -> solidmassfactor = 
+      NewVectorType( grid, 1, 2, vector_cell_centered);
+
+    
+    // alquimia
+    if (ProblemNumContaminants(problem) > 0)
+    {
+      instance_xtra -> ctemp = 
+      NewVectorType(grid, 1, 3,  vector_cell_centered );
+
+      instance_xtra->concentrations = ctalloc(Vector *,ProblemNumContaminants(problem));
+
+      for(int concen = 0; concen < ProblemNumContaminants(problem); concen++)
+      {
+        instance_xtra->concentrations[concen] = NewVectorType( grid, 1, 3, vector_cell_centered );
+        InitVectorAll(instance_xtra->concentrations[concen], 0.0);
+        PFModuleInvokeType(ICPhaseConcenInvoke, ic_phase_concen,
+          (instance_xtra->concentrations[concen], 0, concen, problem_data));
+        handle = InitVectorUpdate(instance_xtra->concentrations[concen], VectorUpdateGodunov);
+        FinalizeVectorUpdate(handle);
+      }
+    }
+
+
+    if (GlobalsChemistryFlag) /*Initialize the geochemical system*/
+      {
+        amps_Printf("Initializing chemical system\n");
+
+        instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
+
+
+        PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
+                          (problem_data, instance_xtra->alquimia_data,
+                           instance_xtra->concentrations, instance_xtra->saturation, 
+                           &any_file_dumped, 1, t, 
+                           instance_xtra->file_number, file_prefix));
+      }
+
+
     /*****************************************************************/
     /*          Print out any of the requested initial data          */
     /*****************************************************************/
 
-    any_file_dumped = 0;
 
     /*-------------------------------------------------------------------
      * Print out the initial well data?
@@ -1354,6 +1416,18 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
   Vector *evap_trans_sum = instance_xtra->evap_trans_sum;
   Vector *overland_sum = instance_xtra->overland_sum;   /* sk: Vector of outflow at the boundary */
 
+  // alquimia coupling, need advect, advancechem in AdvanceRichards
+  int advect_order = (public_xtra->advect_order);
+  double CFL = (public_xtra->CFL);
+  PFModule *advect_concen = (instance_xtra->advect_concen);
+  int evolve_concentrations;
+  PFModule *retardation = (instance_xtra -> retardation);
+  double max_velocity;
+  PFModule *advance_chem = (instance_xtra->advance_chem);
+
+
+
+
 #ifdef HAVE_OAS3
   Grid *grid = (instance_xtra->grid);
   Subgrid *subgrid;
@@ -1513,10 +1587,14 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
   if (start_count < 0)
   {
     take_more_time_steps = 0;
+    evolve_concentrations = 0;
+
   }
   else
   {
     take_more_time_steps = 1;
+    evolve_concentrations = 1;
+
   }
 
 
@@ -2480,6 +2558,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
           dt_info = 'p';
 
           dump_files = 1;
+          evolve_concentrations = 1;
         }
       }
       else if (dump_interval < 0)
@@ -2549,9 +2628,12 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         dt = new_dt;
 
         dt_info = 'f';
+        evolve_concentrations = 1;
+
       }
 
       t += dt;
+      printf("t: %f dt: %f",t,dt);
 
 
       /*******************************************************************/
@@ -2657,13 +2739,13 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
     }
 
     /* velocity updates - not sure these are necessary jjb */
-    handle = InitVectorUpdate(instance_xtra->x_velocity, VectorUpdateAll);
+    handle = InitVectorUpdate(instance_xtra->x_velocity, VectorUpdateVelX);
     FinalizeVectorUpdate(handle);
 
-    handle = InitVectorUpdate(instance_xtra->y_velocity, VectorUpdateAll);
+    handle = InitVectorUpdate(instance_xtra->y_velocity, VectorUpdateVelY);
     FinalizeVectorUpdate(handle);
 
-    handle = InitVectorUpdate(instance_xtra->z_velocity, VectorUpdateAll);
+    handle = InitVectorUpdate(instance_xtra->z_velocity, VectorUpdateVelZ);
     FinalizeVectorUpdate(handle);
 
 
@@ -2678,6 +2760,91 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                        (instance_xtra->saturation, instance_xtra->pressure,
                         instance_xtra->density, gravity, problem_data,
                         CALCFCN));
+
+
+
+// Alquimia coupling, call advect and then advance chemistry
+
+      /******************************************************************/
+      /*            Solve for and print the concentrations              */
+      /******************************************************************/
+    // get maximum darcy vel / phi displacement for time step selection
+    max_velocity = MaxPhaseFieldValue(instance_xtra->x_velocity,
+                                     instance_xtra->y_velocity,
+                                     instance_xtra->z_velocity,
+                                     ProblemDataPorosity(problem_data));
+
+  double advect_react_dt;
+  double num_rt_iterations;
+
+    SelectReactTransTimeStep(max_velocity,public_xtra->CFL,dt,&advect_react_dt,&num_rt_iterations);
+
+     // if (evolve_concentrations)
+    //  {
+    double advect_react_time;
+    any_file_dumped = 0;
+
+printf("ANY FILE DUMPED BEFORE: %d \n", any_file_dumped);
+printf("DUMP FILES BEFORE: %d \n", dump_files);
+
+    if (ProblemNumContaminants(problem) > 0)
+        { advect_react_time = t - dt;
+          printf("inside ProblemNumContaminants, %d \n",ProblemNumContaminants(problem));
+          for (int iteration = 0; iteration < (int)num_rt_iterations; iteration ++)
+          { printf ("inside iterations %d \n",(int)num_rt_iterations);
+            advect_react_time += advect_react_dt;
+            printf("advect_react_dt: %f  advect_react_time: %f \n",advect_react_dt,advect_react_time);
+            for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
+            {
+              PFModuleInvokeType(RetardationInvoke, retardation,
+                                 (instance_xtra->solidmassfactor,
+                                  concen,
+                                  problem_data));
+              handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
+              FinalizeVectorUpdate(handle);
+
+
+              InitVectorAll(instance_xtra->ctemp, 0.0);
+              CopyConcenWithBoundary(instance_xtra->concentrations[concen], instance_xtra->ctemp);
+
+              PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
+                                (problem_data, 0, concen,
+                                instance_xtra->ctemp, instance_xtra->concentrations[concen], 
+                                instance_xtra->x_velocity, 
+                                instance_xtra->y_velocity, 
+                                instance_xtra->z_velocity,
+                                instance_xtra->solidmassfactor, 
+                                instance_xtra->old_saturation, 
+                                instance_xtra->saturation,
+                                advect_react_time, advect_react_dt,
+                                public_xtra->advect_order,
+                                iteration,(int)num_rt_iterations)); // will need to fix this for multiphase
+            }
+
+            PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
+                         (problem_data, instance_xtra->alquimia_data,
+                          instance_xtra->concentrations, instance_xtra->saturation, advect_react_dt, advect_react_time, 
+                          &any_file_dumped, dump_files,
+                          instance_xtra->file_number, file_prefix));
+        }
+     // }
+
+    }
+
+printf("ANY FILE DUMPED AFTER: %d \n", any_file_dumped);
+printf("DUMP FILES AFTER: %d \n", dump_files);
+printf("FILE NUMBER: %d \n",instance_xtra->file_number);
+
+
+
+
+
+
+
+
+
+
+
 
     /***************************************************************
      * Compute running sum of evap trans for water balance
@@ -2706,7 +2873,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
     /***************************************************************/
 
     /* Dump the pressure, saturation, surface fluxes at this time-step */
-    any_file_dumped = 0;
+    
     if (dump_files)
     {
       sprintf(nc_postfix, "%05d", instance_xtra->file_number);
@@ -3399,6 +3566,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
     IfLogging(1)
     {
+      printf("LOGGING\n");
       /*
        * SGS Better error handing should be added
        */
@@ -3423,8 +3591,10 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
       instance_xtra->number_logged++;
     }
 
+    printf("any_file_dumped: %d \n", any_file_dumped);
     if (any_file_dumped || clm_file_dumped)
     {
+      printf("ANY_FILE_DUMPED ++\n");
       instance_xtra->file_number++;
       any_file_dumped = 0;
       clm_file_dumped = 0;
@@ -3708,6 +3878,11 @@ TeardownRichards(PFModule * this_module)
     tfree(public_xtra->displa1d);
   }
 #endif
+
+  if (GlobalsChemistryFlag)
+    {
+      FreeAlquimiaDataPF(instance_xtra->alquimia_data, instance_xtra->grid, problem_data);
+    }
 
   if (!amps_Rank(amps_CommWorld))
   {
@@ -4017,6 +4192,17 @@ SolverRichardsInitInstanceXtra()
                               public_xtra->nonlin_solver,
                               (problem, grid, instance_xtra->problem_data,
                                NULL));
+    if (GlobalsChemistryFlag)
+    {
+      (instance_xtra->init_chem) = 
+      PFModuleNewInstanceType(InitializeChemistryInitInstanceXtraType,
+                              (public_xtra->init_chem),
+                              (problem, grid));
+      (instance_xtra->advance_chem) = 
+      PFModuleNewInstanceType(AdvanceChemistryInitInstanceXtraType,
+                              (public_xtra->advance_chem),
+                              (problem, grid));
+    }
   }
   else
   {
@@ -4049,6 +4235,15 @@ SolverRichardsInitInstanceXtra()
     PFModuleReNewInstance((instance_xtra->select_time_step), ());
     PFModuleReNewInstance((instance_xtra->l2_error_norm), ());
     PFModuleReNewInstance((instance_xtra->nonlin_solver), ());
+    if (GlobalsChemistryFlag)
+    {
+      PFModuleReNewInstanceType(InitializeChemistryInitInstanceXtraType,
+                             (instance_xtra->init_chem),
+                             (problem, grid));
+      PFModuleReNewInstanceType(AdvanceChemistryInitInstanceXtraType,
+                             (instance_xtra->advance_chem),
+                             (problem, grid));
+    }
   }
 
   /*-------------------------------------------------------------------
@@ -4177,6 +4372,11 @@ SolverRichardsFreeInstanceXtra()
     PFModuleFreeInstance((instance_xtra->permeability_face));
 
     FreeProblemData((instance_xtra->problem_data));
+    if (GlobalsChemistryFlag)
+    {
+      PFModuleFreeInstance((instance_xtra->init_chem));
+      PFModuleFreeInstance((instance_xtra->advance_chem));
+    }
 
     FreeGrid((instance_xtra->z_grid));
     FreeGrid((instance_xtra->y_grid));
@@ -4794,7 +4994,7 @@ SolverRichardsNewPublicXtra(char *name)
   }
 
   sprintf(key, "%s.AdvectOrder", name);
-  public_xtra->advect_order = GetIntDefault(key, 2);
+  public_xtra->advect_order = GetIntDefault(key, 1);
 
   sprintf(key, "%s.CFL", name);
   public_xtra->CFL = GetDoubleDefault(key, 0.7);
@@ -5603,6 +5803,12 @@ SolverRichardsNewPublicXtra(char *name)
   sprintf(key, "%s.EvapTrans.FileName", name);
   public_xtra->evap_trans_filename = GetStringDefault(key, "");
 
+  if (GlobalsChemistryFlag)
+{
+  (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
+  (public_xtra->advance_chem) = PFModuleNewModule(AdvanceChemistry, ());
+}
+
 
   /* Initialize silo if necessary */
   if (public_xtra->write_silopmpio_subsurf_data ||
@@ -5647,6 +5853,11 @@ SolverRichardsFreePublicXtra()
     PFModuleFreeModule(public_xtra->advect_concen);
     PFModuleFreeModule(public_xtra->permeability_face);
     PFModuleFreeModule(public_xtra->nonlin_solver);
+    if (GlobalsChemistryFlag)
+    {
+      PFModuleFreeModule(public_xtra->init_chem);
+      PFModuleFreeModule(public_xtra->advance_chem);
+    }
     tfree(public_xtra);
   }
 }

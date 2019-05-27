@@ -114,7 +114,6 @@ typedef struct {
 
   ProblemData       *problem_data;
   double            *temp_data;
-  int               test_var;
   PFModule          *init_chem;
   PFModule          *advance_chem;
   AlquimiaDataPF    *alquimia_data;
@@ -2076,7 +2075,7 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
   public_xtra->sadvect_order = GetIntDefault(key, 2);
 
   sprintf(key, "%s.AdvectOrder", name);
-  public_xtra->advect_order = GetIntDefault(key, 2);
+  public_xtra->advect_order = GetIntDefault(key, 1);
 
   sprintf(key, "%s.CFL", name);
   public_xtra->CFL = GetDoubleDefault(key, 0.7);
@@ -2246,7 +2245,7 @@ void   SolverImpesFreePublicXtra()
     PFModuleFreeModule(public_xtra->phase_velocity_face);
     PFModuleFreeModule(public_xtra->permeability_face);
     PFModuleFreeModule(public_xtra->discretize_pressure);
-        if (chem_flag)
+    if (chem_flag)
     {
       PFModuleFreeModule(public_xtra->init_chem);
       PFModuleFreeModule(public_xtra->advance_chem);

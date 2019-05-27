@@ -150,4 +150,24 @@ void FindIndexFromNameCaseInsensitive(const char* const name,
 } 
 
 
+void SelectReactTransTimeStep(double max_velocity, double CFL, 
+                double PF_dt, double *advect_react_dt, 
+                double *num_rt_iterations)
+{
+  double cfl_dt;
+
+  cfl_dt = CFL/max_velocity;
+
+  if (PF_dt <= cfl_dt)
+  {
+    *advect_react_dt = PF_dt;
+    *num_rt_iterations = 1;
+  }
+  else
+  {
+    *num_rt_iterations = ceil(PF_dt / cfl_dt);
+    *advect_react_dt = PF_dt / *num_rt_iterations;
+  }
+
+}
 
