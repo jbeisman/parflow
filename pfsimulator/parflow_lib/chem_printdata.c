@@ -48,8 +48,6 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
 {
 	char file_type[2048], file_postfix[2048];
 
-	printf("INSIDE PrINTCHEM\n");
-
 	//primary mobile
 	if (print_flags->print_primary_mobile)
 	{
@@ -64,8 +62,6 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
 
 	if (print_flags->silo_primary_mobile)
 	{
-				printf("PRIMARYMOBILE SILO\n");
-
 		for (int i = 0; i < chem_sizes->num_primary; i++)
 		{
 			sprintf(file_postfix, "%02d.%s.%05d", i, chem_metadata->primary_names.data[i], file_number);

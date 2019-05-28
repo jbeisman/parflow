@@ -185,6 +185,12 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
   Subvector   *vx_sub, *vy_sub, *vz_sub;  //jjb
   double      *vx, *vy, *vz;  //jjb
   int vxi, vyi, vzi;         //jjb
+  int vel_dir0 = 0;
+  int vel_dir[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
+  Vector *vel_vec[3];
+  Subvector *vtemp_sub;
+  double *vel;
+  double vel_h[3];
 
   Grid        *grid = VectorGrid(pressure);
   Grid        *grid2d = VectorGrid(x_sl);
@@ -742,6 +748,10 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
   /*  Calculate correction for boundary conditions */
 
+  vel_vec[0] = x_velocity;
+  vel_vec[1] = y_velocity;
+  vel_vec[2] = z_velocity;      
+
   ForSubgridI(is, GridSubgrids(grid))
   {
     subgrid = GridSubgrid(grid, is);
@@ -792,9 +802,9 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
     ix = SubgridIX(subgrid);
     iy = SubgridIY(subgrid);
 
-    ffx = dy * dz;
-    ffy = dx * dz;
-    ffz = dx * dy;
+    vel_h[0] = ffx = dy * dz;
+    vel_h[1] = ffy = dx * dz;
+    vel_h[2] = ffz = dx * dy;
 
     vol = dx * dy * dz;
 
@@ -866,6 +876,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
             if (fdir[0])
             {
+              vel_dir0 = 0;
+
               switch (fdir[0])
               {
                 case -1:
@@ -920,6 +932,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             }
             else if (fdir[1])
             {
+              vel_dir0 = 1;
+
               switch (fdir[1])
               {
                 case -1:
@@ -977,6 +991,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             }
             else if (fdir[2])
             {
+              vel_dir0 = 2;
+
               switch (fdir[2])
               {
                 case -1:
@@ -1055,6 +1071,24 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                       * 2.0 * diff;
             }
 
+
+            //grab boundary velocities
+            vtemp_sub = VectorSubvector(vel_vec[vel_dir0], is);
+            if (fdir[vel_dir0] == -1)
+            {
+              vel = SubvectorElt(vtemp_sub, i, j, k);
+            }
+            else
+            {
+              vel = SubvectorElt(vtemp_sub,
+                                  i + vel_dir[vel_dir0][0],
+                                  j + vel_dir[vel_dir0][1],
+                                  k + vel_dir[vel_dir0][2]);
+            }
+            vel[0] = u_new / vel_h[vel_dir0];
+
+
+
             /* Remove the boundary term computed above */
             fp[ip] -= dt * dir * u_old;
 
@@ -1081,6 +1115,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
             if (fdir[0])
             {
+              vel_dir0 = 0;
+
               switch (fdir[0])
               {
                 case -1:
@@ -1130,6 +1166,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             }
             else if (fdir[1])
             {
+              vel_dir0 = 1;
+
               switch (fdir[1])
               {
                 case -1:
@@ -1179,6 +1217,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             }
             else if (fdir[2])
             {
+              vel_dir0 = 2;
+
               switch (fdir[2])
               {
                 case -1:
@@ -1234,6 +1274,23 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             /* Add the correct boundary term */
             u_new = u_new * bc_patch_values[ival];
             fp[ip] += dt * dir * u_new;
+
+
+             //grab boundary velocities
+            vtemp_sub = VectorSubvector(vel_vec[vel_dir0], is);
+            if (fdir[vel_dir0] == -1)
+            {
+              vel = SubvectorElt(vtemp_sub, i, j, k);
+            }
+            else
+            {
+              vel = SubvectorElt(vtemp_sub,
+                                  i + vel_dir[vel_dir0][0],
+                                  j + vel_dir[vel_dir0][1],
+                                  k + vel_dir[vel_dir0][2]);
+            }
+            vel[0] = u_new / vel_h[vel_dir0];
+
           });
 
           break;
@@ -1255,6 +1312,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
             if (fdir[0])
             {
+              vel_dir0 = 0;
+
               switch (fdir[0])
               {
                 case -1:
@@ -1302,6 +1361,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             }
             else if (fdir[1])
             {
+              vel_dir0 = 1;
+
               switch (fdir[1])
               {
                 case -1:
@@ -1350,6 +1411,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             }
             else if (fdir[2])
             {
+              vel_dir0 = 2;
+
               switch (fdir[2])
               {
                 case -1:
@@ -1401,6 +1464,23 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
             u_new = u_new * bc_patch_values[ival];       //sk: here we go in and implement surface routing!
 
             fp[ip] += dt * dir * u_new;
+
+
+            //grab boundary velocities
+            vtemp_sub = VectorSubvector(vel_vec[vel_dir0], is);
+            if (fdir[vel_dir0] == -1)
+            {
+              vel = SubvectorElt(vtemp_sub, i, j, k);
+            }
+            else
+            {
+              vel = SubvectorElt(vtemp_sub,
+                                  i + vel_dir[vel_dir0][0],
+                                  j + vel_dir[vel_dir0][1],
+                                  k + vel_dir[vel_dir0][2]);
+            }
+            vel[0] = u_new / vel_h[vel_dir0];
+
           });
 
           // SGS Fix this up later after things are a bit more stable.   Probably should
@@ -1475,7 +1555,7 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
           });
 #endif
 
-
+          vtemp_sub = VectorSubvector(vel_vec[2], is);
 
           BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
           {
@@ -1508,6 +1588,12 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
 
                   fp[ip] += q_overlnd;
+
+                  // grab boundary velocities
+                  vel = SubvectorElt(vtemp_sub,i,j,k+1);
+                  vel[0] += q_overlnd / vel_h[2];
+
+
 
                   break;
               }

@@ -658,7 +658,7 @@ SetupRichards(PFModule * this_module)
 
     instance_xtra->saturation =
       NewVectorType(grid, 1, 1, vector_cell_centered);
-    InitVectorAll(instance_xtra->saturation, -FLT_MAX);
+    InitVectorAll(instance_xtra->saturation, 1.0);
 
     instance_xtra->density =
       NewVectorType(grid, 1, 1, vector_cell_centered);
@@ -670,7 +670,7 @@ SetupRichards(PFModule * this_module)
 
     instance_xtra->old_saturation =
       NewVectorType(grid, 1, 1, vector_cell_centered);
-    InitVectorAll(instance_xtra->old_saturation, 0.0);
+    InitVectorAll(instance_xtra->old_saturation, 1.0);
 
     instance_xtra->old_density =
       NewVectorType(grid, 1, 1, vector_cell_centered);
@@ -2784,16 +2784,13 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
     double advect_react_time;
     any_file_dumped = 0;
 
-printf("ANY FILE DUMPED BEFORE: %d \n", any_file_dumped);
-printf("DUMP FILES BEFORE: %d \n", dump_files);
 
     if (ProblemNumContaminants(problem) > 0)
-        { advect_react_time = t - dt;
-          printf("inside ProblemNumContaminants, %d \n",ProblemNumContaminants(problem));
+        { 
+          advect_react_time = t - dt;
           for (int iteration = 0; iteration < (int)num_rt_iterations; iteration ++)
-          { printf ("inside iterations %d \n",(int)num_rt_iterations);
+          { 
             advect_react_time += advect_react_dt;
-            printf("advect_react_dt: %f  advect_react_time: %f \n",advect_react_dt,advect_react_time);
             for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
             {
               PFModuleInvokeType(RetardationInvoke, retardation,
@@ -2830,10 +2827,7 @@ printf("DUMP FILES BEFORE: %d \n", dump_files);
      // }
 
     }
-
-printf("ANY FILE DUMPED AFTER: %d \n", any_file_dumped);
-printf("DUMP FILES AFTER: %d \n", dump_files);
-printf("FILE NUMBER: %d \n",instance_xtra->file_number);
+    
 
 
 

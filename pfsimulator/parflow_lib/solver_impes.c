@@ -237,6 +237,7 @@ void      SolverImpes()
   int chem_flag = GlobalsChemistryFlag;
   PFModule     *init_chem = (instance_xtra->init_chem);
   PFModule     *advance_chem = (instance_xtra->advance_chem);
+  Vector *sat_rt = NULL;
 
 
   /*-------------------------------------------------------------------
@@ -513,6 +514,8 @@ void      SolverImpes()
       if (chem_flag) /*Initialize the geochemical system*/
       {
       	amps_Printf("Initializing chemical system\n");
+
+        sat_rt = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
 
         instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
 
@@ -1163,6 +1166,11 @@ void      SolverImpes()
           indx = 0;
           for (phase = 0; phase < ProblemNumPhases(problem); phase++)
           {
+            InitVectorAll(sat_rt, 1.0);
+            Copy(saturations[phase], sat_rt);
+            handle = InitVectorUpdate(sat_rt, VectorUpdateAll);
+              FinalizeVectorUpdate(handle);
+              
             for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
             {
               PFModuleInvokeType(RetardationInvoke, retardation,
@@ -1182,7 +1190,7 @@ void      SolverImpes()
                                 phase_x_velocity[phase], 
                                 phase_y_velocity[phase], 
                                 phase_z_velocity[phase],
-                                solidmassfactor, saturations[phase], saturations[phase],
+                                solidmassfactor, sat_rt, sat_rt,
                                 t, dt, advect_order,
                                 iteration_number,iteration_number)); // will need to fix this for multiphase
               

@@ -11,7 +11,7 @@ namespace import Parflow::*
 
 pfset FileVersion 4
 
-pfset Process.Topology.P 1
+pfset Process.Topology.P 4
 pfset Process.Topology.Q 1
 pfset Process.Topology.R 1
 
@@ -22,13 +22,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 10.0
-pfset ComputationalGrid.DY                   10.0
-pfset ComputationalGrid.DZ	                 3.0
+pfset ComputationalGrid.DX	                 1.0
+pfset ComputationalGrid.DY                   1.0
+pfset ComputationalGrid.DZ	                 10.0
 
-pfset ComputationalGrid.NX                      10
-pfset ComputationalGrid.NY                      10
-pfset ComputationalGrid.NZ                      1
+pfset ComputationalGrid.NX                      100
+pfset ComputationalGrid.NY                      100
+pfset ComputationalGrid.NZ                      10
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -50,7 +50,7 @@ pfset Geom.domain.Lower.Z                          0.0
 
 pfset Geom.domain.Upper.X                        100.0
 pfset Geom.domain.Upper.Y                        100.0
-pfset Geom.domain.Upper.Z                          3.0
+pfset Geom.domain.Upper.Z                          100.0
 
 pfset Geom.domain.Patches "left right front back bottom top"
 
@@ -86,7 +86,7 @@ pfset Geom.source_region.Lower.Z    0.0
 
 pfset Geom.source_region.Upper.X    100.0
 pfset Geom.source_region.Upper.Y    100.0
-pfset Geom.source_region.Upper.Z     3.0
+pfset Geom.source_region.Upper.Z     100.0
 
 #-----------------------------------------------------------------------------
 # Concen_Region Geometry Input
@@ -98,12 +98,12 @@ pfset GeomInput.concen_region_input.GeomName        concen_region
 # Concen_Region Geometry
 #-----------------------------------------------------------------------------
 pfset Geom.concen_region.Lower.X  10.0
-pfset Geom.concen_region.Lower.Y  10.0
+pfset Geom.concen_region.Lower.Y  0.0
 pfset Geom.concen_region.Lower.Z  0.0
 
 pfset Geom.concen_region.Upper.X  30.0
-pfset Geom.concen_region.Upper.Y  30.0
-pfset Geom.concen_region.Upper.Z   3.0
+pfset Geom.concen_region.Upper.Y  100.0
+pfset Geom.concen_region.Upper.Z   100.0
 
 
 
@@ -113,7 +113,7 @@ pfset Geom.concen_region.Upper.Z   3.0
 pfset Geom.Perm.Names "background"
 
 pfset Geom.background.Perm.Type     Constant
-pfset Geom.background.Perm.Value    4.0
+pfset Geom.background.Perm.Value    1.0
 
 pfset Perm.TensorType               TensorByGeom
 
@@ -168,12 +168,12 @@ pfset Gravity				1.0
 # Setup timing info
 #-----------------------------------------------------------------------------
 
-pfset TimingInfo.BaseUnit		0.5
+pfset TimingInfo.BaseUnit		1.0
 pfset TimingInfo.StartCount		0
 pfset TimingInfo.StartTime		0.0
 pfset TimingInfo.StopTime            200.0
-pfset TimingInfo.DumpInterval	     1
-pfset TimeStep.Value                    1.0
+pfset TimingInfo.DumpInterval	     5.0
+pfset TimeStep.Value                    5.0
 pfset TimeStep.Type                     Constant
 
 
@@ -185,7 +185,7 @@ pfset TimeStep.Type                     Constant
 pfset Geom.Porosity.GeomNames          background
 
 pfset Geom.background.Porosity.Type    Constant
-pfset Geom.background.Porosity.Value   1.0
+pfset Geom.background.Porosity.Value   0.5
 
 #-----------------------------------------------------------------------------
 # Domain
@@ -244,13 +244,13 @@ pfset Patch.left.BCPressure.Type			DirEquilRefPatch
 pfset Patch.left.BCPressure.Cycle			"constant"
 pfset Patch.left.BCPressure.RefGeom			domain
 pfset Patch.left.BCPressure.RefPatch			bottom
-pfset Patch.left.BCPressure.alltime.Value		5.0
+pfset Patch.left.BCPressure.alltime.Value		-80.0
 
 pfset Patch.right.BCPressure.Type			DirEquilRefPatch
 pfset Patch.right.BCPressure.Cycle			"constant"
 pfset Patch.right.BCPressure.RefGeom			domain
 pfset Patch.right.BCPressure.RefPatch			bottom
-pfset Patch.right.BCPressure.alltime.Value		3.0
+pfset Patch.right.BCPressure.alltime.Value		-120.0
 
 pfset Patch.front.BCPressure.Type			FluxConst
 pfset Patch.front.BCPressure.Cycle			"constant"
@@ -275,7 +275,7 @@ pfset Patch.top.BCPressure.alltime.Value		0.0
 
 pfset ICPressure.Type                                   HydroStaticPatch
 pfset ICPressure.GeomNames                              domain
-pfset Geom.domain.ICPressure.Value                      3.0
+pfset Geom.domain.ICPressure.Value                      -100.0
 pfset Geom.domain.ICPressure.RefGeom                    domain
 pfset Geom.domain.ICPressure.RefPatch                   bottom
 
@@ -359,8 +359,8 @@ pfset KnownSolution                                    NoKnownSolution
 pfset Solver                                             Richards
 pfset Solver.MaxIter                                     5000
 
-pfset Solver.Nonlinear.MaxIter                           20
-pfset Solver.Nonlinear.ResidualTol                       1e-1
+pfset Solver.Nonlinear.MaxIter                           100
+pfset Solver.Nonlinear.ResidualTol                       0.000001
 pfset Solver.Nonlinear.EtaChoice                         EtaConstant
 pfset Solver.Nonlinear.EtaValue                          1e-5
 pfset Solver.Nonlinear.UseJacobian                       True
@@ -378,7 +378,7 @@ pfset Solver.Linear.Preconditioner.MGSemi.MaxLevels      100
  
 pfset TopoSlopesX.Type "Constant"
 pfset TopoSlopesX.GeomNames "domain"
-pfset TopoSlopesX.Geom.domain.Value 0.0005
+pfset TopoSlopesX.Geom.domain.Value 0.0000
  
 #---------------------------------------------------------
 # Topo slopes in y-direction
@@ -386,7 +386,7 @@ pfset TopoSlopesX.Geom.domain.Value 0.0005
  
 pfset TopoSlopesY.Type "Constant"
 pfset TopoSlopesY.GeomNames "domain"
-pfset TopoSlopesY.Geom.domain.Value 0.0005
+pfset TopoSlopesY.Geom.domain.Value 0.0000
  
 #---------------------------------------------------------
 # Mannings coefficient
@@ -434,6 +434,7 @@ pfset Chemistry.ParFlowTimeUnits m
 
 pfset Solver.PrintPressure False
 pfset Solver.PrintSaturation False
+pfset Solver.WriteSiloSaturation True
 
 
 pfset Chemistry.WriteSiloPrimaryMobile True
@@ -442,8 +443,8 @@ pfset Chemistry.WriteSiloPrimaryMobile True
 # The Solver Impes MaxIter default value changed so to get previous
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
-pfset Solver.CFL 0.8
-pfset Solver.AdvectOrder 1
+pfset Solver.CFL 0.25
+pfset Solver.AdvectOrder 2
  
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files

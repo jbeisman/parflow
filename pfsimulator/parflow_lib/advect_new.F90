@@ -30,7 +30,7 @@
 !    advect:
 !    Godunov advection routine, Lax-Wendroff fluxes with
 !    monotonized-centered flux limiter + multi-dimensional
-!    limiter to ensure positivity
+!    limiter to ensure min-max adherence
 !---------------------------------------------------------------------
 
       subroutine advect(s,sn,uedge,vedge,wedge,phi, &
@@ -71,8 +71,8 @@
       real(dp) sxtemp(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
       real(dp) sytemp(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
       real(dp) sztemp(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
-      real(dp) old_sat(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
-      real(dp) sat(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
+      real(dp) old_sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1) 
+      real(dp) sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1) 
 
  
       integer i,j,k
@@ -105,10 +105,6 @@
       iter=DBLE(iteration)
       num_iter=DBLE(num_iterations)
       num_iter_inv = 1.0_dp/num_iter
-
-      iter=0.0
-      num_iter=1.0
-     print*,"INSIDE ADVECTION!"
 
      !! initialization
       stemp = s
@@ -342,9 +338,10 @@
           do i=is2-1,ie2+1
             sat_diff=(sat(i,j,k) - old_sat(i,j,k)) * num_iter_inv
 
-            stemp(i,j,k)= ((iter*sat_diff + old_sat(i,j,k))*phi(i,j,k)*s(i,j,k) + &
-            ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
-            (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+           stemp(i,j,k)= ((iter*sat_diff + old_sat(i,j,k))*phi(i,j,k)*s(i,j,k) + &
+           ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
+           (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+
           enddo
         enddo
       enddo
@@ -420,17 +417,17 @@
       endif
 
 
-      do k=ks,ke
-        do j=js,je
-          do i=is,ie
-
-            !!cutoff any values that violate min/max
-           if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
-           if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)
-
-          enddo
-        enddo
-      enddo 
+!      do k=ks,ke
+!        do j=js,je
+!          do i=is,ie  
+!
+!            !!cutoff any values that violate min/max
+!           if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
+!           if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)  
+!
+!          enddo
+!        enddo
+!      enddo 
        
       !! needs work
       !!call disperse(sn,uedge,vedge,wedge,lo,hi,dlo,dhi,hx,dt)
@@ -440,152 +437,152 @@
 
     
 
-      !! dispersion calculations -- likely need to be updated for boundary conditions
-      subroutine disperse(sn,uedge,vedge,wedge,dlo,dhi,hx,dt) 
-      implicit none
-
-      integer, parameter :: dp = selected_real_kind(15)            
-      integer i,j,k,ie,is,je,js,ke,ks
-      integer dlo(3), dhi(3)
-      real(dp)  hx(3), dt, al, at,dx,dy,dz
-      
-      real(dp) uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
-      real(dp) vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
-      real(dp) wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
-      real(dp) v_xx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) v_xy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) v_xz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      real(dp) v_yy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) v_yx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) v_yz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      real(dp) v_zz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) v_zx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) v_zy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      real(dp) sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
-      real(dp) abs_vx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) abs_vy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) abs_vz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      real(dp) d_xx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) d_xy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) d_xz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      real(dp) d_yy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) d_yx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) d_yz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      real(dp) d_zz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) d_zx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) d_zy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      real(dp) dc_x(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) dc_y(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
-      real(dp) dc_z(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
-      
-      al = .00625
-      at = .000625
-      
-      is = dlo(1)
-      ie = dhi(1)
-      js = dlo(2)
-      je = dhi(2)
-      ks = dlo(3)
-      ke = dhi(3)
-      dx = hx(1)
-      dy = hx(2)
-      dz = hx(3)
-  
-      !velocities
-      do k=ks,ke+1
-      do j=js,je+1
-      do i=is,ie+1
-      
-      d_xx(i,j,k) = 0.0
-      d_xy(i,j,k) = 0.0
-      d_xz(i,j,k) = 0.0
-      
-      d_yy(i,j,k) = 0.0
-      d_yx(i,j,k) = 0.0
-      d_yz(i,j,k) = 0.0
-      
-      d_zz(i,j,k) = 0.0
-      d_zx(i,j,k) = 0.0
-      d_zy(i,j,k) = 0.0
-      
-     
-      
-     
-     v_xx(i,j,k)=uedge(i,j,k)
-     v_xy(i,j,k) = sum(vedge(i-1:i,j:j+1,k))/4.0
-     v_xz(i,j,k) = sum(wedge(i-1:i,j,k:k+1))/4.0
-    
-     v_yy(i,j,k)=vedge(i,j,k) 
-     v_yx(i,j,k) = sum(uedge(i:i+1,j-1:j,k))/4.0
-     v_yz(i,j,k) = sum(wedge(i,j-1:j,k:k+1))/4.0
-     
-     v_zz(i,j,k)=wedge(i,j,k)
-     v_zx(i,j,k) = sum(uedge(i:i+1,j,k-1:k))/4.0
-     v_zy(i,j,k) = sum(vedge(i,j:j+1,k-1:k))/4.0
-     
-     abs_vx(i,j,k) = (v_xx(i,j,k)**2 + v_xy(i,j,k)**2 + v_xz(i,j,k)**2)**0.5
-     abs_vy(i,j,k) = (v_yy(i,j,k)**2 + v_yx(i,j,k)**2 + v_yz(i,j,k)**2)**0.5
-     abs_vz(i,j,k) = (v_zz(i,j,k)**2 + v_zx(i,j,k)**2 + v_zy(i,j,k)**2)**0.5 
-     
-     enddo
-     enddo
-     enddo
-      
-     
-      do i=is,ie+1
-      do j=js,je
-      do k=ks,ke
-      
-      if (abs_vx(i,j,k) /= 0.0) THEN
-      
-      d_xx(i,j,k) = at*abs_vx(i,j,k) + (al-at)*v_xx(i,j,k)*v_xx(i,j,k)/abs_vx(i,j,k)
-      else 
-      d_xx(i,j,k) = 0.0 
-      endif
-      enddo
-      enddo
-      enddo
-      
-      do i=is,ie
-      do j=js,je+1
-      do k=ks,ke
-      
-      if (abs_vy(i,j,k) /= 0.0) THEN
-      
-      d_yy(i,j,k) = at*abs_vy(i,j,k) + (al-at)*v_yy(i,j,k)*v_yy(i,j,k)/abs_vy(i,j,k)
-      else 
-      d_yy(i,j,k) = 0.0 
-      endif
-      enddo
-      enddo
-      enddo
-      
-      
-      do i=is,ie
-      do j=js,je
-      do k=ks,ke+1
-      
-      if (abs_vz(i,j,k) /= 0.0) THEN
-      
-      d_zz(i,j,k) = at*abs_vz(i,j,k) + (al-at)*v_zz(i,j,k)*v_zz(i,j,k)/abs_vz(i,j,k)
-      else 
-      d_zz(i,j,k) = 0.0 
-      endif
-      enddo
-      enddo
-      enddo
-    
-    
-      do k=ks,ke
-      do j=js,je
-      do i=is,ie
-       sn(i,j,k) = sn(i,j,k) + dt*(d_xx(i,j,k)*(sn(i-1,j,k)-sn(i,j,k))/(dy*dz) - d_xx(i+1,j,k)*(sn(i,j,k)-sn(i+1,j,k))/(dy*dz) + &
-       d_yy(i,j,k)*(sn(i,j-1,k)-sn(i,j,k))/(dx*dz) - d_yy(i,j+1,k)*(sn(i,j,k)-sn(i,j+1,k))/(dx*dz) + &
-       d_zz(i,j,k)*(sn(i,j,k-1)-sn(i,j,k))/(dx*dy) - d_zz(i,j,k+1)*(sn(i,j,k)-sn(i,j,k+1))/(dx*dy))
-      enddo
-      enddo
-      enddo
-      end subroutine disperse
+!      !! dispersion calculations -- likely need to be updated for boundary conditions
+!      subroutine disperse(sn,uedge,vedge,wedge,dlo,dhi,hx,dt) 
+!      implicit none
+!
+!      integer, parameter :: dp = selected_real_kind(15)            
+!      integer i,j,k,ie,is,je,js,ke,ks
+!      integer dlo(3), dhi(3)
+!      real(dp)  hx(3), dt, al, at,dx,dy,dz
+!      
+!      real(dp) uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
+!      real(dp) vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
+!      real(dp) wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
+!      real(dp) v_xx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) v_xy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) v_xz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      real(dp) v_yy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) v_yx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) v_yz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      real(dp) v_zz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) v_zx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) v_zy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      real(dp) sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
+!      real(dp) abs_vx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) abs_vy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) abs_vz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      real(dp) d_xx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) d_xy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) d_xz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      real(dp) d_yy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) d_yx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) d_yz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      real(dp) d_zz(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) d_zx(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) d_zy(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      real(dp) dc_x(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) dc_y(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1) 
+!      real(dp) dc_z(dlo(1):dhi(1)+1,dlo(2):dhi(2)+1,dlo(3):dhi(3)+1)
+!      
+!      al = .00625
+!      at = .000625
+!      
+!      is = dlo(1)
+!      ie = dhi(1)
+!      js = dlo(2)
+!      je = dhi(2)
+!      ks = dlo(3)
+!      ke = dhi(3)
+!      dx = hx(1)
+!      dy = hx(2)
+!      dz = hx(3)
+!  
+!      !velocities
+!      do k=ks,ke+1
+!      do j=js,je+1
+!      do i=is,ie+1
+!      
+!      d_xx(i,j,k) = 0.0
+!      d_xy(i,j,k) = 0.0
+!      d_xz(i,j,k) = 0.0
+!      
+!      d_yy(i,j,k) = 0.0
+!      d_yx(i,j,k) = 0.0
+!      d_yz(i,j,k) = 0.0
+!      
+!      d_zz(i,j,k) = 0.0
+!      d_zx(i,j,k) = 0.0
+!      d_zy(i,j,k) = 0.0
+!      
+!     
+!      
+!     
+!     v_xx(i,j,k)=uedge(i,j,k)
+!     v_xy(i,j,k) = sum(vedge(i-1:i,j:j+1,k))/4.0
+!     v_xz(i,j,k) = sum(wedge(i-1:i,j,k:k+1))/4.0
+!    
+!     v_yy(i,j,k)=vedge(i,j,k) 
+!     v_yx(i,j,k) = sum(uedge(i:i+1,j-1:j,k))/4.0
+!     v_yz(i,j,k) = sum(wedge(i,j-1:j,k:k+1))/4.0
+!     
+!     v_zz(i,j,k)=wedge(i,j,k)
+!     v_zx(i,j,k) = sum(uedge(i:i+1,j,k-1:k))/4.0
+!     v_zy(i,j,k) = sum(vedge(i,j:j+1,k-1:k))/4.0
+!     
+!     abs_vx(i,j,k) = (v_xx(i,j,k)**2 + v_xy(i,j,k)**2 + v_xz(i,j,k)**2)**0.5
+!     abs_vy(i,j,k) = (v_yy(i,j,k)**2 + v_yx(i,j,k)**2 + v_yz(i,j,k)**2)**0.5
+!     abs_vz(i,j,k) = (v_zz(i,j,k)**2 + v_zx(i,j,k)**2 + v_zy(i,j,k)**2)**0.5 
+!     
+!     enddo
+!     enddo
+!     enddo
+!      
+!     
+!      do i=is,ie+1
+!      do j=js,je
+!      do k=ks,ke
+!      
+!      if (abs_vx(i,j,k) /= 0.0) THEN
+!      
+!      d_xx(i,j,k) = at*abs_vx(i,j,k) + (al-at)*v_xx(i,j,k)*v_xx(i,j,k)/abs_vx(i,j,k)
+!      else 
+!      d_xx(i,j,k) = 0.0 
+!      endif
+!      enddo
+!      enddo
+!      enddo
+!      
+!      do i=is,ie
+!      do j=js,je+1
+!      do k=ks,ke
+!      
+!      if (abs_vy(i,j,k) /= 0.0) THEN
+!      
+!      d_yy(i,j,k) = at*abs_vy(i,j,k) + (al-at)*v_yy(i,j,k)*v_yy(i,j,k)/abs_vy(i,j,k)
+!      else 
+!      d_yy(i,j,k) = 0.0 
+!      endif
+!      enddo
+!      enddo
+!      enddo
+!      
+!      
+!      do i=is,ie
+!      do j=js,je
+!      do k=ks,ke+1
+!      
+!      if (abs_vz(i,j,k) /= 0.0) THEN
+!      
+!      d_zz(i,j,k) = at*abs_vz(i,j,k) + (al-at)*v_zz(i,j,k)*v_zz(i,j,k)/abs_vz(i,j,k)
+!      else 
+!      d_zz(i,j,k) = 0.0 
+!      endif
+!      enddo
+!      enddo
+!      enddo
+!    
+!    
+!      do k=ks,ke
+!      do j=js,je
+!      do i=is,ie
+!       sn(i,j,k) = sn(i,j,k) + dt*(d_xx(i,j,k)*(sn(i-1,j,k)-sn(i,j,k))/(dy*dz) - d_xx(i+1,j,k)*(sn(i,j,k)-sn(i+1,j,k))/(dy*dz) + &
+!       d_yy(i,j,k)*(sn(i,j-1,k)-sn(i,j,k))/(dx*dz) - d_yy(i,j+1,k)*(sn(i,j,k)-sn(i,j+1,k))/(dx*dz) + &
+!       d_zz(i,j,k)*(sn(i,j,k-1)-sn(i,j,k))/(dx*dy) - d_zz(i,j,k+1)*(sn(i,j,k)-sn(i,j,k+1))/(dx*dy))
+!      enddo
+!      enddo
+!      enddo
+!      end subroutine disperse
   
 
 

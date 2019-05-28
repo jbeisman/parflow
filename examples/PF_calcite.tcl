@@ -397,7 +397,7 @@ pfset Patch.front.BCConcentration.Type Constant
 pfset Patch.front.BCConcentration.Value west
 
 #pfset Solver.WriteSiloConcentration True
-pfset Chemistry.ParFlowTimeUnits years
+pfset Chemistry.ParFlowTimeUnits days
 
 
 
