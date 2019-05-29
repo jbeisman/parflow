@@ -222,9 +222,9 @@ double  MaxPhaseFieldValue(
       iy = SubgridIY(subgrid);
       iz = SubgridIZ(subgrid);
 
-      nx = SubgridNX(subgrid)+1;
-      ny = SubgridNY(subgrid)+1;
-      nz = SubgridNZ(subgrid)+1;
+      nx = SubgridNX(subgrid);
+      ny = SubgridNY(subgrid);
+      nz = SubgridNZ(subgrid);
 
       switch (dir)
       {

@@ -322,7 +322,6 @@ SetupRichards(PFModule * this_module)
   int print_velocities = (public_xtra->print_velocities);       //jjb
 
   // alquimia coupling
-  int chem_flag = GlobalsChemistryFlag;
   PFModule *ic_phase_concen = (instance_xtra->ic_phase_concen); //jjb
   PFModule *init_chem = (instance_xtra->init_chem);
 
@@ -1061,13 +1060,9 @@ SetupRichards(PFModule * this_module)
     any_file_dumped = 0;
 
     // alquimia
-    
-    
     instance_xtra -> solidmassfactor = 
       NewVectorType( grid, 1, 2, vector_cell_centered);
 
-    
-    // alquimia
     if (ProblemNumContaminants(problem) > 0)
     {
       instance_xtra -> ctemp = 
@@ -1417,13 +1412,15 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
   Vector *overland_sum = instance_xtra->overland_sum;   /* sk: Vector of outflow at the boundary */
 
   // alquimia coupling, need advect, advancechem in AdvanceRichards
-  int advect_order = (public_xtra->advect_order);
-  double CFL = (public_xtra->CFL);
   PFModule *advect_concen = (instance_xtra->advect_concen);
   int evolve_concentrations;
   PFModule *retardation = (instance_xtra -> retardation);
   double max_velocity;
   PFModule *advance_chem = (instance_xtra->advance_chem);
+  int chem_dump_files;
+  double advect_react_dt;
+  int num_rt_iterations;
+  double advect_react_time;
 
 
 
@@ -2558,7 +2555,6 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
           dt_info = 'p';
 
           dump_files = 1;
-          evolve_concentrations = 1;
         }
       }
       else if (dump_interval < 0)
@@ -2628,13 +2624,10 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         dt = new_dt;
 
         dt_info = 'f';
-        evolve_concentrations = 1;
 
       }
 
       t += dt;
-      printf("t: %f dt: %f",t,dt);
-
 
       /*******************************************************************/
       /*          Solve the nonlinear system for this time step          */
@@ -2763,81 +2756,80 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
 
 
-// Alquimia coupling, call advect and then advance chemistry
+    // Alquimia coupling, call advect and then advance chemistry
+    /******************************************************************/
+    /*         Alquimia geochemistry and solute transport              */
+    /******************************************************************/
 
-      /******************************************************************/
-      /*            Solve for and print the concentrations              */
-      /******************************************************************/
-    // get maximum darcy vel / phi displacement for time step selection
-    max_velocity = MaxPhaseFieldValue(instance_xtra->x_velocity,
+    any_file_dumped = 0;
+    chem_dump_files = 0;
+
+    if (evolve_concentrations && GlobalsChemistryFlag)
+    {
+      // get maximum darcy vel / phi displacement for time step selection
+      max_velocity = MaxPhaseFieldValue(instance_xtra->x_velocity,
                                      instance_xtra->y_velocity,
                                      instance_xtra->z_velocity,
                                      ProblemDataPorosity(problem_data));
 
-  double advect_react_dt;
-  double num_rt_iterations;
+      // choose reaction and transport timestep and total number of iterations
+      SelectReactTransTimeStep(max_velocity,public_xtra->CFL,dt,&advect_react_dt,&num_rt_iterations);
 
-    SelectReactTransTimeStep(max_velocity,public_xtra->CFL,dt,&advect_react_dt,&num_rt_iterations);
+      if (ProblemNumContaminants(problem) > 0)
+      {
+        advect_react_time = t - dt;
 
-     // if (evolve_concentrations)
-    //  {
-    double advect_react_time;
-    any_file_dumped = 0;
+        for (int iteration = 0; iteration < num_rt_iterations; iteration ++)
+        {
+          chem_dump_files = (iteration == num_rt_iterations - 1 && dump_files == 1) ? 1 : 0;
+          
 
+          if (!amps_Rank(amps_CommWorld))
+          {
+            amps_Printf("Reactive transport iteration %d of %d.\n",iteration+1,num_rt_iterations);
+            amps_Printf("Iteration start time: %f dt: %f.\n",advect_react_time,advect_react_dt);
+          }
 
-    if (ProblemNumContaminants(problem) > 0)
-        { 
-          advect_react_time = t - dt;
-          for (int iteration = 0; iteration < (int)num_rt_iterations; iteration ++)
-          { 
-            advect_react_time += advect_react_dt;
-            for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
-            {
-              PFModuleInvokeType(RetardationInvoke, retardation,
-                                 (instance_xtra->solidmassfactor,
-                                  concen,
-                                  problem_data));
-              handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
-              FinalizeVectorUpdate(handle);
+          advect_react_time += advect_react_dt;
 
+          // loop through and transport each concentration separately
+          for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
+          {
+            // retardation doesn't need to be called
+            // todo: pass porosity instead of solidmassfactor, change bounds in advect
+            PFModuleInvokeType(RetardationInvoke, retardation,
+                              (instance_xtra->solidmassfactor,
+                              concen,
+                              problem_data));
+            handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
+            FinalizeVectorUpdate(handle);
 
-              InitVectorAll(instance_xtra->ctemp, 0.0);
-              CopyConcenWithBoundary(instance_xtra->concentrations[concen], instance_xtra->ctemp);
+            InitVectorAll(instance_xtra->ctemp, 0.0);
+            CopyConcenWithBoundary(instance_xtra->concentrations[concen], instance_xtra->ctemp);
 
-              PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
-                                (problem_data, 0, concen,
-                                instance_xtra->ctemp, instance_xtra->concentrations[concen], 
-                                instance_xtra->x_velocity, 
-                                instance_xtra->y_velocity, 
-                                instance_xtra->z_velocity,
-                                instance_xtra->solidmassfactor, 
-                                instance_xtra->old_saturation, 
-                                instance_xtra->saturation,
-                                advect_react_time, advect_react_dt,
-                                public_xtra->advect_order,
-                                iteration,(int)num_rt_iterations)); // will need to fix this for multiphase
-            }
+            PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
+                              (problem_data, 0, concen,
+                              instance_xtra->ctemp, instance_xtra->concentrations[concen], 
+                              instance_xtra->x_velocity, 
+                              instance_xtra->y_velocity, 
+                              instance_xtra->z_velocity,
+                              instance_xtra->solidmassfactor, 
+                              instance_xtra->old_saturation, 
+                              instance_xtra->saturation,
+                              advect_react_time, advect_react_dt,
+                              public_xtra->advect_order,
+                              iteration,num_rt_iterations)); // will need to fix this for multiphase
+          }
 
-            PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
-                         (problem_data, instance_xtra->alquimia_data,
-                          instance_xtra->concentrations, instance_xtra->saturation, advect_react_dt, advect_react_time, 
-                          &any_file_dumped, dump_files,
-                          instance_xtra->file_number, file_prefix));
+          PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
+                            (problem_data, instance_xtra->alquimia_data,
+                            instance_xtra->concentrations, instance_xtra->saturation, advect_react_dt, advect_react_time, 
+                            &any_file_dumped, chem_dump_files,
+                            instance_xtra->file_number, file_prefix));
         }
-     // }
-
+      }
     }
     
-
-
-
-
-
-
-
-
-
-
 
 
     /***************************************************************
@@ -3560,7 +3552,6 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
     IfLogging(1)
     {
-      printf("LOGGING\n");
       /*
        * SGS Better error handing should be added
        */
@@ -3585,10 +3576,8 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
       instance_xtra->number_logged++;
     }
 
-    printf("any_file_dumped: %d \n", any_file_dumped);
     if (any_file_dumped || clm_file_dumped)
     {
-      printf("ANY_FILE_DUMPED ++\n");
       instance_xtra->file_number++;
       any_file_dumped = 0;
       clm_file_dumped = 0;
@@ -3853,6 +3842,17 @@ TeardownRichards(PFModule * this_module)
     FreeVector(instance_xtra->displa_forc);
     FreeVector(instance_xtra->veg_map_forc);
   }
+
+    if (ProblemNumContaminants(problem) > 0)
+    {
+      for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
+      {
+        FreeVector(instance_xtra->concentrations[concen]);
+      }
+    tfree(instance_xtra->concentrations);
+    FreeVector(instance_xtra->solidmassfactor);
+    FreeVector(instance_xtra->ctemp);
+    }
 
 
   if (public_xtra->sw1d)

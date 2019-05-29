@@ -65,12 +65,9 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
-  Problem       *problem = (instance_xtra->problem);
   Grid          *grid = (instance_xtra->grid);
   GrGeomSolid   *gr_domain;
 
-  int num_cells;
-  bool hands_off = true;
   double field_sum;
   double dt_seconds;
 
@@ -90,7 +87,6 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
   int r;
   int chem_index, por_index, sat_index;
   double *por, *sat;
-  char* name;
  
   SubgridArray  *subgrids = GridSubgrids(grid);
   subgrid = SubgridArraySubgrid(subgrids, is);
@@ -190,11 +186,21 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
   // print PFB or silo files if user requested
   if (dump_files)
   {
-    PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,
-                      concentrations, alquimia_data->total_immobilePF, alquimia_data->mineral_specific_surfacePF, alquimia_data->mineral_volume_fractionsPF, alquimia_data->surface_site_densityPF, 
-                      alquimia_data->cation_exchange_capacityPF, alquimia_data->pH, alquimia_data->aqueous_kinetic_ratePF, alquimia_data->mineral_saturation_indexPF, 
-                      alquimia_data->mineral_reaction_ratePF, alquimia_data->primary_free_ion_concentrationPF, alquimia_data->primary_activity_coeffPF, 
-                      alquimia_data->secondary_free_ion_concentrationPF,alquimia_data->secondary_activity_coeffPF);
+    PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, 
+                      &alquimia_data->chem_metadata, t, file_number, file_prefix, 
+                      any_file_dumped, concentrations, 
+                      alquimia_data->total_immobilePF,
+                      alquimia_data->mineral_specific_surfacePF, 
+                      alquimia_data->mineral_volume_fractionsPF, 
+                      alquimia_data->surface_site_densityPF, 
+                      alquimia_data->cation_exchange_capacityPF, 
+                      alquimia_data->pH, alquimia_data->aqueous_kinetic_ratePF, 
+                      alquimia_data->mineral_saturation_indexPF, 
+                      alquimia_data->mineral_reaction_ratePF, 
+                      alquimia_data->primary_free_ion_concentrationPF, 
+                      alquimia_data->primary_activity_coeffPF, 
+                      alquimia_data->secondary_free_ion_concentrationPF, 
+                      alquimia_data->secondary_activity_coeffPF);
   }
 
   EndTiming(public_xtra->time_index);
@@ -283,8 +289,7 @@ PFModule   *AdvanceChemistryNewPublicXtra()
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if(switch_value < 0)
   {
- InputError("Error: invalid print switch value <%s> for key <%s>. Available options are one of <s sec S SECONDS Seconds seconds m min M MINUTES Minutes minutes h hr H HOURS Hours hours d D DAYS Days days y yr Y YEARS Years years>\n",
-       switch_name, key );
+    InputError("Error: invalid print switch value <%s> for key <%s>. Available options are one of <s sec S SECONDS Seconds seconds m min M MINUTES Minutes minutes h hr H HOURS Hours hours d D DAYS Days days y yr Y YEARS Years years>\n", switch_name, key);
   }
 
   if (switch_value < 6)

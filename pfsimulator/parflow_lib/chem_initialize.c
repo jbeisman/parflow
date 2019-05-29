@@ -127,7 +127,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   gr_domain = ProblemDataGrDomain(problem_data);
 
-  alquimia_data->print_flags=ctalloc(ChemPrintFlags, 1);
+  alquimia_data->print_flags = ctalloc(ChemPrintFlags, 1);
 
 
   // gather print flags

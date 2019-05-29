@@ -85,7 +85,7 @@
       real(dp) half,third
       real(dp) rx,ry,rz,mclimit,limx,thetax,thetay,thetaz,limy,limz
       real(dp) transvel,sat_diff,iter,num_iter,num_iter_inv
-      real(dp) minmod4,minmod2,median
+      !real(dp) minmod4,minmod2,median
 
       is = dlo(1)
       ie = dhi(1)
@@ -417,17 +417,17 @@
       endif
 
 
-!      do k=ks,ke
-!        do j=js,je
-!          do i=is,ie  
-!
-!            !!cutoff any values that violate min/max
-!           if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
-!           if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)  
-!
-!          enddo
-!        enddo
-!      enddo 
+      do k=ks,ke
+        do j=js,je
+          do i=is,ie  
+
+            !!cutoff any values that violate min/max
+           if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
+           if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)  
+
+          enddo
+        enddo
+      enddo 
        
       !! needs work
       !!call disperse(sn,uedge,vedge,wedge,lo,hi,dlo,dhi,hx,dt)
@@ -699,37 +699,38 @@
   
       real(selected_real_kind(15)) function transvel(a,b)
       implicit none
-      real(selected_real_kind(15)) a,b,prod 
+      real(selected_real_kind(15)) a,b,prod,avg 
       prod = a*b
       if (prod .gt. 0.0d0) then
-      transvel = sign(min(abs(a),abs(b)),a)
+      avg = (abs(a) + abs(b))/2.0d0
+      transvel = sign(avg,a)
       else
       transvel = 0.0d0
       endif
       end function transvel 
   
   
-      real(selected_real_kind(15)) function minmod4(a,b,c,d)
-      implicit none
-      real(selected_real_kind(15)) a,b,c,d,one
-      one = 1.0d0
-      minmod4 = (1.0d0/2.0d0)*(sign(one,a)+sign(one,b))*(1.0d0/2.0d0)*&
-      (sign(one,a)+sign(one,c))*(1.0d0/2.0d0)*(sign(one,a)+sign(one,d)) &
-      * min(abs(a),abs(b),abs(c),abs(d))   
-      end function minmod4
-  
-      real(selected_real_kind(15)) function minmod2(a,b)
-      implicit none
-      real(selected_real_kind(15)) a,b,one
-      one = 1.0d0
-      minmod2 = (1.0d0/2.0d0)*(sign(one,a)+sign(one,b))*min(abs(a),abs(b))   
-      end function minmod2
-  
-      real(selected_real_kind(15)) function median(a,b,c)
-      implicit none
-      real(selected_real_kind(15)) a,b,c,minmod2
-      median = a + minmod2(b-a,c-a)    
-      end function median
+!      real(selected_real_kind(15)) function minmod4(a,b,c,d)
+!      implicit none
+!      real(selected_real_kind(15)) a,b,c,d,one
+!      one = 1.0d0
+!      minmod4 = (1.0d0/2.0d0)*(sign(one,a)+sign(one,b))*(1.0d0/2.0d0)*&
+!      (sign(one,a)+sign(one,c))*(1.0d0/2.0d0)*(sign(one,a)+sign(one,d)) &
+!      * min(abs(a),abs(b),abs(c),abs(d))   
+!      end function minmod4
+!  
+!      real(selected_real_kind(15)) function minmod2(a,b)
+!      implicit none
+!      real(selected_real_kind(15)) a,b,one
+!      one = 1.0d0
+!      minmod2 = (1.0d0/2.0d0)*(sign(one,a)+sign(one,b))*min(abs(a),abs(b))   
+!      end function minmod2
+!  
+!      real(selected_real_kind(15)) function median(a,b,c)
+!      implicit none
+!      real(selected_real_kind(15)) a,b,c,minmod2
+!      median = a + minmod2(b-a,c-a)    
+!      end function median
 
 
 

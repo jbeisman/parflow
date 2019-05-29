@@ -171,7 +171,7 @@ pfset Gravity				1.0
 pfset TimingInfo.BaseUnit		1.0
 pfset TimingInfo.StartCount		0
 pfset TimingInfo.StartTime		0.0
-pfset TimingInfo.StopTime            200.0
+pfset TimingInfo.StopTime            400.0
 pfset TimingInfo.DumpInterval	     5.0
 pfset TimeStep.Value                    5.0
 pfset TimeStep.Type                     Constant
@@ -443,7 +443,7 @@ pfset Chemistry.WriteSiloPrimaryMobile True
 # The Solver Impes MaxIter default value changed so to get previous
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
-pfset Solver.CFL 0.25
+pfset Solver.CFL 0.5
 pfset Solver.AdvectOrder 2
  
 #-----------------------------------------------------------------------------

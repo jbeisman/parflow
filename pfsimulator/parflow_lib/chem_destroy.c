@@ -189,10 +189,10 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
     });
   }
   
-  free(alquimia_data->chem_state);
-  free(alquimia_data->chem_properties);
-  free(alquimia_data->chem_aux_data);
-  free(alquimia_data->chem_aux_output);
+  tfree(alquimia_data->chem_state);
+  tfree(alquimia_data->chem_properties);
+  tfree(alquimia_data->chem_aux_data);
+  tfree(alquimia_data->chem_aux_output);
   FreeAlquimiaProblemMetaData(&alquimia_data->chem_metadata);
 
   // Destroy chemistry engine.
@@ -200,6 +200,6 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
                         &alquimia_data->chem_status);
   FreeAlquimiaEngineStatus(&alquimia_data->chem_status);
   
-  free(alquimia_data->print_flags);
-  free(alquimia_data);
+  tfree(alquimia_data->print_flags);
+  tfree(alquimia_data);
 }
