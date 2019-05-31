@@ -39,9 +39,6 @@
 ***************************************************************************/
 
 #include "parflow.h"
-#include "alquimia/alquimia_interface.h"
-#include "alquimia/alquimia_memory.h"
-#include "alquimia/alquimia_util.h"
 #include "pf_alquimia.h"
 
 
@@ -513,7 +510,10 @@ void      SolverImpes()
 
       if (chem_flag) /*Initialize the geochemical system*/
       {
-      	amps_Printf("Initializing chemical system\n");
+      	if (!amps_Rank(amps_CommWorld))
+          {
+            amps_Printf("Initializing geochemical system \n");
+          }
 
         sat_rt = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
 
@@ -1164,6 +1164,12 @@ void      SolverImpes()
         {
           /* Solve for the concentration values at this time-step. */
           indx = 0;
+
+          if (!amps_Rank(amps_CommWorld))
+          {
+            amps_Printf("Reactive transport iteration %d \n",iteration_number);
+            amps_Printf("Iteration start time: %f dt: %f.\n",t,dt);
+          }
           for (phase = 0; phase < ProblemNumPhases(problem); phase++)
           {
             InitVectorAll(sat_rt, 1.0);

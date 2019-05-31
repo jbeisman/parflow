@@ -24,24 +24,19 @@
  *  License along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  *  USA
- *
- *
- **********************************************************************EHEADER */
+**********************************************************************EHEADER*/
 
-#ifndef PF_ALQUIMIA_H
-#define PF_ALQUIMIA_H
+#ifndef PROBLEM_BC_CONCEN_H
+#define PROBLEM_BC_CONCEN_H
 
-#include "chem_advance.h"
-#include "chem_allocate.h"
-#include "chem_datastructs.h"
-#include "chem_datatransfer.h"
-#include "chem_destroy.h"
-#include "chem_initialize.h"
-#include "chem_printdata.h"
-#include "chem_processconds.h"
-#include "chem_utilities.h"
-#include "problem_bc_concen.h"
-#include "problem_geochem_cond.h"
-#include "set_chem_data.h"
+/* problem_bc_concen.c */
+typedef void (*BCConcentrationInvoke) (Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states, GrGeomSolid *gr_domain);
+void BCConcentration(Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states, GrGeomSolid *gr_domain);
+PFModule *BCConcentrationInitInstanceXtra(void);
+void BCConcentrationFreeInstanceXtra(void);
+PFModule *BCConcentrationNewPublicXtra(void);
+void BCConcentrationFreePublicXtra(void);
+int BCConcentrationSizeOfTempData(void);
 
 #endif
+

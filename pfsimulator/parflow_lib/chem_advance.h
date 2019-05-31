@@ -24,24 +24,22 @@
  *  License along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  *  USA
- *
- *
- **********************************************************************EHEADER */
+**********************************************************************EHEADER*/
 
-#ifndef PF_ALQUIMIA_H
-#define PF_ALQUIMIA_H
+#ifndef CHEM_ADVANCE_H
+#define CHEM_ADVANCE_H
 
-#include "chem_advance.h"
-#include "chem_allocate.h"
 #include "chem_datastructs.h"
-#include "chem_datatransfer.h"
-#include "chem_destroy.h"
-#include "chem_initialize.h"
-#include "chem_printdata.h"
-#include "chem_processconds.h"
-#include "chem_utilities.h"
-#include "problem_bc_concen.h"
-#include "problem_geochem_cond.h"
-#include "set_chem_data.h"
+
+
+/* chem_advance.c*/
+typedef void (*AdvanceChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char* file_prefix);
+typedef PFModule *(*AdvanceChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
+void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char* file_prefix);
+PFModule *AdvanceChemistryInitInstanceXtra(Problem *problem, Grid *grid);
+void AdvanceChemistryFreeInstanceXtra(void);
+PFModule *AdvanceChemistryNewPublicXtra(void);
+void AdvanceChemistryFreePublicXtra(void);
+int AdvanceChemistrySizeOfTempData(void);
 
 #endif

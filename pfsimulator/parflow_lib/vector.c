@@ -65,12 +65,10 @@ CommPkg  *NewVectorCommPkg(
   {
     PARFLOW_ERROR("NewVectorCommPkg can't be used with number subgrids > 1");
   }
-  else
-  {
+  
     new_commpkg = NewCommPkg(ComputePkgSendRegion(compute_pkg),
                              ComputePkgRecvRegion(compute_pkg),
                              VectorDataSpace(vector), 1, SubvectorData(VectorSubvector(vector, 0)));
-  }
 
   return new_commpkg;
 }

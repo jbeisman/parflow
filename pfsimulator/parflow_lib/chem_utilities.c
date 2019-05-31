@@ -136,19 +136,6 @@ int SubgridNumCells(Grid *grid, ProblemData *problem_data)
 
 
 
-void FindIndexFromNameCaseInsensitive(const char* const name,
-                               const AlquimiaVectorString* const names,
-                               int* index) {
-  int i;
-  *index = -1;
-  for (i = 0; i < names->size; ++i) {
-    if (AlquimiaCaseInsensitiveStringCompare(name, names->data[i])) {
-      *index = i;
-      break;
-    }
-  }
-} 
-
 
 void SelectReactTransTimeStep(double max_velocity, double CFL, 
                 double PF_dt, double *advect_react_dt, 

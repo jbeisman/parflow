@@ -44,7 +44,6 @@
 #include "parflow.h"
 #include "pf_alquimia.h"
 #include "alquimia/alquimia_constants.h"
-#include "alquimia/alquimia_interface.h"
 #include "alquimia/alquimia_memory.h"
 #include "alquimia/alquimia_util.h"
 

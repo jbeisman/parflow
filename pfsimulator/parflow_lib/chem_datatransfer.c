@@ -33,9 +33,7 @@
 *****************************************************************************/
 
 #include "parflow.h"
-#include "alquimia/alquimia_interface.h"
-#include "alquimia/alquimia_memory.h"
-#include "alquimia/alquimia_util.h"
+#include "alquimia/alquimia_containers.h"
 #include "pf_alquimia.h"
 
 

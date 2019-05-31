@@ -1100,7 +1100,7 @@ void  BCPressurePackageFreePublicXtra()
           //RMM
           case 8:
           {
-            int interval_number;
+            //int interval_number;
 
             dummy8 = (Type8*)(public_xtra->data[i]);
 

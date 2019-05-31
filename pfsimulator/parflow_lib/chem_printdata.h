@@ -24,24 +24,17 @@
  *  License along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  *  USA
- *
- *
- **********************************************************************EHEADER */
+**********************************************************************EHEADER*/
 
-#ifndef PF_ALQUIMIA_H
-#define PF_ALQUIMIA_H
+#ifndef CHEM_PRINTDATA_H
+#define CHEM_PRINTDATA_H
 
-#include "chem_advance.h"
-#include "chem_allocate.h"
-#include "chem_datastructs.h"
-#include "chem_datatransfer.h"
-#include "chem_destroy.h"
-#include "chem_initialize.h"
-#include "chem_printdata.h"
-#include "chem_processconds.h"
-#include "chem_utilities.h"
-#include "problem_bc_concen.h"
-#include "problem_geochem_cond.h"
-#include "set_chem_data.h"
-
+/* chem_printdata.c */
+void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata,
+                        double t, int file_number, char* file_prefix, int *any_file_dumped, Vector **concentrations, 
+                        Vector **total_immobilePF, Vector **mineral_specific_surfacePF, Vector **mineral_volume_fractionsPF, Vector **surface_site_densityPF, 
+                        Vector **cation_exchange_capacityPF, Vector *pH, Vector **aqueous_kinetic_ratePF, Vector **mineral_saturation_indexPF, 
+                        Vector **mineral_reaction_ratePF, Vector **primary_free_ion_concentrationPF, Vector **primary_activity_coeffPF, 
+                        Vector **secondary_free_ion_concentrationPF, Vector **secondary_activity_coeffPF);
 #endif
+

@@ -34,10 +34,6 @@
 *****************************************************************************/
 #include "parflow.h"
 #include "pf_alquimia.h"
-#include "alquimia/alquimia_memory.h"
-#include "alquimia/alquimia_util.h"
-
-
 
 
 void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata, double t, int file_number, 

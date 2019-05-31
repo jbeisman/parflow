@@ -24,24 +24,20 @@
  *  License along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  *  USA
- *
- *
- **********************************************************************EHEADER */
+**********************************************************************EHEADER*/
 
-#ifndef PF_ALQUIMIA_H
-#define PF_ALQUIMIA_H
+#ifndef SET_CHEM_DATA_H
+#define SET_CHEM_DATA_H
 
-#include "chem_advance.h"
-#include "chem_allocate.h"
-#include "chem_datastructs.h"
-#include "chem_datatransfer.h"
-#include "chem_destroy.h"
-#include "chem_initialize.h"
-#include "chem_printdata.h"
-#include "chem_processconds.h"
-#include "chem_utilities.h"
-#include "problem_bc_concen.h"
-#include "problem_geochem_cond.h"
-#include "set_chem_data.h"
+/* set_chem_data.c */
+typedef void (*SetChemDataInvoke) (ProblemData *problem_data);
+typedef PFModule *(*SetChemDataInitInstanceXtraInvoke) (Problem *problem, Grid *grid);
+void SetChemData(ProblemData *problem_data);
+PFModule *SetChemDataInitInstanceXtra(Problem *problem, Grid *grid);
+void SetChemDataFreeInstanceXtra(void);
+PFModule *SetChemDataNewPublicXtra(void);
+void SetChemDataFreePublicXtra(void);
+int SetChemDataSizeOfTempData(void);
 
 #endif
+

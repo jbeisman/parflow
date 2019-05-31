@@ -45,9 +45,6 @@
 #include <string.h>
 #include <float.h>
 #include <limits.h>
-#include "alquimia/alquimia_interface.h"
-#include "alquimia/alquimia_memory.h"
-#include "alquimia/alquimia_util.h"
 #include "pf_alquimia.h"
 
 #define PF_CLM_MAX_ROOT_NZ 20
@@ -1084,7 +1081,10 @@ SetupRichards(PFModule * this_module)
 
     if (GlobalsChemistryFlag) /*Initialize the geochemical system*/
       {
-        amps_Printf("Initializing chemical system\n");
+        if (!amps_Rank(amps_CommWorld))
+          {
+            amps_Printf("Initializing geochemical system \n");
+          }
 
         instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
 
@@ -2284,7 +2284,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
       /******************************************/
       if (public_xtra->nc_evap_trans_file_transient)
       {
-        sprintf(filename, public_xtra->nc_evap_trans_filename);
+        sprintf(filename, "%s", public_xtra->nc_evap_trans_filename);
         /*KKu: evaptrans is the name of the variable expected in NetCDF file */
         /*Here looping similar to pfb is not implemented. All steps are assumed to be
          * present in the single NetCDF file*/

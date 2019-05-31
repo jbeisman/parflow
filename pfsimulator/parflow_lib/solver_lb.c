@@ -1107,17 +1107,16 @@ void      SolverDiffusion()
 
             InitVectorAll(ctemp, 0.0);
             Copy(concentrations[indx], ctemp);
-/*
+
             PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
-                               (problem_data, phase, concen,
-                                ctemp, concentrations[indx],
-                                phase_x_velocity[phase],
-                                phase_y_velocity[phase],
+                                (problem_data, phase, concen,
+                                ctemp, concentrations[indx], 
+                                phase_x_velocity[phase], 
+                                phase_y_velocity[phase], 
                                 phase_z_velocity[phase],
-                                solidmassfactor,
-                                t, dt, advect_order, 
-                                saturations[0], saturations[0],  // dummy saturations and iteration numbers
-                                iteration_number,iteration_number)); */
+                                solidmassfactor, saturations[0], saturations[0],
+                                t, dt, advect_order,
+                                iteration_number,iteration_number)); 
             indx++;
           }
         }
