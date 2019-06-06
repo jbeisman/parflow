@@ -158,3 +158,92 @@ void SelectReactTransTimeStep(double max_velocity, double CFL,
 
 }
 
+
+
+//void CutTimeStepandSolveRecursively(AlquimiaInterface chem, AlquimiaState *chem_state, AlquimiaProperties *chem_properties, void *chem_engine, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaEngineStatus *chem_status, double original_dt, int level)
+
+//void CutTimeStepandSolveRecursively(AlquimiaDataPF * alquimia_data, double original_dt, int level, int chem_index)
+//{
+//  double half_dt;
+//  double dt_epsilon;
+//  double t;
+//  
+//  half_dt = 0.5 * original_dt;
+//  dt_epsilon = original_dt * 1e-9;
+//  t = 0.0;
+//
+//  if (level < 10)
+//  {
+//
+//    while (fabs(t - original_dt) > dt_epsilon)
+//    {
+//      // Solve the geochemical system with a dt of half the original_dt
+//     // chem.ReactionStepOperatorSplit(&chem_engine,
+//     //                                      half_dt, chem_properties,
+//     //                                      chem_state,
+//     //                                      chem_aux_data,
+//     //                                      chem_status);
+//
+//      alquimia_data->chem.ReactionStepOperatorSplit(&alquimia_data->chem_engine,
+//                                             half_dt, &alquimia_data->chem_properties[chem_index],
+//                                             &alquimia_data->chem_state[chem_index],
+//                                             &alquimia_data->chem_aux_data[chem_index],
+//                                             &alquimia_data->chem_status);
+//      //if (!chem_status->converged)
+//      if (!(alquimia_data->chem_status.converged))
+//      {
+//        //CutTimeStepandSolveRecursively(chem, chem_state, chem_properties, chem_engine, chem_aux_data, chem_status, half_dt, level+1);
+//
+//        CopyAlquimiaState(&alquimia_data->chem_state_temp, &alquimia_data->chem_state[chem_index]);
+//        CopyAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data_temp ,&alquimia_data->chem_aux_data[chem_index]);
+//        CopyAlquimiaProperties(&alquimia_data->chem_properties_temp, &alquimia_data->chem_properties[chem_index]);
+//
+//
+//                CutTimeStepandSolveRecursively(alquimia_data, half_dt, level+1, chem_index);
+//
+//      }
+//
+//      CopyAlquimiaState(&alquimia_data->chem_state[chem_index], &alquimia_data->chem_state_temp);
+//      CopyAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data[chem_index], &alquimia_data->chem_aux_data_temp);
+//      CopyAlquimiaProperties(&alquimia_data->chem_properties[chem_index], &alquimia_data->chem_properties_temp);
+//
+//
+//      t += half_dt;
+//    }
+//  }
+//  else
+//  {
+//    amps_Printf("Geochemical engine failed to converge. Timestep halved 10 times to %e seconds.\n",half_dt);
+//    PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
+//  }
+//}
+
+
+
+void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_state, AlquimiaProperties *chem_properties, void *chem_engine, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaEngineStatus *chem_status, double original_dt)
+{
+  double tenth_dt;  
+  tenth_dt = 0.1 * original_dt;
+
+  amps_Printf("Original dt of %e seconds reduced to %e seconds.\n",original_dt,tenth_dt);
+
+  for (int i = 0; i < 10; i++)
+  {
+      // Solve the geochemical system with a dt of half the original_dt
+      chem.ReactionStepOperatorSplit(&chem_engine,
+                                           tenth_dt, chem_properties,
+                                           chem_state,
+                                           chem_aux_data,
+                                           chem_status);
+   if (!chem_status->converged)
+    {
+
+      amps_Printf("Geochemical engine failed to converge. Timestep halved 10 times to %e seconds.\n",tenth_dt);
+      PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
+
+    }
+  }
+}
+
+
+

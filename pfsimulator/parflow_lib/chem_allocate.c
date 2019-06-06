@@ -196,5 +196,10 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
       AllocateAlquimiaAuxiliaryOutputData(&alquimia_data->chem_sizes, &alquimia_data->chem_aux_output[chem_index]);
     });
   }
+  AllocateAlquimiaState(&alquimia_data->chem_sizes, &alquimia_data->chem_state_temp);
+  AllocateAlquimiaAuxiliaryData(&alquimia_data->chem_sizes, &alquimia_data->chem_aux_data_temp);
+  AllocateAlquimiaProperties(&alquimia_data->chem_sizes, &alquimia_data->chem_properties_temp);
+
+
 }
 

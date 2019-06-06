@@ -194,6 +194,12 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
   tfree(alquimia_data->chem_aux_output);
   FreeAlquimiaProblemMetaData(&alquimia_data->chem_metadata);
 
+  // free temp alquimia data
+  FreeAlquimiaState(&alquimia_data->chem_state_temp);
+  FreeAlquimiaProperties(&alquimia_data->chem_properties_temp);
+  FreeAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data_temp);
+
+
   // Destroy chemistry engine.
   alquimia_data->chem.Shutdown(&alquimia_data->chem_engine, 
                         &alquimia_data->chem_status);

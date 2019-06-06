@@ -37,6 +37,7 @@
 #include "parflow.h"
 #include "pf_alquimia.h"
 #include "alquimia/alquimia_interface.h"
+#include "alquimia/alquimia_util.h"
 
 /*--------------------------------------------------------------------------
  * Structures
@@ -72,7 +73,7 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
 
   gr_domain = ProblemDataGrDomain(problem_data);
 
-  double water_density = 900.0;    // density of water in kg/m**3
+  double water_density = 998.0;    // density of water in kg/m**3
   double aqueous_pressure = 101325.0; // pressure in Pa.
   Subgrid       *subgrid;
   Subvector     *por_sub, *sat_sub;
@@ -133,11 +134,17 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
 
       // Set the thermodynamic state.
       alquimia_data->chem_state[chem_index].water_density = water_density;
-      alquimia_data->chem_state[chem_index].temperature = 20.0;
+      alquimia_data->chem_state[chem_index].temperature = 25.0;
       alquimia_data->chem_state[chem_index].porosity = por[por_index];
       alquimia_data->chem_state[chem_index].aqueous_pressure = aqueous_pressure;
 
-      // Invoke the chemical initial condition.
+      //copy pre-solution state and aux data to temp containers in case non-convergence is an issue
+      CopyAlquimiaState(&alquimia_data->chem_state[chem_index], &alquimia_data->chem_state_temp);
+      CopyAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data[chem_index], &alquimia_data->chem_aux_data_temp);
+      CopyAlquimiaProperties(&alquimia_data->chem_properties[chem_index], &alquimia_data->chem_properties_temp);
+
+
+      // Solve the geochemical system
       alquimia_data->chem.ReactionStepOperatorSplit(&alquimia_data->chem_engine,
                                              dt_seconds, &alquimia_data->chem_properties[chem_index],
                                              &alquimia_data->chem_state[chem_index],
@@ -147,7 +154,20 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
       {
         amps_Printf("ReactionStepOperatorSplit() error: %s\n", 
                     alquimia_data->chem_status.message);
-        exit(0);
+        PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
+      }
+
+
+      if (!(alquimia_data->chem_status.converged))
+      {
+        amps_Printf("Geochemical engine failed to converge in cell %d %d %d, cutting timestep.\n",i,j,k);
+                
+        CopyAlquimiaState(&alquimia_data->chem_state_temp, &alquimia_data->chem_state[chem_index]);
+      	CopyAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data_temp ,&alquimia_data->chem_aux_data[chem_index]);
+      	CopyAlquimiaProperties(&alquimia_data->chem_properties_temp, &alquimia_data->chem_properties[chem_index]);
+
+        CutTimeStepandSolveSingleCell(alquimia_data->chem, &alquimia_data->chem_state[chem_index], &alquimia_data->chem_properties[chem_index], 
+          alquimia_data->chem_engine, &alquimia_data->chem_aux_data[chem_index], &alquimia_data->chem_status, dt_seconds);
       }
 
 
@@ -161,7 +181,7 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
       {
         amps_Printf("GetAuxiliaryOutput() auxiliary output fetch failed: %s\n", 
                     alquimia_data->chem_status.message);
-        exit(0);
+        PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
       }
 
     });
@@ -312,7 +332,7 @@ PFModule   *AdvanceChemistryNewPublicXtra()
     else if (switch_value > 22)
     {
       //PF in years
-      public_xtra->time_conversion_factor = 3600.0 * 24.0 * 365.25;
+      public_xtra->time_conversion_factor = 3600.0 * 24.0 * 365.00;
     }
 
   NA_FreeNameArray(switch_na);

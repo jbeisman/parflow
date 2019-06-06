@@ -113,6 +113,12 @@ typedef struct _AlquimiaDataPF {
   //printing flags
   ChemPrintFlags *print_flags;
 
+  // temporary containers to hold single cell solution
+  AlquimiaState chem_state_temp;
+  AlquimiaAuxiliaryData chem_aux_data_temp;
+  AlquimiaProperties chem_properties_temp;
+
+
 } AlquimiaDataPF;
 
 #endif

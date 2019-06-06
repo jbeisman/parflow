@@ -507,6 +507,7 @@ void      SolverImpes()
       /*****************************************************************/
       /*          Call the geochemical engine         */
       /*****************************************************************/
+      printf("DUMP FILES: %d\n",dump_files);
 
       if (chem_flag) /*Initialize the geochemical system*/
       {
@@ -1168,7 +1169,7 @@ void      SolverImpes()
           if (!amps_Rank(amps_CommWorld))
           {
             amps_Printf("Reactive transport iteration %d \n",iteration_number);
-            amps_Printf("Iteration start time: %f dt: %f.\n",t,dt);
+            amps_Printf("Iteration start time: %f dt: %f.\n",t-dt,dt);
           }
           for (phase = 0; phase < ProblemNumPhases(problem); phase++)
           {
@@ -1217,7 +1218,7 @@ void      SolverImpes()
                          (problem_data, instance_xtra->alquimia_data,
                           concentrations, saturations[0], dt, t, 
                           &any_file_dumped, dump_files,
-                          file_number-1, file_prefix));
+                          file_number, file_prefix));
      }
 
 
