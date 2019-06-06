@@ -507,7 +507,6 @@ void      SolverImpes()
       /*****************************************************************/
       /*          Call the geochemical engine         */
       /*****************************************************************/
-      printf("DUMP FILES: %d\n",dump_files);
 
       if (chem_flag) /*Initialize the geochemical system*/
       {
