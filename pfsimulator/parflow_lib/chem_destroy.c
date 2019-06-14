@@ -64,7 +64,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
   //num_primary - concen (total_mobile), primary activity and free ion
   if (num_primary > 0)
   {
-    for(int concen = 0; concen < num_primary; concen++)
+    for (int concen = 0; concen < num_primary; concen++)
     {
       FreeVector(alquimia_data->primary_free_ion_concentrationPF[concen]);
       FreeVector(alquimia_data->primary_activity_coeffPF[concen]);
@@ -78,7 +78,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
 
   if (num_minerals > 0)
   {
-    for(int mineral = 0; mineral < num_minerals; mineral++)
+    for (int mineral = 0; mineral < num_minerals; mineral++)
     {
       FreeVector(alquimia_data->mineral_volume_fractionsPF[mineral]);
       FreeVector(alquimia_data->mineral_specific_surfacePF[mineral]);
@@ -95,7 +95,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
 
   if (num_surf_sites > 0)
   {
-    for(int surf = 0; surf < num_surf_sites; surf++)
+    for (int surf = 0; surf < num_surf_sites; surf++)
     {
       FreeVector(alquimia_data->surface_site_densityPF[surf]);
     }
@@ -106,7 +106,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
 
   if (num_ion_exchange_sites > 0)
   {
-    for(int ion = 0; ion < num_ion_exchange_sites; ion++)
+    for (int ion = 0; ion < num_ion_exchange_sites; ion++)
     {
       FreeVector(alquimia_data->cation_exchange_capacityPF[ion]);
     }
@@ -117,7 +117,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
 
   if (num_aqueous_kinetics > 0)
   {
-    for(int rate = 0; rate < num_aqueous_kinetics; rate++)
+    for (int rate = 0; rate < num_aqueous_kinetics; rate++)
     {
       FreeVector(alquimia_data->aqueous_kinetic_ratePF[rate]);
     }
@@ -128,7 +128,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
 
   if (num_aqueous_complexes > 0)
   {
-    for(int complex = 0; complex < num_aqueous_complexes; complex++)
+    for (int complex = 0; complex < num_aqueous_complexes; complex++)
     {
       FreeVector(alquimia_data->secondary_free_ion_concentrationPF[complex]);
       FreeVector(alquimia_data->secondary_activity_coeffPF[complex]);
@@ -141,7 +141,7 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
 
   if (num_sorbed > 0)
   {
-    for(int sorbed = 0; sorbed < num_primary; sorbed++)
+    for (int sorbed = 0; sorbed < num_primary; sorbed++)
     {
       FreeVector(alquimia_data->total_immobilePF[sorbed]);
     }

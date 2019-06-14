@@ -130,7 +130,7 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
       {
         printf("ProcessGeochemICs: initialization error: %s\n", 
                alquimia_data->chem_status.message);
-        exit(0);
+        PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
       }
 
       alquimia_data->chem.GetAuxiliaryOutput(&alquimia_data->chem_engine, 
@@ -143,7 +143,7 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
       {
         amps_Printf("GetAuxiliaryOutput() auxiliary output fetch failed: %s\n", 
               alquimia_data->chem_status.message);
-        exit(0);
+        PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
       }
 
     });

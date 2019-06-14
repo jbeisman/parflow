@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 2.0
-pfset ComputationalGrid.DY                   2.0
-pfset ComputationalGrid.DZ	                 0.3
+pfset ComputationalGrid.DX	                 1.0
+pfset ComputationalGrid.DY                   1.0
+pfset ComputationalGrid.DZ	                 3.0
 
-pfset ComputationalGrid.NX                      50
-pfset ComputationalGrid.NY                      50
-pfset ComputationalGrid.NZ                      10
+pfset ComputationalGrid.NX                      100
+pfset ComputationalGrid.NY                      100
+pfset ComputationalGrid.NZ                      1
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs
@@ -389,12 +389,12 @@ pfset GeochemCondition.Geom.source_region.Value "initial"
 pfset GeochemCondition.Geom.concen_region.Value "west"
 
 pfset BCConcentration.GeochemCondition.Names "west"
-pfset BCConcentration.PatchNames "left front"
+pfset BCConcentration.PatchNames "left"
 pfset Patch.left.BCConcentration.Type Constant
 pfset Patch.left.BCConcentration.Value west
 
-pfset Patch.front.BCConcentration.Type Constant
-pfset Patch.front.BCConcentration.Value west
+#pfset Patch.front.BCConcentration.Type Constant
+#pfset Patch.front.BCConcentration.Value west
 
 #pfset Solver.WriteSiloConcentration True
 pfset Chemistry.ParFlowTimeUnits days
@@ -413,7 +413,7 @@ pfset Chemistry.WriteSiloSecondaryFreeIon True
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
 pfset Solver.MaxIter 5000
-pfset Solver.CFL 0.9
+pfset Solver.CFL 0.8
 pfset Solver.AdvectOrder 2
 pfset Solver.RelTol 1.0e-35
 pfset Solver.AbsTol 1.0e-50

@@ -336,11 +336,12 @@
       do k=ks2-1,ke2+1
         do j=js2-1,je2+1
           do i=is2-1,ie2+1
+
             sat_diff=(sat(i,j,k) - old_sat(i,j,k)) * num_iter_inv
 
-           stemp(i,j,k)= ((iter*sat_diff + old_sat(i,j,k))*phi(i,j,k)*s(i,j,k) + &
-           ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
-           (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+            stemp(i,j,k)= ((iter*sat_diff + old_sat(i,j,k))*phi(i,j,k)*s(i,j,k) + &
+            ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
+            (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
 
           enddo
         enddo
@@ -352,67 +353,67 @@
      
       if (order == 2) then
 
-      !! remove high order and transverse waves at
-      !! global boundary
-      if (is == gx) then
-        sxtemp(is,js:je+1,ks:ke+1) = 0.0_dp
-        sytemp(is,js:je+1,ks:ke+1) = 0.0_dp
-        sztemp(is,js:je+1,ks:ke+1) = 0.0_dp
-      endif
+        !! remove high order and transverse waves at
+        !! global boundary
+        if (is == gx) then
+          sxtemp(is,js:je+1,ks:ke+1) = 0.0_dp
+          sytemp(is,js:je+1,ks:ke+1) = 0.0_dp
+          sztemp(is,js:je+1,ks:ke+1) = 0.0_dp
+        endif
 
-      if (js == gy) then
-        sxtemp(is:ie+1,js,ks:ke+1) = 0.0_dp
-        sytemp(is:ie+1,js,ks:ke+1) = 0.0_dp
-        sztemp(is:ie+1,js,ks:ke+1) = 0.0_dp
-      endif
+        if (js == gy) then
+          sxtemp(is:ie+1,js,ks:ke+1) = 0.0_dp
+          sytemp(is:ie+1,js,ks:ke+1) = 0.0_dp
+          sztemp(is:ie+1,js,ks:ke+1) = 0.0_dp
+        endif
 
-      if (ks == gz) then
-        sxtemp(is:ie+1,js:je+1,ks) = 0.0_dp
-        sytemp(is:ie+1,js:je+1,ks) = 0.0_dp
-        sztemp(is:ie+1,js:je+1,ks) = 0.0_dp
-      endif
+        if (ks == gz) then
+          sxtemp(is:ie+1,js:je+1,ks) = 0.0_dp
+          sytemp(is:ie+1,js:je+1,ks) = 0.0_dp
+          sztemp(is:ie+1,js:je+1,ks) = 0.0_dp
+        endif
 
-      if (ie == gnx) then
-        sxtemp(ie,js:je+1,ks:ke+1) = 0.0_dp
-        sytemp(ie,js:je+1,ks:ke+1) = 0.0_dp
-        sztemp(ie,js:je+1,ks:ke+1) = 0.0_dp
-      endif
+        if (ie == gnx) then
+          sxtemp(ie,js:je+1,ks:ke+1) = 0.0_dp
+          sytemp(ie,js:je+1,ks:ke+1) = 0.0_dp
+          sztemp(ie,js:je+1,ks:ke+1) = 0.0_dp
+        endif
 
-      if (je == gny) then
-        sxtemp(is:ie+1,je,ks:ke+1) = 0.0_dp
-        sytemp(is:ie+1,je,ks:ke+1) = 0.0_dp
-        sztemp(is:ie+1,je,ks:ke+1) = 0.0_dp
-      endif
+        if (je == gny) then
+          sxtemp(is:ie+1,je,ks:ke+1) = 0.0_dp
+          sytemp(is:ie+1,je,ks:ke+1) = 0.0_dp
+          sztemp(is:ie+1,je,ks:ke+1) = 0.0_dp
+        endif
 
-      if (ke == gnz) then
-        sxtemp(is:ie+1,js:je+1,ke) = 0.0_dp
-        sytemp(is:ie+1,js:je+1,ke) = 0.0_dp
-        sztemp(is:ie+1,js:je+1,ke) = 0.0_dp
-      endif
+        if (ke == gnz) then
+          sxtemp(is:ie+1,js:je+1,ke) = 0.0_dp
+          sytemp(is:ie+1,js:je+1,ke) = 0.0_dp
+          sztemp(is:ie+1,js:je+1,ke) = 0.0_dp
+        endif
 
-      !!gather 2nd order anti-diffusive correction and transverse terms
-      sx=sx+sxtemp
-      sy=sy+sytemp
-      sz=sz+sztemp
+        !!gather 2nd order anti-diffusive correction and transverse terms
+        sx=sx+sxtemp
+        sy=sy+sytemp
+        sz=sz+sztemp
 
-      !!call limiter to enforce min/max
-      call limit(smax,smin,stemp,sx,sy,sz,fx,fy,fz,&
-        dlo,dhi,dt,dx_inv,dy_inv,dz_inv,vx,wx,uy,wy,uz,vz)
+        !!call limiter to enforce min/max
+        call limit(smax,smin,stemp,sx,sy,sz,fx,fy,fz,&
+          dlo,dhi,dt,dx_inv,dy_inv,dz_inv,vx,wx,uy,wy,uz,vz)
 
-      do k=ks,ke
-        do j=js,je
-          do i=is,ie
-       
-            sat_diff=(sat(i,j,k)-old_sat(i,j,k)) * num_iter_inv
-      
-            sn(i,j,k)=sn(i,j,k) + ((dt*dx_inv)*(fx(i,j,k)*sx(i,j,k) - fx(i+1,j,k)*sx(i+1,j,k)) & 
-            + (dt*dy_inv)*(fy(i,j,k)*sy(i,j,k)-fy(i,j+1,k)*sy(i,j+1,k)) + & 
-            (dt*dz_inv)*(fz(i,j,k)*sz(i,j,k)-fz(i,j,k+1)*sz(i,j,k+1))) / &
-            (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+        do k=ks,ke
+          do j=js,je
+            do i=is,ie
 
+              sat_diff=(sat(i,j,k)-old_sat(i,j,k)) * num_iter_inv
+
+              sn(i,j,k)=sn(i,j,k) + ((dt*dx_inv)*(fx(i,j,k)*sx(i,j,k) - fx(i+1,j,k)*sx(i+1,j,k)) &
+              + (dt*dy_inv)*(fy(i,j,k)*sy(i,j,k)-fy(i,j+1,k)*sy(i,j+1,k)) + &
+              (dt*dz_inv)*(fz(i,j,k)*sz(i,j,k)-fz(i,j,k+1)*sz(i,j,k+1))) / &
+              (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+
+            enddo
           enddo
         enddo
-      enddo    
 
       endif
 

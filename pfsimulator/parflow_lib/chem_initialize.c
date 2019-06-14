@@ -172,8 +172,8 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   CreateAlquimiaInterface(public_xtra->engine_name, &alquimia_data->chem, &alquimia_data->chem_status);
   	if (alquimia_data->chem_status.error != 0) 
   	{
-  	  	alquimia_error("Alquimia interface creation error: %s", alquimia_data->chem_status.message);
-  	  	exit(0);
+  	  alquimia_error("Alquimia interface creation error: %s", alquimia_data->chem_status.message);
+      PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
   	}
   	else if (!amps_Rank(amps_CommWorld))
   	{
@@ -191,13 +191,13 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   	if (alquimia_data->chem_status.error != 0) 
   	{
-  	  	alquimia_error("Alquimia interface setup error: %s", alquimia_data->chem_status.message);
-  	  	exit(1);
+  	  alquimia_error("Alquimia interface setup error: %s", alquimia_data->chem_status.message);
+      PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
   	}
   	else if (!amps_Rank(amps_CommWorld))
   	{
-  	  	amps_Printf("Successful setup() of Alquimia interface\n");
-        PrintAlquimiaSizes(&alquimia_data->chem_sizes,stdout);
+  	  amps_Printf("Successful setup() of Alquimia interface\n");
+      PrintAlquimiaSizes(&alquimia_data->chem_sizes,stdout);
   	}
 
 
@@ -207,7 +207,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   {
     amps_Printf("Input Error: mismatch between PF number of Contaminants.Names: <%d> and Alquimia num_primary: <%d>\n",
       ProblemNumContaminants(problem), alquimia_data->chem_sizes.num_primary);
-    exit(0);
+    PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
   }
 
 
@@ -230,7 +230,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	if (alquimia_data->chem_status.error != 0) 
   	{
     	alquimia_error("Alquimia GetProblemMetaData() error: %s", alquimia_data->chem_status.message);
-    	exit(1);
+    	PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
   	}
   	else if (!amps_Rank(amps_CommWorld))
   	{
@@ -243,7 +243,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	if (alquimia_data->chem_status.error != 0) 
   	{
     	alquimia_error("Alquimia ProcessGeochemICs() error: %s", alquimia_data->chem_status.message);
-    	exit(1);
+      PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
   	}
   	else if (!amps_Rank(amps_CommWorld))
   	{
@@ -256,7 +256,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	if (alquimia_data->chem_status.error != 0) 
   	{
     	alquimia_error("Alquimia ProcessGeochemBCs() error: %s", alquimia_data->chem_status.message);
-    	exit(1);
+      PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
   	}
   	else if (!amps_Rank(amps_CommWorld))
   	{
