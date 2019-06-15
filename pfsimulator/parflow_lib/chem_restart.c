@@ -1,12 +1,6 @@
 /*BHEADER*********************************************************************
  *
- *  Copyright (c) 1995-2009, Lawrence Livermore National Security,
- *  LLC. Produced at the Lawrence Livermore National Laboratory. Written
- *  by the Parflow Team (see the CONTRIBUTORS file)
- *  <parflow@lists.llnl.gov> CODE-OCEC-08-103. All rights reserved.
- *
  *  This file is part of Parflow. For details, see
- *  http://www.llnl.gov/casc/parflow
  *
  *  Please read the COPYRIGHT file or Our Notice and the LICENSE file
  *  for the GNU Lesser General Public License.
@@ -28,14 +22,15 @@
 
 /*****************************************************************************
 *
-* Module for initializing the geochemical problem. This code reads the PF input 
+* Module for restarting the geochemical problem. This code reads the PF input 
 * file chemistry options, starts the alquimia interface, allocates the alquimia 
-* and PF data storage, and processes and assigns geochemical initial and boundary
-* conditions. The data is saved in a large struct, AlquimiaDataPF. Initial 
+* and PF data storage, reads a single pfb retart file and populates state,
+* properties, and aux_data. Boundary conditions are processed and assigned. 
+* The data is saved in a large struct, AlquimiaDataPF. Initial 
 * variables are printed if the user has requested them.  
 *
 *-----------------------------------------------------------------------------
-*
+* Author: Joe Beisman
 *****************************************************************************/
 
 
@@ -55,7 +50,7 @@ typedef struct {
   int time_index;
   char *engine_name;
   char *chemistry_input_file;
-  int num_ic_conds;
+  char *chemistry_restart_file;
   int num_bc_conds;
   int print_primary_mobile;
   int silo_primary_mobile;
@@ -86,7 +81,6 @@ typedef struct {
   int print_sorbed;
   int silo_sorbed;
   PFModule *set_chem_data;
-  NameArray ic_cond_na;
   NameArray bc_cond_na;
 } PublicXtra;
 
@@ -98,10 +92,10 @@ typedef struct {
 } InstanceXtra;
 
 /*--------------------------------------------------------------------------
- * InitializeChemistry
+ * RestartChemistry
  *--------------------------------------------------------------------------*/
 
-void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, int *any_file_dumped, int dump_files, double t, int file_number, char* file_prefix)
+void RestartChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, int *any_file_dumped, int dump_files, double t, int file_number, char* file_prefix)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -232,18 +226,8 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
     	amps_Printf("Successful GetProblemMetaData() of Alquimia interface\n");
   	}
 
- 
-  // process geochem conds on a cell by cell basis, fill alquimia data structs
-  ProcessGeochemICs(alquimia_data, grid, problem_data, public_xtra->num_ic_conds, public_xtra->ic_cond_na, saturation);
-  	if (alquimia_data->chem_status.error != 0) 
-  	{
-    	alquimia_error("Alquimia ProcessGeochemICs() error: %s", alquimia_data->chem_status.message);
-      PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
-  	}
-  	else if (!amps_Rank(amps_CommWorld))
-  	{
-    	amps_Printf("Successful ProcessGeochemICs() of Alquimia interface\n");
-  	}
+  // read restart file, put data into chem_state, chem_properties, chem_aux_data
+  ReadChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, public_xtra->chemistry_restart_file);
 
 
   // process assigned boundary conditions
@@ -295,19 +279,15 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
       alquimia_data->secondary_activity_coeffPF);
   }
 
-  // WriteChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, file_prefix, "TEST_CHKPT");
-
- // ReadChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, "richards_calcite.out.TEST_CHKPT.pfb");
-
 EndTiming(public_xtra->time_index);
 }
 
 
 /*--------------------------------------------------------------------------
- * InitializeChemistryInitInstanceXtra
+ * RestartChemistryInitInstanceXtra
  *--------------------------------------------------------------------------*/
 
-PFModule  *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid)
+PFModule  *RestartChemistryInitInstanceXtra(Problem *problem, Grid *grid)
 {
   PFModule      *this_module = ThisPFModule;
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
@@ -364,16 +344,14 @@ PFModule  *InitializeChemistryInitInstanceXtra(Problem *problem, Grid *grid)
 }
 
 
-
 /*--------------------------------------------------------------------------
- * InitializeChemistryFreeInstanceXtra
+ * RestartChemistryFreeInstanceXtra
  *--------------------------------------------------------------------------*/
 
-void  InitializeChemistryFreeInstanceXtra()
+void  RestartChemistryFreeInstanceXtra()
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
-
 
   if (instance_xtra)
   {
@@ -386,15 +364,15 @@ void  InitializeChemistryFreeInstanceXtra()
 
 
 /*--------------------------------------------------------------------------
- * InitializeChemistryNewPublicXtra
+ * RestartChemistryNewPublicXtra
  *--------------------------------------------------------------------------*/
 
-PFModule   *InitializeChemistryNewPublicXtra()
+PFModule   *RestartChemistryNewPublicXtra()
 {
   PFModule     *this_module = ThisPFModule;
   PublicXtra   *public_xtra;
   char key[IDB_MAX_KEY_LEN];
-  char* ic_cond_names, *bc_cond_names;
+  char *bc_cond_names;
   NameArray      switch_na;
   char          *switch_name;
   int            switch_value;
@@ -402,7 +380,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
 
   public_xtra = ctalloc(PublicXtra, 1);
   (public_xtra->set_chem_data) = PFModuleNewModule(SetChemData, ());
-  (public_xtra->time_index) = RegisterTiming("Chemistry Initialization");
+  (public_xtra->time_index) = RegisterTiming("Chemistry Restart");
 
 
   sprintf(key, "Chemistry.Engine");
@@ -418,15 +396,13 @@ PFModule   *InitializeChemistryNewPublicXtra()
   sprintf(key, "Chemistry.InputFile");
   public_xtra->chemistry_input_file = GetString(key);
 
+  sprintf(key, "Chemistry.RestartFile");
+  public_xtra->chemistry_restart_file = GetString(key);
+
   
   bc_cond_names = GetStringDefault("BCConcentration.GeochemCondition.Names","");
   public_xtra->bc_cond_na = NA_NewNameArray(bc_cond_names);
   public_xtra->num_bc_conds = NA_Sizeof(public_xtra->bc_cond_na);
-
-  ic_cond_names = GetStringDefault("GeochemCondition.Names","");
-  public_xtra->ic_cond_na = NA_NewNameArray(ic_cond_names);
-  public_xtra->num_ic_conds = NA_Sizeof(public_xtra->ic_cond_na);
-
   
 
    sprintf(key, "Chemistry.PrintPrimaryMobile");
@@ -753,7 +729,6 @@ PFModule   *InitializeChemistryNewPublicXtra()
   {
     WriteSiloInit(GlobalsOutFileName);
   }
-
   
   NA_FreeNameArray(switch_na);
   PFModulePublicXtra(this_module) = public_xtra;
@@ -762,10 +737,10 @@ PFModule   *InitializeChemistryNewPublicXtra()
 
 
 /*--------------------------------------------------------------------------
- * InitializeChemistryFreePublicXtra
+ * RestartChemistryFreePublicXtra
  *--------------------------------------------------------------------------*/
 
-void InitializeChemistryFreePublicXtra()
+void RestartChemistryFreePublicXtra()
 {
   PFModule    *this_module = ThisPFModule;
   PublicXtra  *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
@@ -774,7 +749,6 @@ void InitializeChemistryFreePublicXtra()
   if (public_xtra)
   {
     PFModuleFreeModule(public_xtra->set_chem_data);
-    NA_FreeNameArray(public_xtra->ic_cond_na);
     NA_FreeNameArray(public_xtra->bc_cond_na);
     tfree(public_xtra);
   }
@@ -782,10 +756,10 @@ void InitializeChemistryFreePublicXtra()
 
 
 /*--------------------------------------------------------------------------
- * InitializeChemistrySizeOfTempData
+ * RestartChemistrySizeOfTempData
  *--------------------------------------------------------------------------*/
 
-int InitializeChemistrySizeOfTempData()
+int RestartChemistrySizeOfTempData()
 {
 
   int sz = 0;

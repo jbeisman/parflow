@@ -17,6 +17,7 @@ set (SRC_FILES advect_new.F90
   chem_initconds.c
   chem_initialize.c
   chem_printdata.c
+  chem_restart.c
   chem_utilities.c
   comm_pkg.c
   communication.c

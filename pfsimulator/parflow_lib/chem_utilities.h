@@ -42,7 +42,7 @@ void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_s
 
 //void CutTimeStepandSolveRecursively(AlquimiaDataPF * alquimia_data, double original_dt, int level, int chem_index);
 
-void WriteChemChkpt(Grid *grid, ProblemData *problem_data, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data,AlquimiaProperties *chem_properties, char *file_prefix, char *file_suffix);
+void WriteChemChkpt(Grid *grid, ProblemData *problem_data, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *file_prefix, char *file_suffix);
 
 void ReadChemChkpt(Grid *grid,  ProblemData *problem_data, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *filename);
 

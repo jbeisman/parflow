@@ -1,12 +1,6 @@
 /*BHEADER*********************************************************************
  *
- *  Copyright (c) 1995-2009, Lawrence Livermore National Security,
- *  LLC. Produced at the Lawrence Livermore National Laboratory. Written
- *  by the Parflow Team (see the CONTRIBUTORS file)
- *  <parflow@lists.llnl.gov> CODE-OCEC-08-103. All rights reserved.
- *
  *  This file is part of Parflow. For details, see
- *  http://www.llnl.gov/casc/parflow
  *
  *  Please read the COPYRIGHT file or Our Notice and the LICENSE file
  *  for the GNU Lesser General Public License.
@@ -24,25 +18,21 @@
  *  License along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  *  USA
- *
- *
- **********************************************************************EHEADER */
+ **********************************************************************EHEADER*/
 
-#ifndef PF_ALQUIMIA_H
-#define PF_ALQUIMIA_H
 
-#include "chem_advance.h"
-#include "chem_allocate.h"
-#include "chem_datastructs.h"
-#include "chem_datatransfer.h"
-#include "chem_destroy.h"
-#include "chem_initialize.h"
-#include "chem_printdata.h"
-#include "chem_processconds.h"
-#include "chem_restart.h"
-#include "chem_utilities.h"
-#include "problem_bc_concen.h"
-#include "problem_geochem_cond.h"
-#include "set_chem_data.h"
+#ifndef CHEM_RESTART_H
+#define CHEM_RESTART_H
+
+/* chem_initialize.c*/
+typedef void (*RestartChemistryInvoke) (ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, int *any_file_dumped, int dump_files, double t, int file_number, char* file_prefix);
+typedef PFModule *(*RestartChemistryInitInstanceXtraType) (Problem *problem, Grid *grid);
+void RestartChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, int *any_file_dumped, int dump_files, double t, int file_number, char* file_prefix);
+PFModule *RestartChemistryInitInstanceXtra(Problem *problem, Grid *grid);
+void RestartChemistryFreeInstanceXtra(void);
+PFModule *RestartChemistryNewPublicXtra(void);
+void RestartChemistryFreePublicXtra(void);
+int RestartChemistrySizeOfTempData(void);
 
 #endif
+
