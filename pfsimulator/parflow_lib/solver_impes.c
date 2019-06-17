@@ -48,17 +48,16 @@
  *------------------------------------------------------------------------*/
 
 typedef struct {
-  PFModule          *discretize_pressure;
-  PFModule          *diag_scale;
-  PFModule          *linear_solver;
-  PFModule          *permeability_face;
-  PFModule          *phase_velocity_face;
-  PFModule          *total_velocity_face;
-  PFModule          *advect_satur;
-  PFModule          *advect_concen;
-  PFModule          *set_problem_data;
-
-  Problem           *problem;
+  PFModule *discretize_pressure;
+  PFModule *diag_scale;
+  PFModule *linear_solver;
+  PFModule *permeability_face;
+  PFModule *phase_velocity_face;
+  PFModule *total_velocity_face;
+  PFModule *advect_satur;
+  PFModule *advect_concen;
+  PFModule *set_problem_data;
+  Problem *problem;
 
   int sadvect_order;
   int advect_order;
@@ -80,41 +79,39 @@ typedef struct {
   int write_silo_satur;                           /* print saturations? */
   int write_silo_concen;                          /* print concentrations? */
 
-  PFModule          *init_chem;
-  PFModule          *advance_chem;
+  PFModule *init_chem;
+  PFModule *advance_chem;
 } PublicXtra;
 
 typedef struct {
-  PFModule          *discretize_pressure;
-  PFModule          *diag_scale;
-  PFModule          *linear_solver;
-  PFModule          *permeability_face;
-  PFModule          *phase_velocity_face;
-  PFModule          *total_velocity_face;
-  PFModule          *advect_satur;
-  PFModule          *advect_concen;
-  PFModule          *set_problem_data;
+  PFModule *discretize_pressure;
+  PFModule *diag_scale;
+  PFModule *linear_solver;
+  PFModule *permeability_face;
+  PFModule *phase_velocity_face;
+  PFModule *total_velocity_face;
+  PFModule *advect_satur;
+  PFModule *advect_concen;
+  PFModule *set_problem_data;
+  PFModule *retardation;
+  PFModule *phase_density;
+  PFModule *phase_mobility;
+  PFModule *ic_phase_satur;
+  PFModule *ic_phase_concen;
+  PFModule *bc_phase_saturation;
+  PFModule *constitutive;
 
-  PFModule          *retardation;
-  PFModule          *phase_density;
-  PFModule          *phase_mobility;
-  PFModule          *ic_phase_satur;
-  PFModule          *ic_phase_concen;
-  PFModule          *bc_phase_saturation;
-  PFModule          *constitutive;
+  Grid *grid;
+  Grid *grid2d;
+  Grid *x_grid;
+  Grid *y_grid;
+  Grid *z_grid;
 
-  Grid              *grid;
-  Grid              *grid2d;
-  Grid              *x_grid;
-  Grid              *y_grid;
-  Grid              *z_grid;
-
-  ProblemData       *problem_data;
-  double            *temp_data;
-  PFModule          *init_chem;
-  PFModule          *advance_chem;
-  AlquimiaDataPF    *alquimia_data;
-  
+  ProblemData *problem_data;
+  double *temp_data;
+  PFModule *init_chem;
+  PFModule *advance_chem;
+  AlquimiaDataPF *alquimia_data;
 } InstanceXtra;
 
 
@@ -232,8 +229,8 @@ void      SolverImpes()
 
   // Alquimia
   int chem_flag = GlobalsChemistryFlag;
-  PFModule     *init_chem = (instance_xtra->init_chem);
-  PFModule     *advance_chem = (instance_xtra->advance_chem);
+  PFModule *init_chem = (instance_xtra->init_chem);
+  PFModule *advance_chem = (instance_xtra->advance_chem);
   Vector *sat_rt = NULL;
 
 
@@ -519,12 +516,11 @@ void      SolverImpes()
 
         instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
 
-
-        PFModuleInvokeType(InitializeChemistryInvoke, init_chem, 
+        PFModuleInvokeType(InitializeChemistryInvoke, init_chem,
                           (problem_data, instance_xtra->alquimia_data,
-                           concentrations, saturations[0], 
-                           &any_file_dumped, dump_files, t, 
-                           file_number, file_prefix));
+                          concentrations, saturations[0],
+                          &any_file_dumped, dump_files, t,
+                          file_number, file_prefix));
       }
 
       /*----------------------------------------------------------------
@@ -1709,14 +1705,15 @@ PFModule *SolverImpesInitInstanceXtra()
 
     if (chem_flag)
     {
-      (instance_xtra->init_chem) = 
+      (instance_xtra->init_chem) =
       PFModuleNewInstanceType(InitializeChemistryInitInstanceXtraType,
-                              (public_xtra->init_chem),
-                              (problem, grid));
-      (instance_xtra->advance_chem) = 
+                             (public_xtra->init_chem),
+                             (problem, grid));
+
+      (instance_xtra->advance_chem) =
       PFModuleNewInstanceType(AdvanceChemistryInitInstanceXtraType,
-                              (public_xtra->advance_chem),
-                              (problem, grid));
+                             (public_xtra->advance_chem),
+                             (problem, grid));
     }
 
     if (is_multiphase)
@@ -1770,14 +1767,15 @@ PFModule *SolverImpesInitInstanceXtra()
     PFModuleReNewInstance((instance_xtra->phase_mobility), ());
     PFModuleReNewInstance((instance_xtra->ic_phase_concen), ());
     PFModuleReNewInstance((instance_xtra->phase_density), ());
+    
     if (chem_flag)
     {
       PFModuleReNewInstanceType(InitializeChemistryInitInstanceXtraType,
-                             (instance_xtra->init_chem),
-                             (problem, grid));
+                               (instance_xtra->init_chem),
+                               (problem, grid));
       PFModuleReNewInstanceType(AdvanceChemistryInitInstanceXtraType,
-                             (instance_xtra->advance_chem),
-                             (problem, grid));
+                               (instance_xtra->advance_chem),
+                               (problem, grid));
     }
 
     if (is_multiphase)
@@ -2076,11 +2074,13 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
 
   (public_xtra->advect_satur) = PFModuleNewModule(SatGodunov, ());
   (public_xtra->advect_concen) = PFModuleNewModule(Godunov, ());
+
   if (chem_flag)
-{
-  (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
-  (public_xtra->advance_chem) = PFModuleNewModule(AdvanceChemistry, ());
-}
+  {
+    (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
+    (public_xtra->advance_chem) = PFModuleNewModule(AdvanceChemistry, ());
+  }
+
   (public_xtra->set_problem_data) = PFModuleNewModule(SetProblemData, ());
 
   (public_xtra->problem) = NewProblem(ImpesSolve);

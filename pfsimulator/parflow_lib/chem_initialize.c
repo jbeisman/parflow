@@ -55,6 +55,8 @@ typedef struct {
   int time_index;
   char *engine_name;
   char *chemistry_input_file;
+  char *chem_restart_file;
+  int chem_restart;
   int num_ic_conds;
   int num_bc_conds;
   int print_primary_mobile;
@@ -178,11 +180,11 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   // read input file, setup chem problem 
   alquimia_data->chem.Setup(public_xtra->chemistry_input_file,
-                     hands_off,
-                     &alquimia_data->chem_engine,
-                     &alquimia_data->chem_sizes,
-                     &alquimia_data->chem_engine_functionality,
-                     &alquimia_data->chem_status);
+                            hands_off,
+                            &alquimia_data->chem_engine,
+                            &alquimia_data->chem_sizes,
+                            &alquimia_data->chem_engine_functionality,
+                            &alquimia_data->chem_status);
 
   	if (alquimia_data->chem_status.error != 0) 
   	{
@@ -194,7 +196,6 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   	  amps_Printf("Successful setup() of Alquimia interface\n");
       PrintAlquimiaSizes(&alquimia_data->chem_sizes,stdout);
   	}
-
 
 
   // assert that PF num_contams == chem.num_primary
@@ -232,18 +233,25 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
     	amps_Printf("Successful GetProblemMetaData() of Alquimia interface\n");
   	}
 
- 
-  // process geochem conds on a cell by cell basis, fill alquimia data structs
-  ProcessGeochemICs(alquimia_data, grid, problem_data, public_xtra->num_ic_conds, public_xtra->ic_cond_na, saturation);
-  	if (alquimia_data->chem_status.error != 0) 
-  	{
-    	alquimia_error("Alquimia ProcessGeochemICs() error: %s", alquimia_data->chem_status.message);
-      PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
-  	}
-  	else if (!amps_Rank(amps_CommWorld))
-  	{
-    	amps_Printf("Successful ProcessGeochemICs() of Alquimia interface\n");
-  	}
+  if (public_xtra->chem_restart)
+  {
+    // read restart file, populate chem_state, chem_properties, chem_aux_data
+    ReadChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, public_xtra->chem_restart_file);
+  }
+  else
+  {
+    // process geochem conds on a cell by cell basis, fill alquimia data structs
+    ProcessGeochemICs(alquimia_data, grid, problem_data, public_xtra->num_ic_conds, public_xtra->ic_cond_na, saturation);
+      if (alquimia_data->chem_status.error != 0)
+      {
+        alquimia_error("Alquimia ProcessGeochemICs() error: %s", alquimia_data->chem_status.message);
+        PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
+      }
+     else if (!amps_Rank(amps_CommWorld))
+     {
+        amps_Printf("Successful ProcessGeochemICs() of Alquimia interface\n");
+     }
+    }
 
 
   // process assigned boundary conditions
@@ -264,7 +272,6 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   // fill concen vector with assigned boundaries
   PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state, gr_domain));
-
   
 
   // print initial concen volume 
@@ -296,8 +303,6 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   }
 
   // WriteChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, file_prefix, "TEST_CHKPT");
-
- // ReadChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, "richards_calcite.out.TEST_CHKPT.pfb");
 
 EndTiming(public_xtra->time_index);
 }
@@ -391,13 +396,13 @@ void  InitializeChemistryFreeInstanceXtra()
 
 PFModule   *InitializeChemistryNewPublicXtra()
 {
-  PFModule     *this_module = ThisPFModule;
-  PublicXtra   *public_xtra;
+  PFModule *this_module = ThisPFModule;
+  PublicXtra *public_xtra;
   char key[IDB_MAX_KEY_LEN];
-  char* ic_cond_names, *bc_cond_names;
-  NameArray      switch_na;
-  char          *switch_name;
-  int            switch_value;
+  char *ic_cond_names, *bc_cond_names;
+  NameArray switch_na;
+  char *switch_name;
+  int switch_value;
   switch_na = NA_NewNameArray("False True");
 
   public_xtra = ctalloc(PublicXtra, 1);
@@ -411,12 +416,29 @@ PFModule   *InitializeChemistryNewPublicXtra()
   if (strcmp(public_xtra->engine_name,kAlquimiaStringCrunchFlow) != 0 
   	 && strcmp(public_xtra->engine_name,kAlquimiaStringPFloTran) != 0)
   {
-    InputError("Error: Invalid value <%s> for key <%s>. Options are 'CrunchFlow' or 'PFloTran'.\n",
+    InputError("Error: Invalid value <%s> for key <%s>. Options are 'CrunchFlow' or 'PFloTran'\n",
                public_xtra->engine_name, key);
   }
 
   sprintf(key, "Chemistry.InputFile");
   public_xtra->chemistry_input_file = GetString(key);
+
+
+  sprintf(key, "Chemistry.RestartFromFile");
+    switch_name = GetStringDefault(key, "False");
+    switch_value = NA_NameToIndex(switch_na, switch_name);
+    if (switch_value < 0)
+    {
+      InputError("Error: Invalid value <%s> for key <%s>. Options are 'True' or 'False'\n",
+                 switch_name, key);
+    }
+    public_xtra->chem_restart = switch_value;
+
+    if (public_xtra->chem_restart)
+    {
+      sprintf(key, "Chemistry.RestartFileName");
+      public_xtra->chem_restart_file = GetString(key);
+    }
 
   
   bc_cond_names = GetStringDefault("BCConcentration.GeochemCondition.Names","");

@@ -39,7 +39,6 @@
 #include "chem_initialize.h"
 #include "chem_printdata.h"
 #include "chem_processconds.h"
-#include "chem_restart.h"
 #include "chem_utilities.h"
 #include "problem_bc_concen.h"
 #include "problem_geochem_cond.h"
