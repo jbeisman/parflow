@@ -36,6 +36,57 @@
 #include "alquimia/alquimia_containers.h"
 #include "pf_alquimia.h"
 
+void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data)
+{
+  Grid          *grid = VectorGrid(concentrations[0]);
+  SubgridArray  *subgrids = GridSubgrids(grid);
+  GrGeomSolid   *gr_domain;
+  Subgrid       *subgrid;
+  Subvector     *concen_sub;
+  int is;
+  int i, j, k;
+  int ix, iy, iz;
+  int nx, ny, nz;
+  int r;
+  int chem_index, pf_index;
+  int concen;
+  double *concen_dat;
+
+  gr_domain = ProblemDataGrDomain(problem_data);
+  int num_primary = chem_sizes->num_primary;
+
+    ForSubgridI(is, subgrids)
+    {
+      subgrid = SubgridArraySubgrid(subgrids, is);
+  
+      ix = SubgridIX(subgrid);
+      iy = SubgridIY(subgrid);
+      iz = SubgridIZ(subgrid);
+  
+      nx = SubgridNX(subgrid);
+      ny = SubgridNY(subgrid);
+      nz = SubgridNZ(subgrid);
+  
+      /* RDF: assume resolution is the same in all 3 directions */
+      r = SubgridRX(subgrid);
+
+      for(concen = 0; concen < num_primary; concen++)
+      {
+
+        concen_sub = VectorSubvector(concentrations[concen],is);
+        concen_dat = SubvectorData(concen_sub);
+  
+        GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+        {
+          pf_index = SubvectorEltIndex(concen_sub, i, j, k);
+          chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
+
+          chem_state[chem_index].total_mobile.data[concen] = concen_dat[pf_index];
+      });
+      }
+    }
+}
+
 
 
 void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data)
@@ -91,12 +142,9 @@ void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations,
         });
       }
 
-      //num_primary - concen (total_mobile), primary activity and free ion
+      //num_primary - primary activity and primary free ion
       for(int concen = 0; concen < num_primary; concen++)
       {
-        pf_sub1 = VectorSubvector(concentrations[concen],is);
-        pf_dat1 = SubvectorData(pf_sub1);
-
         pf_sub2 = VectorSubvector(alquimia_data->primary_free_ion_concentrationPF[concen],is);
         pf_dat2 = SubvectorData(pf_sub2);
 
@@ -105,13 +153,11 @@ void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations,
   
         GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
         {
-          pf_index1 = SubvectorEltIndex(pf_sub1, i, j, k);
           pf_index2 = SubvectorEltIndex(pf_sub2, i, j, k);
           pf_index3 = SubvectorEltIndex(pf_sub3, i, j, k);
 
           chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
 
-          pf_dat1[pf_index1] = alquimia_data->chem_state[chem_index].total_mobile.data[concen];
           pf_dat2[pf_index2] = alquimia_data->chem_aux_output[chem_index].primary_free_ion_concentration.data[concen];
           pf_dat3[pf_index3] = alquimia_data->chem_aux_output[chem_index].primary_activity_coeff.data[concen];
         });
@@ -231,7 +277,7 @@ void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations,
 
 
 
-void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data)
+void ReactedPrimaryToPF(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data)
 {
   Grid          *grid = VectorGrid(concentrations[0]);
   SubgridArray  *subgrids = GridSubgrids(grid);
@@ -276,7 +322,7 @@ void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes,
           pf_index = SubvectorEltIndex(concen_sub, i, j, k);
           chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
 
-          chem_state[chem_index].total_mobile.data[concen] = concen_dat[pf_index];
+          concen_dat[pf_index] = chem_state[chem_index].total_mobile.data[concen];
       });
       }
     }

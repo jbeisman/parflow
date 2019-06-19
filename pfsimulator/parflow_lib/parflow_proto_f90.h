@@ -60,6 +60,109 @@ void ADVECT(double *s, double *sn,
             double *uz,double *vz,double *stemp,double *smin,double *smax,double *sx,
             double *sy,double *sz,double *sxtemp,double *sytemp,double *sztemp);
 
+#if defined(_CRAYMPP)
+#define ADVECT_UPWIND ADVECT_UPWIND
+#elif defined(__bg__)
+#define ADVECT_UPWIND advect_upwind
+#else
+#define ADVECT_UPWIND advect_upwind_
+#endif
+
+#define CALL_ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
+                    dlo, dhi, hx, dt,\
+                    old_sat, sat, iteration, num_iterations,fx,fy,fz,smin,smax)\
+             ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
+                    dlo, dhi, hx, &dt,\
+                    old_sat, sat, &iteration, &num_iterations,fx,fy,fz,smin,smax)
+
+void ADVECT_UPWIND(double *s, double *sn,
+            double *uedge, double *vedge, double *wedge, double *phi,
+            int *dlo, int *dhi, double *hx, double *dt,
+            double *old_sat, double *sat, int *iteration, int *num_iterations,
+            double *fx, double *fy,double *fz, double *smin, double *smax);
+
+
+#if defined(_CRAYMPP)
+#define ADVECT_HIGHORDER ADVECT_HIGHORDER
+#elif defined(__bg__)
+#define ADVECT_HIGHORDER advect_highorder
+#else
+#define ADVECT_HIGHORDER advect_highorder_
+#endif
+
+#define CALL_ADVECT_HIGHORDER(s, uedge, vedge, wedge,\
+                    dlo, dhi, hx, dt,sx,sy,sz)\
+             ADVECT_HIGHORDER(s, uedge, vedge, wedge,\
+                    dlo, dhi, hx, &dt,sx,sy,sz)
+
+void ADVECT_HIGHORDER(double *s, double *uedge, double *vedge, double *wedge, 
+            int *dlo, int *dhi, double *hx, double *dt,
+            double *sx, double *sy,double *sz);
+
+
+
+#if defined(_CRAYMPP)
+#define ADVECT_TRANSVERSE ADVECT_TRANSVERSE
+#elif defined(__bg__)
+#define ADVECT_TRANSVERSE advect_transverse
+#else
+#define ADVECT_TRANSVERSE advect_transverse_
+#endif
+
+#define CALL_ADVECT_TRANSVERSE(s, uedge, vedge, wedge,\
+                    dlo, dhi, hx, dt,vx,wx,uy,wy,uz,vz,sx,sy,sz)\
+             ADVECT_TRANSVERSE(s, uedge, vedge, wedge,\
+                    dlo, dhi, hx, &dt,vx,wx,uy,wy,uz,vz,sx,sy,sz)
+
+void ADVECT_TRANSVERSE(double *s, double *uedge, double *vedge, double *wedge, 
+            int *dlo, int *dhi, double *hx, double *dt,double *vx,double *wx,
+            double *uy,double *wy, 
+            double *uz,double *vz,
+            double *sx, double *sy,double *sz);
+
+
+#if defined(_CRAYMPP)
+#define ADVECT_COMPUTECONCEN ADVECT_COMPUTECONCEN
+#elif defined(__bg__)
+#define ADVECT_COMPUTECONCEN advect_computeconcen
+#else
+#define ADVECT_COMPUTECONCEN advect_computeconcen_
+#endif
+
+#define CALL_ADVECT_COMPUTECONCEN(sn, phi,\
+                    dlo, dhi, hx, dt,old_sat,sat,\
+                    iteration,num_iterations,smin,smax,sx,sy,sz)\
+             ADVECT_COMPUTECONCEN(sn, phi,\
+                    dlo, dhi, hx, &dt,old_sat,sat,\
+                    &iteration,&num_iterations,smin,smax,sx,sy,sz)
+
+void ADVECT_COMPUTECONCEN(double *sn, double *phi, 
+            int *dlo, int *dhi, double *hx, double *dt,
+            double *old_sat, double *sat,int *iteration, int *num_iterations,
+             double *smin, double *smax,
+            double *sx, double *sy,double *sz);
+
+
+
+#if defined(_CRAYMPP)
+#define ADVECT_LIMIT ADVECT_LIMIT
+#elif defined(__bg__)
+#define ADVECT_LIMIT advect_limit
+#else
+#define ADVECT_LIMIT advect_limit_
+#endif
+
+#define CALL_ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,dt,\
+                       p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)\
+             ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,&dt,\
+                       p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
+
+void ADVECT_LIMIT(double *sn, double *sx, double *sy, double *sz, 
+            int *dlo, int *dhi, double *hx, double *dt,
+             double *p_plus,double *p_minus,
+            double *q_plus,double *q_minus, 
+            double *r_plus,double *r_minus);
+
 /* sadvect.f */
 #if defined(_CRAYMPP)
 #define SADVECT SADVECT

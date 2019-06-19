@@ -1212,7 +1212,7 @@ void      SolverImpes()
                             (problem_data, instance_xtra->alquimia_data,
                             concentrations, saturations[0], dt, t,
                             &any_file_dumped, dump_files,
-                            file_number, file_prefix));
+                            file_number-1, file_prefix));
         }
 
 

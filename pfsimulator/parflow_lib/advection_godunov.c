@@ -54,8 +54,6 @@ typedef struct {
   int max_nx;
   int max_ny;
   int max_nz;
-
-  double *stemp;
   double *fx;
   double *fy;
   double *fz;
@@ -67,12 +65,6 @@ typedef struct {
   double *vz;
   double *smin;
   double *smax;
-  double *sx;
-  double *sy;
-  double *sz;
-  double *sxtemp;
-  double *sytemp;
-  double *sztemp;
 } InstanceXtra;
 
 
@@ -82,21 +74,21 @@ typedef struct {
 
 void     Godunov(
                  ProblemData *problem_data,
-                 int          phase,
-                 int          concentration,
-                 Vector *     old_concentration,
-                 Vector *     new_concentration,
-                 Vector *     x_velocity,
-                 Vector *     y_velocity,
-                 Vector *     z_velocity,
-                 Vector *     solid_mass_factor,
-                 Vector *     old_saturation,
-                 Vector *     saturation,
-                 double       time,
-                 double       deltat,
-                 int          order,
-                 int          iteration,
-                 int          num_iterations)
+                 int         phase,
+                 int         concentration,
+                 Vector      *old_concentration,
+                 Vector      *new_concentration,
+                 Vector      *x_velocity,
+                 Vector      *y_velocity,
+                 Vector      *z_velocity,
+                 Vector      *solid_mass_factor,
+                 Vector      *old_saturation,
+                 Vector      *saturation,
+                 double      time,
+                 double      deltat,
+                 int         order,
+                 int         iteration,
+                 int         num_iterations)
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -108,7 +100,6 @@ void     Godunov(
   Vector     *scale = NULL;
   Vector     *right_hand_side = NULL;
 
-  double *stemp  = (instance_xtra->stemp);
   double *fx     = (instance_xtra->fx);
   double *fy     = (instance_xtra->fy);
   double *fz     = (instance_xtra->fz);
@@ -120,13 +111,6 @@ void     Godunov(
   double *vz     = (instance_xtra->vz);
   double *smin   = (instance_xtra->smin);
   double *smax   = (instance_xtra->smax);
-  double *sx     = (instance_xtra->sx);
-  double *sy     = (instance_xtra->sy);
-  double *sz     = (instance_xtra->sz);
-  double *sxtemp = (instance_xtra->sxtemp);
-  double *sytemp = (instance_xtra->sytemp);
-  double *sztemp = (instance_xtra->sztemp);
-
 
 
   WellData         *well_data = ProblemDataWellData(problem_data);
@@ -140,22 +124,12 @@ void     Godunov(
   Vector           *perm_y = ProblemDataPermeabilityY(problem_data);
   Vector           *perm_z = ProblemDataPermeabilityZ(problem_data);
 
-  int gnx = BackgroundNX(GlobalsBackground);
-  int gny = BackgroundNY(GlobalsBackground);
-  int gnz = BackgroundNZ(GlobalsBackground);
-  int gx =  BackgroundX(GlobalsBackground);
-  int gy =  BackgroundY(GlobalsBackground);
-  int gz =  BackgroundZ(GlobalsBackground);
-
   VectorUpdateCommHandle       *handle = NULL;
 
-  SubgridArray     *subgrids;
-  SubregionArray   *subregion_array;
-
+  SubgridArray     *subgrids; 
   Subgrid          *subgrid,
     *well_subgrid,
     *tmp_subgrid;
-  Subregion        *subregion;
   Subvector        *subvector,
     *subvector_smf,
     *subvector_scal,
@@ -167,10 +141,7 @@ void     Godunov(
     *py_sub,
     *pz_sub;
 
-  ComputePkg       *compute_pkg;
-  Region           *compute_reg = NULL;
-
-  int compute_i, sr, sg, well;
+  int sg, well;
   int ix, iy, iz;
   int nx, ny, nz;
   double dx, dy, dz;
@@ -248,69 +219,87 @@ void     Godunov(
   ((nx_cells) * (ny_cells) * (nz_cells)) * (28) +
   ((nx_cells + 2) * (ny_cells + 2) * (nz_cells + 2)) * (22 + 2 + 4);
 
-  compute_pkg = GridComputePkg(VectorGrid(old_concentration), VectorUpdateGodunov);
+  handle = InitVectorUpdate(old_concentration, VectorUpdateGodunov);
+  FinalizeVectorUpdate(handle);
 
-  for (compute_i = 0; compute_i < 2; compute_i++)
+
+  ForSubgridI(sg, GridSubgrids(grid))
   {
-    switch (compute_i)
-    {
-      case 0:
-        handle = InitVectorUpdate(old_concentration, VectorUpdateGodunov);
-        compute_reg = ComputePkgIndRegion(compute_pkg);
-        break;
-
-      case 1:
-        FinalizeVectorUpdate(handle);
-        compute_reg = ComputePkgDepRegion(compute_pkg);
-        break;
-    }
-
-    ForSubregionArrayI(sr, compute_reg)
-    {
-      subregion_array = RegionSubregionArray(compute_reg, sr);
-      subgrid = SubgridArraySubgrid(subgrids, sr);
-
-      /**** Get locations for subvector data of vectors passed in ****/
-      c       = SubvectorData(VectorSubvector(old_concentration, sr));
-      cn      = SubvectorData(VectorSubvector(new_concentration, sr));
-      old_sat = SubvectorData(VectorSubvector(old_saturation, sr));
-      sat     = SubvectorData(VectorSubvector(saturation, sr));
-
-
-      uedge = SubvectorData(VectorSubvector(x_velocity, sr));
-      vedge = SubvectorData(VectorSubvector(y_velocity, sr));
-      wedge = SubvectorData(VectorSubvector(z_velocity, sr));
-      phi   = SubvectorData(VectorSubvector(solid_mass_factor, sr));
-
-      /***** Compute extents of data *****/
-      dlo[0] = SubgridIX(subgrid);
-      dlo[1] = SubgridIY(subgrid);
-      dlo[2] = SubgridIZ(subgrid);
-
-      dhi[0] = SubgridIX(subgrid) + (SubgridNX(subgrid) - 1);
-      dhi[1] = SubgridIY(subgrid) + (SubgridNY(subgrid) - 1);
-      dhi[2] = SubgridIZ(subgrid) + (SubgridNZ(subgrid) - 1);
-
-      /***** Compute the grid spacing *****/
-      hx[0] = SubgridDX(subgrid);
-      hx[1] = SubgridDY(subgrid);
-      hx[2] = SubgridDZ(subgrid);
-
-      ForSubregionI(sg, subregion_array)
-      {
-
-        subregion = SubregionArraySubregion(subregion_array, sg);
-
-        /***** Make the call to the Godunov advection routine *****/
-        CALL_ADVECT(c,cn,uedge,vedge,wedge,phi,dlo,
-                   dhi,hx,dt,order,old_sat,sat,iteration,
-                   num_iterations,gnx,gny,gnz,gx,gy,gz,fx,
-                   fy,fz,vx,wx,uy,wy,uz,vz,stemp,smin,
-                   smax,sx,sy,sz,sxtemp,sytemp,sztemp);
-      }
-    }
+    subgrid = GridSubgrid(grid, sg);
+    
+    /**** Get locations for subvector data of vectors passed in ****/
+    c       = SubvectorData(VectorSubvector(old_concentration, sg));
+    cn      = SubvectorData(VectorSubvector(new_concentration, sg));
+    old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
+    sat     = SubvectorData(VectorSubvector(saturation, sg));
+    uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
+    vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
+    wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
+    phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
+   
+    /***** Compute extents of data *****/
+    dlo[0] = SubgridIX(subgrid);
+    dlo[1] = SubgridIY(subgrid);
+    dlo[2] = SubgridIZ(subgrid);
+    dhi[0] = SubgridIX(subgrid) + (SubgridNX(subgrid) - 1);
+    dhi[1] = SubgridIY(subgrid) + (SubgridNY(subgrid) - 1);
+    dhi[2] = SubgridIZ(subgrid) + (SubgridNZ(subgrid) - 1);
+    
+    /***** Compute the grid spacing *****/
+    hx[0] = SubgridDX(subgrid);
+    hx[1] = SubgridDY(subgrid);
+    hx[2] = SubgridDZ(subgrid);
+    
+    /***** Make the call to the Godunov advection routine *****/
+    CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,phi,dlo,
+                dhi,hx,dt,old_sat,sat,iteration,
+                num_iterations,fx,fy,fz,smin,smax);
   }
 
+
+  handle = InitVectorUpdate(new_concentration, VectorUpdateGodunov);
+  FinalizeVectorUpdate(handle);
+
+
+  ForSubgridI(sg, GridSubgrids(grid))
+  {
+    subgrid = GridSubgrid(grid, sg);
+    
+    /**** Get locations for subvector data of vectors passed in ****/
+    c       = SubvectorData(VectorSubvector(old_concentration, sg));
+    cn      = SubvectorData(VectorSubvector(new_concentration, sg));
+    old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
+    sat     = SubvectorData(VectorSubvector(saturation, sg));
+    uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
+    vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
+    wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
+    phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
+   
+    /***** Compute extents of data *****/
+    dlo[0] = SubgridIX(subgrid);
+    dlo[1] = SubgridIY(subgrid);
+    dlo[2] = SubgridIZ(subgrid);
+    dhi[0] = SubgridIX(subgrid) + (SubgridNX(subgrid) - 1);
+    dhi[1] = SubgridIY(subgrid) + (SubgridNY(subgrid) - 1);
+    dhi[2] = SubgridIZ(subgrid) + (SubgridNZ(subgrid) - 1);
+    
+    /***** Compute the grid spacing *****/
+    hx[0] = SubgridDX(subgrid);
+    hx[1] = SubgridDY(subgrid);
+    hx[2] = SubgridDZ(subgrid);
+
+    CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge,
+                         dlo, dhi, hx, dt, fx, fy, fz);
+
+    CALL_ADVECT_TRANSVERSE(c, uedge, vedge, wedge,
+                          dlo, dhi, hx, dt, vx, wx, uy, wy, uz, vz, fx, fy, fz);
+  
+    CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
+                     vx, wx, uy, wy, uz, vz);
+
+    CALL_ADVECT_COMPUTECONCEN(cn, phi, dlo, dhi, hx, dt, old_sat, sat,
+                             iteration, num_iterations, smin, smax, fx, fy, fz);
+}
   IncFLOPCount(flopest);
 
 
@@ -1063,20 +1052,6 @@ PFModule  *GodunovInitInstanceXtra(
     max_nz = (instance_xtra->max_nz);
 
     /*** set temp data pointers ***/
-    (instance_xtra->stemp) = temp_data;
-    temp_data += (max_nx + 3 + 3) * (max_ny + 3 + 3) * (max_nz + 3 + 3);
-    (instance_xtra->sxtemp) = temp_data;
-    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
-    (instance_xtra->sytemp) = temp_data;
-    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
-    (instance_xtra->sztemp) = temp_data;
-    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
-    (instance_xtra->sx) = temp_data;
-    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
-    (instance_xtra->sy) = temp_data;
-    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
-    (instance_xtra->sz) = temp_data;
-    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
     (instance_xtra->smin) = temp_data;
     temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
     (instance_xtra->smax) = temp_data;

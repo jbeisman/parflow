@@ -14,8 +14,8 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        4
-pfset Process.Topology.Q        1
+pfset Process.Topology.P        1
+pfset Process.Topology.Q        4
 pfset Process.Topology.R        1
 
 #-----------------------------------------------------------------------------
@@ -99,7 +99,7 @@ pfset Geom.source_region.Upper.Z     3.0
 pfset Geom.Perm.Names "background"
 
 pfset Geom.background.Perm.Type     Constant
-pfset Geom.background.Perm.Value    4.0
+pfset Geom.background.Perm.Value    1.0
 
 pfset Perm.TensorType               TensorByGeom
 
@@ -155,7 +155,7 @@ pfset Gravity				1.0
 # Setup timing info
 #-----------------------------------------------------------------------------
 
-pfset TimingInfo.BaseUnit		0.5
+pfset TimingInfo.BaseUnit		1.0
 pfset TimingInfo.StartCount		0
 pfset TimingInfo.StartTime		0.0
 pfset TimingInfo.StopTime            200.0
@@ -168,7 +168,7 @@ pfset TimingInfo.DumpInterval	     1
 pfset Geom.Porosity.GeomNames          background
 
 pfset Geom.background.Porosity.Type    Constant
-pfset Geom.background.Porosity.Value   1.0
+pfset Geom.background.Porosity.Value   0.4456
 
 #-----------------------------------------------------------------------------
 # Domain
@@ -217,23 +217,23 @@ pfset BCPressure.PatchNames "left right front back bottom top"
 #pfset Patch.bottom.BCPressure.RefGeom			domain
 #pfset Patch.bottom.BCPressure.RefPatch			bottom
 #pfset Patch.bottom.BCPressure.alltime.Value		0.0
-pfset Patch.front.BCPressure.Type			DirEquilRefPatch
-pfset Patch.front.BCPressure.Cycle			"constant"
-pfset Patch.front.BCPressure.RefGeom			domain
-pfset Patch.front.BCPressure.RefPatch			bottom
-pfset Patch.front.BCPressure.alltime.Value		5.0
-
-pfset Patch.back.BCPressure.Type			DirEquilRefPatch
-pfset Patch.back.BCPressure.Cycle			"constant"
-pfset Patch.back.BCPressure.RefGeom			domain
-pfset Patch.back.BCPressure.RefPatch			bottom
-pfset Patch.back.BCPressure.alltime.Value		0.0
+#pfset Patch.front.BCPressure.Type			DirEquilRefPatch
+#pfset Patch.front.BCPressure.Cycle			"constant"
+#pfset Patch.front.BCPressure.RefGeom			domain
+#pfset Patch.front.BCPressure.RefPatch			bottom
+#pfset Patch.front.BCPressure.alltime.Value		5.0
+#
+#pfset Patch.back.BCPressure.Type			DirEquilRefPatch
+#pfset Patch.back.BCPressure.Cycle			"constant"
+#pfset Patch.back.BCPressure.RefGeom			domain
+#pfset Patch.back.BCPressure.RefPatch			bottom
+#pfset Patch.back.BCPressure.alltime.Value		0.0
 
 pfset Patch.left.BCPressure.Type			DirEquilRefPatch
 pfset Patch.left.BCPressure.Cycle			"constant"
 pfset Patch.left.BCPressure.RefGeom			domain
 pfset Patch.left.BCPressure.RefPatch			bottom
-pfset Patch.left.BCPressure.alltime.Value		5.0
+pfset Patch.left.BCPressure.alltime.Value		100.0
 
 pfset Patch.right.BCPressure.Type			DirEquilRefPatch
 pfset Patch.right.BCPressure.Cycle			"constant"
@@ -257,13 +257,13 @@ pfset Patch.bottom.BCPressure.alltime.Value		0.0
 #pfset Patch.right.BCPressure.Cycle			"constant"
 #pfset Patch.right.BCPressure.alltime.Value		-0.25
 #
-#pfset Patch.back.BCPressure.Type			FluxConst
-#pfset Patch.back.BCPressure.Cycle			"constant"
-#pfset Patch.back.BCPressure.alltime.Value		0.0
-#
-#pfset Patch.front.BCPressure.Type			FluxConst
-#pfset Patch.front.BCPressure.Cycle			"constant"
-#pfset Patch.front.BCPressure.alltime.Value		-0.25
+pfset Patch.back.BCPressure.Type			FluxConst
+pfset Patch.back.BCPressure.Cycle			"constant"
+pfset Patch.back.BCPressure.alltime.Value		0.0
+
+pfset Patch.front.BCPressure.Type			FluxConst
+pfset Patch.front.BCPressure.Cycle			"constant"
+pfset Patch.front.BCPressure.alltime.Value		0.0
 
 
 
@@ -392,19 +392,19 @@ pfset BCConcentration.PatchNames "left"
 pfset Patch.left.BCConcentration.Type Constant
 pfset Patch.left.BCConcentration.Value west
 
-pfset Chemistry.PrintMineralRate True
+pfset Chemistry.WriteSiloPrimaryMobile True
 pfset Chemistry.ParFlowTimeUnits m
 
 
-pfset Solver.WriteSiloConcentration True
+pfset Solver.WriteSiloConcentration False
 
 #-----------------------------------------------------------------------------
 # The Solver Impes MaxIter default value changed so to get previous
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
 pfset Solver.MaxIter 5000
-pfset Solver.CFL 1.0
-pfset Solver.AdvectOrder 1
+pfset Solver.CFL 0.787
+pfset Solver.AdvectOrder 2
 
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files

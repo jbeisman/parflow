@@ -188,6 +188,8 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
     });
   }
 
+  // copy solved primary concentraions back to PF
+  ReactedPrimaryToPF(alquimia_data->chem_state, &alquimia_data->chem_sizes, concentrations, problem_data);
 
   // print PFB or silo files if user requested
   if (dump_files)
