@@ -188,22 +188,24 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
     });
   }
 
-  // transfer the new chemistry state and aux_output to PF Vectors
-  ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
-
-  // print the concen volume 
-  for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)
-  {
-    field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data), grid, concentrations[concen]);
-    if (!amps_Rank(amps_CommWorld))
-    {
-      amps_Printf("Concentration volume for component %s at time %f = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], t, field_sum);
-    }
-  }
 
   // print PFB or silo files if user requested
   if (dump_files)
   {
+  	// transfer the new chemistry state and aux_output to PF Vectors
+  	ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
+
+  	// print the concen volume
+  	for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)
+  	{
+  	  field_sum = ComputeTotalConcen(ProblemDataGrDomain(problem_data), grid, concentrations[concen]);
+  	  if (!amps_Rank(amps_CommWorld))
+  	  {
+  	  	amps_Printf("Concentration volume for component %s at time %f = %f\n", alquimia_data->chem_metadata.primary_names.data[concen], t, field_sum);
+  	  }
+  	}
+
+  	// print any silo or pfb files if user requested
     PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, 
                       &alquimia_data->chem_metadata, t, file_number, file_prefix, 
                       any_file_dumped, concentrations, 

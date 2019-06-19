@@ -284,7 +284,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
     }
   }
 
-  if (dump_files)
+  if (dump_files && !(public_xtra->chem_restart))
   {
     PrintChemistryData(alquimia_data->print_flags, &alquimia_data->chem_sizes, 
       &alquimia_data->chem_metadata, t, file_number, file_prefix, any_file_dumped,

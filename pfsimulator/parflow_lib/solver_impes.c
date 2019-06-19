@@ -1195,7 +1195,6 @@ void      SolverImpes()
                                 solidmassfactor, sat_rt, sat_rt,
                                 t, dt, advect_order,
                                 iteration_number,iteration_number)); 
-              
               indx++;
             }
           }
@@ -1207,49 +1206,49 @@ void      SolverImpes()
       /*          Call the geochemical engine         */
       /*****************************************************************/
 
-           if (chem_flag) /*advance the geochemical system*/
-     {
-       PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
-                         (problem_data, instance_xtra->alquimia_data,
-                          concentrations, saturations[0], dt, t, 
-                          &any_file_dumped, dump_files,
-                          file_number, file_prefix));
-     }
+        if (chem_flag) /*advance the geochemical system*/
+        {
+          PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem,
+                            (problem_data, instance_xtra->alquimia_data,
+                            concentrations, saturations[0], dt, t,
+                            &any_file_dumped, dump_files,
+                            file_number, file_prefix));
+        }
 
 
           /* Print the concentration values at this time-step? */
-          if (dump_files)
+        if (dump_files)
+        {
+          if (ProblemNumContaminants(problem) > 0)
           {
-            if (ProblemNumContaminants(problem) > 0)
+            indx = 0;
+            for (phase = 0; phase < ProblemNumPhases(problem); phase++)
             {
-              indx = 0;
-              for (phase = 0; phase < ProblemNumPhases(problem); phase++)
+              for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
               {
-                for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
+                if (print_concen)
                 {
-                  if (print_concen)
-                  {
-                    sprintf(file_postfix, "concen.%01d.%02d.%05d", phase, concen, file_number);
-                    WritePFSBinary(file_prefix, file_postfix,
-                                   concentrations[indx], drop_tol);
-                    any_file_dumped = 1;
-                  }
-
-                  if (public_xtra->write_silo_concen)
-                  {
-                    sprintf(file_postfix, "%01d.%02d.%05d", phase, concen, file_number);
-                    sprintf(file_type, "concen");
-                    WriteSilo(file_prefix, file_type, file_postfix, concentrations[indx],
-                              t, file_number, "Concentration");
-                    any_file_dumped = 1;
-                  }
-
-                  indx++;
+                  sprintf(file_postfix, "concen.%01d.%02d.%05d", phase, concen, file_number);
+                  WritePFSBinary(file_prefix, file_postfix,
+                                 concentrations[indx], drop_tol);
+                  any_file_dumped = 1;
                 }
+
+                if (public_xtra->write_silo_concen)
+                {
+                  sprintf(file_postfix, "%01d.%02d.%05d", phase, concen, file_number);
+                  sprintf(file_type, "concen");
+                  WriteSilo(file_prefix, file_type, file_postfix, concentrations[indx],
+                            t, file_number, "Concentration");
+                  any_file_dumped = 1;
+                }
+
+                indx++;
               }
             }
           }
         }
+      }
 
       /******************************************************************/
       /*                  Print the Well Data                           */
