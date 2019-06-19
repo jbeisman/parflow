@@ -45,6 +45,9 @@
 
 typedef struct {
   int time_index;
+  int write_restart_interval;
+  int restart_file_flag;
+  int dump_index;
   double time_conversion_factor;
 } PublicXtra;
 
@@ -58,25 +61,20 @@ typedef struct {
  * AdvanceChemistry
  *--------------------------------------------------------------------------*/
 
-void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char* file_prefix)
+void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char *file_prefix)
 {
   PFModule      *this_module = ThisPFModule;
   InstanceXtra  *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   Grid          *grid = (instance_xtra->grid);
   GrGeomSolid   *gr_domain;
-
-  double field_sum;
-  double dt_seconds;
-
-  BeginTiming(public_xtra->time_index);
-
-  gr_domain = ProblemDataGrDomain(problem_data);
-
-  double water_density = 998.0;    // density of water in kg/m**3
-  double aqueous_pressure = 101325.0; // pressure in Pa.
   Subgrid       *subgrid;
   Subvector     *por_sub, *sat_sub;
+  double field_sum;
+  double dt_seconds;
+  char file_postfix[2048];
+  double water_density = 998.0;    // density of water in kg/m**3
+  double aqueous_pressure = 101325.0; // pressure in Pa.
   int is = 0;
   int i, j, k;
   int ix, iy, iz;
@@ -85,7 +83,10 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
   int r;
   int chem_index, por_index, sat_index;
   double *por, *sat;
- 
+
+  BeginTiming(public_xtra->time_index);
+
+  gr_domain = ProblemDataGrDomain(problem_data);
   SubgridArray  *subgrids = GridSubgrids(grid);
   subgrid = SubgridArraySubgrid(subgrids, is);
 
@@ -218,6 +219,14 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
                       alquimia_data->primary_activity_coeffPF, 
                       alquimia_data->secondary_free_ion_concentrationPF, 
                       alquimia_data->secondary_activity_coeffPF);
+
+    public_xtra->dump_index++;
+
+    if ((public_xtra->restart_file_flag) && (public_xtra->dump_index % public_xtra->write_restart_interval == 0)) // write chemistry checkpoint file
+    {
+    	sprintf(file_postfix, "CHEM_CHKPT.%05d", file_number);
+    	WriteChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, file_prefix, file_postfix);
+    }
   }
 
   EndTiming(public_xtra->time_index);
@@ -309,31 +318,40 @@ PFModule   *AdvanceChemistryNewPublicXtra()
     InputError("Error: invalid print switch value <%s> for key <%s>. Available options are one of <s sec S SECONDS Seconds seconds m min M MINUTES Minutes minutes h hr H HOURS Hours hours d D DAYS Days days y yr Y YEARS Years years>\n", switch_name, key);
   }
 
-  if (switch_value < 6)
+  if (switch_value < 6) //PF in seconds
     {
-      //PF in seconds
       public_xtra->time_conversion_factor = 1.0;
     }
-    else if (switch_value > 5 && switch_value < 12)
+    else if (switch_value > 5 && switch_value < 12) //PF in minutes
     {
-      //PF in minutes
       public_xtra->time_conversion_factor = 60.0;
     }
-    else if (switch_value > 11 && switch_value < 18)
+    else if (switch_value > 11 && switch_value < 18) //PF in hours
     {
-      //PF in hours
       public_xtra->time_conversion_factor = 3600.0; 
     }
-    else if (switch_value > 17 && switch_value < 23)
+    else if (switch_value > 17 && switch_value < 23) //PF in days
     {
-      //PF in days
       public_xtra->time_conversion_factor = 3600.0 * 24.0;
     }
-    else if (switch_value > 22)
+    else if (switch_value > 22) //PF in years
     {
-      //PF in years
       public_xtra->time_conversion_factor = 3600.0 * 24.0 * 365.00;
     }
+
+  sprintf(key, "Chemistry.RestartFileWriteInterval");
+  public_xtra->write_restart_interval = GetIntDefault(key, -1);
+
+  if (public_xtra->write_restart_interval < 0)
+  {
+  	public_xtra->restart_file_flag = 0; // no restart dump interval provided, not writing files
+  }
+  else
+  {
+  	public_xtra->restart_file_flag = 1; // write restart ckpt files
+  }
+  public_xtra->dump_index = 0;
+
 
   NA_FreeNameArray(switch_na);
 

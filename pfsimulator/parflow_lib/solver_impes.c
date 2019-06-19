@@ -1194,7 +1194,7 @@ void      SolverImpes()
                                 phase_z_velocity[phase],
                                 solidmassfactor, sat_rt, sat_rt,
                                 t, dt, advect_order,
-                                iteration_number,iteration_number)); // will need to fix this for multiphase
+                                iteration_number,iteration_number)); 
               
               indx++;
             }

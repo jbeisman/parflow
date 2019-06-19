@@ -227,7 +227,7 @@ void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_s
 
   for (int i = 0; i < 10; i++)
   {
-      // Solve the geochemical system with a dt of half the original_dt
+      // reduce dt by factor of 10, subcycle geochem solve 10 timesu
       chem.ReactionStepOperatorSplit(&chem_engine,
                                     tenth_dt, chem_properties,
                                     chem_state,
@@ -235,7 +235,7 @@ void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_s
                                     chem_status);
    if (!chem_status->converged)
     {
-      amps_Printf("Geochemical engine failed to converge. Timestep halved 10 times to %e seconds.\n",tenth_dt);
+      amps_Printf("Geochemical engine failed to converge at reduced timestep of %e seconds.\n",tenth_dt);
       PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
     }
   }
@@ -291,7 +291,7 @@ void WriteChemChkpt(Grid *grid,
 
   ForSubgridI(is, subgrids)
   {
-      size = 9 * amps_SizeofInt;
+      size += 9 * amps_SizeofInt;
   }
 
   num_cells = SubgridNumCells(grid, problem_data);
@@ -507,6 +507,8 @@ void ReadChemChkpt(Grid *grid,
     int nx, ny, nz;
     int rx, ry, rz;
     int i, j, k;
+
+    (void)subgrid;
 
     amps_ReadInt(file, &ix, 1);
     amps_ReadInt(file, &iy, 1);

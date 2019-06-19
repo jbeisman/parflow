@@ -2821,9 +2821,9 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                               iteration,num_rt_iterations)); // will need to fix this for multiphase
           }
 
-          PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem, 
+          PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem,
                             (problem_data, instance_xtra->alquimia_data,
-                            instance_xtra->concentrations, instance_xtra->saturation, advect_react_dt, advect_react_time, 
+                            instance_xtra->concentrations, instance_xtra->saturation, advect_react_dt, advect_react_time,
                             &any_file_dumped, chem_dump_files,
                             instance_xtra->file_number, file_prefix));
         }
