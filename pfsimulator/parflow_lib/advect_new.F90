@@ -25,17 +25,19 @@
 !  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
 !  USA
 !**********************************************************************EHEADER
-
-!---------------------------------------------------------------------
-!    advect:
-!    Godunov advection routine, Lax-Wendroff fluxes with
-!    monotonized-centered flux limiter + multi-dimensional
-!    limiter to ensure min-max adherence
-!---------------------------------------------------------------------
-
-
-
-
+! advect: this file contains 5 primary subroutines to simulate advective 
+! transport, advect_upwind, advect_highorder, advect_transverse, advect_limit,
+! and advect_computeconcen
+!
+!
+!-------------------------------------------------------------------------------
+!    advect_upwind: computes first-order upwind fluxes, updates concentrations
+!    can handle transient saturations
+!    
+!    the new low-order concentrations should always be positive and monotone 
+!    in time, although small errors (~ 0.3%) may arise in the case of transient 
+!    saturations 
+!-------------------------------------------------------------------------------
       subroutine advect_upwind(s,sn,uedge,vedge,wedge,phi, &
           dlo,dhi,hx,dt,old_sat,sat, &
           iteration,num_iterations,fx,fy,fz,smin,smax)
@@ -51,9 +53,9 @@
       real(dp), intent(in)  :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
       real(dp), intent(in)  :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
       real(dp), intent(in)  :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
-      real(dp), intent(out) :: fx(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
-      real(dp), intent(out) :: fy(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
-      real(dp), intent(out) :: fz(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
+      real(dp), intent(out) :: fx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
+      real(dp), intent(out) :: fy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
+      real(dp), intent(out) :: fz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
       real(dp), intent(in)  :: old_sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1) 
       real(dp), intent(in)  :: sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1)
       real(dp), intent(out) :: smin(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+2) 
@@ -64,7 +66,6 @@
       integer ii,jj,kk
       real(dp) dx,dy,dz,dx_inv,dy_inv,dz_inv
       real(dp) sat_diff,iter,num_iter,num_iter_inv
-      !real(dp) minmod4,minmod2,median
 
       is = dlo(1)
       ie = dhi(1)
@@ -131,6 +132,7 @@
         enddo
       enddo
 
+      ! clear memory for resuse in other advect subroutines
       fx = 0.0_dp
       fy = 0.0_dp
       fz = 0.0_dp
@@ -139,19 +141,26 @@
       end subroutine advect_upwind
 
 
-
-
+!-------------------------------------------------------------------------------
+!    advect_highorder: computes high-order anti-diffusive flux corrections to 
+!    be added to the low-order concentrations computed with advect_upwind
+!    
+!    employs the monotone-centered limiter to ensure montonicity in each 
+!    primary dir
+!
+!    Lax-Wendrof style centered approximation 
+!-------------------------------------------------------------------------------
     subroutine advect_highorder(s,uedge,vedge,wedge, &
           dlo,dhi,hx,dt,sx,sy,sz)
 
       implicit none
-      integer, parameter       :: dp = selected_real_kind(15)
-      integer, intent (in)     :: dlo(3), dhi(3)
-      real(dp), intent (in)    :: hx(3), dt
-      real(dp), intent (in)    :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
-      real(dp), intent (in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
-      real(dp), intent (in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
-      real(dp), intent (in)    :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
+      integer,  parameter    :: dp = selected_real_kind(15)
+      integer,  intent (in)  :: dlo(3), dhi(3)
+      real(dp), intent (in)  :: hx(3), dt
+      real(dp), intent (in)  :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
+      real(dp), intent (in)  :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
+      real(dp), intent (in)  :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
+      real(dp), intent (in)  :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
       real(dp), intent (inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)  
       real(dp), intent (inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
       real(dp), intent (inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
@@ -259,17 +268,21 @@
       end subroutine advect_highorder
 
 
-
-
+!-------------------------------------------------------------------------------
+!    advect_transverse: computes approximate solution to Riemann problems 
+!    emanating from neighboring interfaces 
+!    
+!    computes transverse corrections to both the first-order increment waves
+!    and second-order correction waves
+!-------------------------------------------------------------------------------
       subroutine advect_transverse(s,uedge,vedge,wedge, &
-          dlo,dhi,hx,dt, vx,wx,uy,wy,uz,vz, &
+          dlo,dhi,hx,dt,vx,wx,uy,wy,uz,vz, &
           sx,sy,sz)
 
       implicit none
-      integer, parameter :: dp = selected_real_kind(15)
-      integer dlo(3), dhi(3)
-      real(dp) hx(3), dt
-
+      integer,  parameter     :: dp = selected_real_kind(15)
+      integer,  intent(in)    :: dlo(3), dhi(3)
+      real(dp), intent(in)    :: hx(3), dt
       real(dp), intent(in)    :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
       real(dp), intent(in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
       real(dp), intent(in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
@@ -481,17 +494,23 @@
       end subroutine advect_transverse
 
 
-
+!-------------------------------------------------------------------------------
+!    advect_computeconcen: adds high-order corrections from advect_high-order
+!    and transverse corrections from advect_transverse to low-order solution 
+!    from advect_upwind 
+!
+!    Also accounts for transient saturations    
+!-------------------------------------------------------------------------------
       subroutine advect_computeconcen(sn,phi, &
           dlo,dhi,hx,dt,old_sat,sat, &
           iteration,num_iterations, &
           smin,smax,sx,sy,sz)
 
       implicit none
-      integer, parameter      :: dp = selected_real_kind(15)
-      integer, intent(in)     :: dlo(3), dhi(3)
+      integer,  parameter     :: dp = selected_real_kind(15)
+      integer,  intent(in)    :: dlo(3), dhi(3)
       real(dp), intent(in)    :: hx(3), dt
-      integer, intent(in)     :: iteration,num_iterations
+      integer,  intent(in)    :: iteration,num_iterations
       real(dp), intent(inout) :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
       real(dp), intent(in)    :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
       real(dp), intent(in)    :: smin(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+2) 
@@ -545,7 +564,10 @@
         do j=js,je
           do i=is,ie  
 
-           !!cutoff any values that violate min/max
+           !! cutoff any values that violate min/max
+           !! this typically doesn't happen if the limiter was called
+           !! but transient saturations can sometimes cause small errors, about 0.3%
+           !! this keeps that from happening 
            if (sn(i,j,k) .lt. smin(i,j,k)) sn(i,j,k) = smin(i,j,k)
            if (sn(i,j,k) .gt. smax(i,j,k)) sn(i,j,k) = smax(i,j,k)  
 
@@ -557,13 +579,17 @@
       end subroutine advect_computeconcen
 
 
-
-
+!-------------------------------------------------------------------------------
+!    advect_limit: multi-dimensional limiter to ensure siolution is TVD and that
+!    min-max is not violated
+!
+!    modeled after Zalesak FCT limiter    
+!-------------------------------------------------------------------------------
       subroutine advect_limit(sn,sx,sy,sz,dlo,dhi,hx,dt,&
                        p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
       implicit none
-      integer, parameter      :: dp = selected_real_kind(15)
-      integer, intent(in)     :: dlo(3), dhi(3)
+      integer,  parameter     :: dp = selected_real_kind(15)
+      integer,  intent(in)    :: dlo(3), dhi(3)
       real(dp), intent(in)    :: dt,hx(3)
       real(dp), intent(in)    :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
       real(dp), intent(inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
@@ -579,7 +605,7 @@
       integer  is,ie,js,je,ks,ke,i,j,k 
       real(dp) dx_inv,dy_inv,dz_inv
 
-      !! clear memory
+      !! initialize to 0
       p_plus = 0.0_dp
       p_minus = 0.0_dp
       q_plus = 0.0_dp
@@ -810,11 +836,6 @@
 !      enddo
 !      enddo
 !      end subroutine disperse
-
-
-
-
-
 
       real(selected_real_kind(15)) function mclimit(theta)
       implicit none

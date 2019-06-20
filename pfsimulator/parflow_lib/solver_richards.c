@@ -61,7 +61,6 @@ typedef struct {
 
   Problem *problem;
 
-  int advect_order;
   double CFL;
   double drop_tol;
   int max_iterations;
@@ -2817,7 +2816,6 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                               instance_xtra->old_saturation, 
                               instance_xtra->saturation,
                               advect_react_time, advect_react_dt,
-                              public_xtra->advect_order,
                               iteration,num_rt_iterations)); // will need to fix this for multiphase
           }
 
@@ -4987,8 +4985,6 @@ SolverRichardsNewPublicXtra(char *name)
       ("         wrong times times due to how Parflow discretizes time.\n");
   }
 
-  sprintf(key, "%s.AdvectOrder", name);
-  public_xtra->advect_order = GetIntDefault(key, 1);
 
   sprintf(key, "%s.CFL", name);
   public_xtra->CFL = GetDoubleDefault(key, 0.7);

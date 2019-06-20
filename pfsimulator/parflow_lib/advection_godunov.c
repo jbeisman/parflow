@@ -42,6 +42,7 @@
 
 typedef struct {
   int time_index;
+  int high_order;
 } PublicXtra;
 
 typedef struct {
@@ -86,7 +87,6 @@ void     Godunov(
                  Vector      *saturation,
                  double      time,
                  double      deltat,
-                 int         order,
                  int         iteration,
                  int         num_iterations)
 {
@@ -166,7 +166,6 @@ void     Godunov(
   int dlo[3], dhi[3];
   double hx[3];
   double dt, t;
-  int fstord;
   double cell_volume, field_sum, total_volume, cell_change,
     well_stat, contaminant_stat;
   double well_value, input_c, volume, flux, scaled_flux, weight = 0;
@@ -192,14 +191,6 @@ void     Godunov(
    *-----------------------------------------------------------------------*/
   dt = deltat;
   t = time;
-  if (order == 1)
-  {
-    fstord = TRUE;
-  }
-  else
-  {
-    fstord = FALSE;
-  }
 
   subgrids = GridSubgrids(grid);
 
@@ -256,50 +247,51 @@ void     Godunov(
                 num_iterations,fx,fy,fz,smin,smax);
   }
 
-
-  handle = InitVectorUpdate(new_concentration, VectorUpdateGodunov);
-  FinalizeVectorUpdate(handle);
-
-
-  ForSubgridI(sg, GridSubgrids(grid))
+  if (public_xtra->high_order)
   {
-    subgrid = GridSubgrid(grid, sg);
-    
-    /**** Get locations for subvector data of vectors passed in ****/
-    c       = SubvectorData(VectorSubvector(old_concentration, sg));
-    cn      = SubvectorData(VectorSubvector(new_concentration, sg));
-    old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
-    sat     = SubvectorData(VectorSubvector(saturation, sg));
-    uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
-    vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
-    wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
-    phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
-   
-    /***** Compute extents of data *****/
-    dlo[0] = SubgridIX(subgrid);
-    dlo[1] = SubgridIY(subgrid);
-    dlo[2] = SubgridIZ(subgrid);
-    dhi[0] = SubgridIX(subgrid) + (SubgridNX(subgrid) - 1);
-    dhi[1] = SubgridIY(subgrid) + (SubgridNY(subgrid) - 1);
-    dhi[2] = SubgridIZ(subgrid) + (SubgridNZ(subgrid) - 1);
-    
-    /***** Compute the grid spacing *****/
-    hx[0] = SubgridDX(subgrid);
-    hx[1] = SubgridDY(subgrid);
-    hx[2] = SubgridDZ(subgrid);
+    handle = InitVectorUpdate(new_concentration, VectorUpdateGodunov);
+    FinalizeVectorUpdate(handle);
 
-    CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge,
-                         dlo, dhi, hx, dt, fx, fy, fz);
+    ForSubgridI(sg, GridSubgrids(grid))
+    {
+      subgrid = GridSubgrid(grid, sg);
+      
+      /**** Get locations for subvector data of vectors passed in ****/
+      c       = SubvectorData(VectorSubvector(old_concentration, sg));
+      cn      = SubvectorData(VectorSubvector(new_concentration, sg));
+      old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
+      sat     = SubvectorData(VectorSubvector(saturation, sg));
+      uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
+      vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
+      wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
+      phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
+     
+      /***** Compute extents of data *****/
+      dlo[0] = SubgridIX(subgrid);
+      dlo[1] = SubgridIY(subgrid);
+      dlo[2] = SubgridIZ(subgrid);
+      dhi[0] = SubgridIX(subgrid) + (SubgridNX(subgrid) - 1);
+      dhi[1] = SubgridIY(subgrid) + (SubgridNY(subgrid) - 1);
+      dhi[2] = SubgridIZ(subgrid) + (SubgridNZ(subgrid) - 1);
+      
+      /***** Compute the grid spacing *****/
+      hx[0] = SubgridDX(subgrid);
+      hx[1] = SubgridDY(subgrid);
+      hx[2] = SubgridDZ(subgrid);
 
-    CALL_ADVECT_TRANSVERSE(c, uedge, vedge, wedge,
-                          dlo, dhi, hx, dt, vx, wx, uy, wy, uz, vz, fx, fy, fz);
-  
-    CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
-                     vx, wx, uy, wy, uz, vz);
+        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge,
+                              dlo, dhi, hx, dt, fx, fy, fz);
 
-    CALL_ADVECT_COMPUTECONCEN(cn, phi, dlo, dhi, hx, dt, old_sat, sat,
-                             iteration, num_iterations, smin, smax, fx, fy, fz);
-}
+        CALL_ADVECT_TRANSVERSE(c, uedge, vedge, wedge,
+                               dlo, dhi, hx, dt, vx, wx, uy, wy, uz, vz, fx, fy, fz);
+
+        CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
+                          vx, wx, uy, wy, uz, vz);
+
+        CALL_ADVECT_COMPUTECONCEN(cn, phi, dlo, dhi, hx, dt, old_sat, sat,
+                                  iteration, num_iterations, smin, smax, fx, fy, fz);
+      }
+    }
   IncFLOPCount(flopest);
 
 
@@ -1057,11 +1049,11 @@ PFModule  *GodunovInitInstanceXtra(
     (instance_xtra->smax) = temp_data;
     temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
     (instance_xtra->fx) = temp_data;
-    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
     (instance_xtra->fy) = temp_data;
-    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
     (instance_xtra->fz) = temp_data;
-    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
+    temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
     (instance_xtra->vx) = temp_data;
     temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
     (instance_xtra->wx) = temp_data;
@@ -1103,11 +1095,24 @@ PFModule  *GodunovNewPublicXtra()
 {
   PFModule     *this_module = ThisPFModule;
   PublicXtra   *public_xtra;
-
+  char key[IDB_MAX_KEY_LEN];
+  int order;
 
   public_xtra = ctalloc(PublicXtra, 1);
 
+
   (public_xtra->time_index) = RegisterTiming("Godunov Advection");
+
+  sprintf(key, "Solver.AdvectOrder");
+  order = GetIntDefault(key, 1);
+  if (order == 2)
+  {
+    public_xtra->high_order = 1;
+  }
+  else
+  {
+    public_xtra->high_order = 0;
+  }
 
   PFModulePublicXtra(this_module) = public_xtra;
   return this_module;
@@ -1144,10 +1149,8 @@ int  GodunovSizeOfTempData()
   int sz = 0;
 
   /* add local TempData size to `sz' */
-  sz += (max_nx + 3 + 3) * (max_ny + 3 + 3) * (max_nz + 3 + 3);
-  sz += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3) * 6;
-  sz += (max_nx + 2 + 2) * (max_ny + 2 + 2) * (max_nz + 2 + 2);
-  sz += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2) * 10;
+  sz += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3) * 3;
+  sz += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2) * 8;
 
   return sz;
 }

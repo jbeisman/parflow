@@ -42,7 +42,6 @@ typedef struct {
   Problem           *problem;
 
   int sadvect_order;
-  int advect_order;
   double CFL;
   int max_iterations;
   double rel_tol;                            /* relative tolerance */
@@ -107,7 +106,6 @@ void      SolverDiffusion()
   Problem      *problem = (public_xtra->problem);
 
   int sadvect_order = (public_xtra->sadvect_order);
-  int advect_order = (public_xtra->advect_order);
   double CFL = (public_xtra->CFL);
   int max_iterations = (public_xtra->max_iterations);
   double abs_tol = (public_xtra->abs_tol);
@@ -1115,7 +1113,7 @@ void      SolverDiffusion()
                                 phase_y_velocity[phase], 
                                 phase_z_velocity[phase],
                                 solidmassfactor, saturations[0], saturations[0],
-                                t, dt, advect_order,
+                                t, dt,
                                 iteration_number,iteration_number)); 
             indx++;
           }

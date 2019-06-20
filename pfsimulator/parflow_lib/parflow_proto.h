@@ -1,10 +1,10 @@
 /* Header.c */
 
-typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor , Vector *old_saturation , Vector *saturation, double time , double deltat , int order, int iteration, int num_iterations);
+typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor , Vector *old_saturation , Vector *saturation, double time , double deltat , int iteration, int num_iterations);
 typedef PFModule *(*AdvectionConcentrationInitInstanceXtraType) (Problem *problem , Grid *grid , double *temp_data );
 
 /* advection_godunov.c */
-void Godunov (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor, Vector *old_saturation , Vector *saturation, double time , double deltat , int order, int iteration, int num_iterations);
+void Godunov (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor, Vector *old_saturation , Vector *saturation, double time , double deltat , int iteration, int num_iterations);
 PFModule *GodunovInitInstanceXtra (Problem *problem , Grid *grid , double *temp_data );
 void GodunovFreeInstanceXtra (void );
 PFModule *GodunovNewPublicXtra (void );
