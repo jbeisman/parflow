@@ -89,9 +89,8 @@ void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes,
 
 
 
-void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data)
+void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data)
 {
-  Grid          *grid = VectorGrid(concentrations[0]);
   SubgridArray  *subgrids = GridSubgrids(grid);
   GrGeomSolid   *gr_domain;
   Subgrid       *subgrid;

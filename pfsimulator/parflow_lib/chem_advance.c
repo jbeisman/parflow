@@ -188,14 +188,14 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
     });
   }
 
-  // copy solved primary concentraions back to PF
+  // copy solved primary concentrations back to PF
   ReactedPrimaryToPF(alquimia_data->chem_state, &alquimia_data->chem_sizes, concentrations, problem_data);
 
   // print PFB or silo files if user requested
   if (dump_files)
   {
   	// transfer the new chemistry state and aux_output to PF Vectors
-  	ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
+  	ChemDataToPFVectors(alquimia_data,grid,problem_data);
 
   	// print the concen volume
   	for (int concen = 0; concen < alquimia_data->chem_sizes.num_primary; concen++)

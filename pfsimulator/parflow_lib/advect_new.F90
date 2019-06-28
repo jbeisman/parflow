@@ -29,7 +29,7 @@
 ! transport, advect_upwind, advect_highorder, advect_transverse, advect_limit,
 ! and advect_computeconcen
 !
-!
+! author: Joe Beisman
 !-------------------------------------------------------------------------------
 !    advect_upwind: computes first-order upwind fluxes, updates concentrations
 !    can handle transient saturations
@@ -64,7 +64,7 @@
       integer i,j,k
       integer is,ie,js,je,ks,ke
       integer ii,jj,kk
-      real(dp) dx,dy,dz,dx_inv,dy_inv,dz_inv
+      real(dp) dx_inv,dy_inv,dz_inv
       real(dp) sat_diff,iter,num_iter,num_iter_inv
 
       is = dlo(1)
@@ -73,13 +73,9 @@
       je = dhi(2)
       ks = dlo(3)
       ke = dhi(3)
-      dx = hx(1)
-      dy = hx(2)
-      dz = hx(3)
-      dx_inv = 1.0_dp/dx
-      dy_inv = 1.0_dp/dy
-      dz_inv = 1.0_dp/dz
-
+      dx_inv = 1.0_dp/hx(1)
+      dy_inv = 1.0_dp/hx(2)
+      dz_inv = 1.0_dp/hx(3)
       iter=DBLE(iteration)
       num_iter=DBLE(num_iterations)
       num_iter_inv = 1.0_dp/num_iter
@@ -154,25 +150,25 @@
           dlo,dhi,hx,dt,sx,sy,sz)
 
       implicit none
-      integer,  parameter    :: dp = selected_real_kind(15)
-      integer,  intent (in)  :: dlo(3), dhi(3)
-      real(dp), intent (in)  :: hx(3), dt
-      real(dp), intent (in)  :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
-      real(dp), intent (in)  :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
-      real(dp), intent (in)  :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
-      real(dp), intent (in)  :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
-      real(dp), intent (inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)  
-      real(dp), intent (inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
-      real(dp), intent (inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
+      integer,  parameter      :: dp = selected_real_kind(15)
+      integer,  intent (in)    :: dlo(3), dhi(3)
+      real(dp), intent (in)    :: hx(3), dt
+      real(dp), intent (in)    :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
+      real(dp), intent (in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+      real(dp), intent (in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2)
+      real(dp), intent (in)    :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3)
+      real(dp), intent (inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+      real(dp), intent (inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+      real(dp), intent (inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
       integer i,j,k
       integer is,ie,js,je,ks,ke
-      integer ks1,ke1
-      integer js1,je1
-      integer is1,ie1
+      integer ks1,ke1,js1,je1,is1,ie1
       integer ii2,ii3,jj2,jj3,kk2,kk3
-      real(dp) dx,dy,dz,dx_inv,dy_inv,dz_inv
+      real(dp) dx_inv,dy_inv,dz_inv
       real(dp) half
-      real(dp) rx,ry,rz,mclimit,limx,thetax,thetay,thetaz,limy,limz
+      real(dp) rx,ry,rz
+      real(dp) mclimit,thetax,thetay,thetaz
+      real(dp) limx,limy,limz
 
       is = dlo(1)
       ie = dhi(1)
@@ -180,12 +176,9 @@
       je = dhi(2)
       ks = dlo(3)
       ke = dhi(3)
-      dx = hx(1)
-      dy = hx(2)
-      dz = hx(3)
-      dx_inv = 1.0_dp/dx
-      dy_inv = 1.0_dp/dy
-      dz_inv = 1.0_dp/dz
+      dx_inv = 1.0_dp/hx(1)
+      dy_inv = 1.0_dp/hx(2)
+      dz_inv = 1.0_dp/hx(3)
       half = 0.5_dp
 
       !! make smaller and slightly faster for lower D problems
@@ -302,13 +295,12 @@
       integer ks1,ke1
       integer js1,je1
       integer is1,ie1
-      integer ii2,ii3,jj2,jj3,kk2,kk3
+      integer ii2,jj2,kk2
       integer iiz,iiz2,jjx,jjx2,kky,kky2,iiy,jjz,kkx
-      real(dp) dx,dy,dz,dx_inv,dy_inv,dz_inv
+      real(dp) dx_inv,dy_inv,dz_inv
       real(dp) half,third
       real(dp) rx,ry,rz
       real(dp) transvel
-      !real(dp) minmod4,minmod2,median
 
       is = dlo(1)
       ie = dhi(1)
@@ -316,12 +308,9 @@
       je = dhi(2)
       ks = dlo(3)
       ke = dhi(3)
-      dx = hx(1)
-      dy = hx(2)
-      dz = hx(3)
-      dx_inv = 1.0_dp/dx
-      dy_inv = 1.0_dp/dy
-      dz_inv = 1.0_dp/dz
+      dx_inv = 1.0_dp/hx(1)
+      dy_inv = 1.0_dp/hx(2)
+      dz_inv = 1.0_dp/hx(3)
       half = 0.5_dp
       third = 1.0_dp/3.0_dp
 
@@ -360,26 +349,20 @@
      
           if (uedge(i,j,k) .ge. 0.0)then
             ii2 = i
-            ii3 = i-1
           else
             ii2 = i-1
-            ii3 = i+1
           endif
     
           if (vedge(i,j,k) .ge. 0.0)then
             jj2 = j
-            jj3 = j-1
           else
             jj2 = j-1
-            jj3 = j+1
           endif
 
           if (wedge(i,j,k) .ge. 0.0)then
             kk2 = k
-            kk3 = k-1
           else
             kk2 = k-1
-            kk3 = k+1
           endif
 
     
@@ -484,7 +467,7 @@
           sy(i,jjz,k)      = sy(i,jjz,k) + (1.0_dp - abs(uz(i,j,k)))*vz(i,j,k)*sz(i,j,k)
           sy(iiz2,jjz,k)   = sy(iiz2,jjz,k) + abs(uz(i,j,k))*vz(i,j,k)*sz(i,j,k)
           sy(i,jjz,k-1)    = sy(i,jjz,k-1) - (1.0_dp - abs(uz(i,j,k)))*vz(i,j,k)*sz(i,j,k)
-          sy(iiz2,jjz,k-1) = sy(iiz2,jjz,k-1) - abs(uz(i,j,k))*vz(i,j,k)*sz(i,j,k) 
+          sy(iiz2,jjz,k-1) = sy(iiz2,jjz,k-1) - abs(uz(i,j,k))*vz(i,j,k)*sz(i,j,k)
           
           enddo
         enddo
@@ -523,7 +506,7 @@
  
       integer i,j,k
       integer is,ie,js,je,ks,ke
-      real(dp) dx,dy,dz,dx_inv,dy_inv,dz_inv
+      real(dp) dx_inv,dy_inv,dz_inv
       real(dp) sat_diff,iter,num_iter,num_iter_inv
 
       is = dlo(1)
@@ -532,13 +515,9 @@
       je = dhi(2)
       ks = dlo(3)
       ke = dhi(3)
-      dx = hx(1)
-      dy = hx(2)
-      dz = hx(3)
-      dx_inv = 1.0_dp/dx
-      dy_inv = 1.0_dp/dy
-      dz_inv = 1.0_dp/dz
-
+      dx_inv = 1.0_dp/hx(1)
+      dy_inv = 1.0_dp/hx(2)
+      dz_inv = 1.0_dp/hx(3)
       iter=DBLE(iteration)
       num_iter=DBLE(num_iterations)
       num_iter_inv = 1.0_dp/num_iter

@@ -31,7 +31,7 @@
 
 /* chem_datatransfer.c */
 void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data);
-void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Vector **concentrations, ProblemData *problem_data);
+void ChemDataToPFVectors(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data);
 void ReactedPrimaryToPF(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data);
 
 #endif

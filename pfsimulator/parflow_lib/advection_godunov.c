@@ -198,23 +198,15 @@ void     Godunov(
   ny_cells = IndexSpaceNY(0);
   nz_cells = IndexSpaceNZ(0);
 
-
   /*-----------------------------------------------------------------------
    * Advect on all the subgrids
    *-----------------------------------------------------------------------*/
-  // need to reestimate this, the new scheme is not as efficient
-  flopest =
-  5 + ((nx_cells + 3) * (ny_cells + 3) * (nz_cells + 3)) * (6 + 18 + 3 + 18 + 18 + 21 + 54 + 54) +
-  ((nx_cells + 3) * (ny_cells + 3) * (nz_cells + 3)) * (26) +
-  ((nx_cells + 5) * (ny_cells + 5) * (nz_cells + 5)) * (3) +
-  ((nx_cells) * (ny_cells) * (nz_cells)) * (28) +
-  ((nx_cells + 2) * (ny_cells + 2) * (nz_cells + 2)) * (22 + 2 + 4);
 
   handle = InitVectorUpdate(old_concentration, VectorUpdateGodunov);
   FinalizeVectorUpdate(handle);
 
 
-  ForSubgridI(sg, GridSubgrids(grid))
+  ForSubgridI(sg, subgrids)
   {
     subgrid = GridSubgrid(grid, sg);
     
@@ -241,7 +233,7 @@ void     Godunov(
     hx[1] = SubgridDY(subgrid);
     hx[2] = SubgridDZ(subgrid);
     
-    /***** Make the call to the Godunov advection routine *****/
+    /***** Make the call to the low-order advection routine *****/
     CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,phi,dlo,
                 dhi,hx,dt,old_sat,sat,iteration,
                 num_iterations,fx,fy,fz,smin,smax);
@@ -252,7 +244,7 @@ void     Godunov(
     handle = InitVectorUpdate(new_concentration, VectorUpdateGodunov);
     FinalizeVectorUpdate(handle);
 
-    ForSubgridI(sg, GridSubgrids(grid))
+    ForSubgridI(sg, subgrids)
     {
       subgrid = GridSubgrid(grid, sg);
       
@@ -279,21 +271,23 @@ void     Godunov(
       hx[1] = SubgridDY(subgrid);
       hx[2] = SubgridDZ(subgrid);
 
+        /*compute anti-diffusive fluxes */
         CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge,
                               dlo, dhi, hx, dt, fx, fy, fz);
 
+        /*compute transverse flux contributions */
         CALL_ADVECT_TRANSVERSE(c, uedge, vedge, wedge,
                                dlo, dhi, hx, dt, vx, wx, uy, wy, uz, vz, fx, fy, fz);
 
+        /*multi-dimensional limiter */
         CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
                           vx, wx, uy, wy, uz, vz);
 
+        /*add fluxes to  new concentration, account for transient saturation*/
         CALL_ADVECT_COMPUTECONCEN(cn, phi, dlo, dhi, hx, dt, old_sat, sat,
                                   iteration, num_iterations, smin, smax, fx, fy, fz);
       }
     }
-  IncFLOPCount(flopest);
-
 
   /*-----------------------------------------------------------------------
    * Adjust for degradation

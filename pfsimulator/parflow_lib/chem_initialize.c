@@ -269,7 +269,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
 
   // copy alquimia data to PF Vectors for printing
   ReactedPrimaryToPF(alquimia_data->chem_state, &alquimia_data->chem_sizes, concentrations, problem_data);
-  ChemDataToPFVectors(alquimia_data,concentrations,problem_data);
+  ChemDataToPFVectors(alquimia_data,grid,problem_data);
 
   // fill concen vector with assigned boundaries
   PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state, gr_domain));
