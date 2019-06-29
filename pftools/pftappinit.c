@@ -144,6 +144,8 @@ EXPORT(int, Parflow_Init)(Tcl_Interp * interp)
                     (ClientData)data, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "Parflow::pfdist", (Tcl_CmdProc*)PFDistCommand,
                     (ClientData)data, (Tcl_CmdDeleteProc*)NULL);
+  Tcl_CreateCommand(interp, "Parflow::pfdistchem", (Tcl_CmdProc*)PFDistChemCommand,
+                    (ClientData)data, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "Parflow::pfsave", (Tcl_CmdProc*)SavePFCommand,
                     (ClientData)data, (Tcl_CmdDeleteProc*)NULL);
   Tcl_CreateCommand(interp, "Parflow::pfgetelt", (Tcl_CmdProc*)GetEltCommand,

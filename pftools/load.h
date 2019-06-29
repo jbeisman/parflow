@@ -38,6 +38,7 @@ extern "C" {
 
 /* load.c */
 void LoadParflowB(char *filename, SubgridArray *all_subgrids, Background *background, Databox *databox);
+void LoadChemCkptB(char *filename, SubgridArray *all_subgrids, Background *background, Databox *databox, int num_vars);
 
 #ifdef __cplusplus
 }

@@ -221,6 +221,124 @@ int            PFDistCommand(
 
 
 /*-----------------------------------------------------------------------
+ * routine for `pfdistchem' command
+ * Description: distributes the chemistry checkpoint file to the virtual 
+ * distributed file system.  Based on current database processor topology.
+ *
+ * Cmd. syntax: pfdistchem filename
+ *-----------------------------------------------------------------------*/
+
+int            PFDistChemCommand(
+                             ClientData  clientData,
+                             Tcl_Interp *interp,
+                             int         argc,
+                             char *      argv[])
+{
+  char *filename;
+  char *filetype;
+
+  int num_procs_x;
+  int num_procs_y;
+  int num_procs_z;
+  int num_procs;
+  int num_vars;
+
+  Background    *background;
+  Grid          *user_grid;
+  SubgridArray  *all_subgrids;
+
+  Databox *inbox;
+
+  char command[1024];
+
+  if (argc != 2)
+  {
+    WrongNumArgsError(interp, LOADPFUSAGE);
+    return TCL_ERROR;
+  }
+
+  filename = argv[1];
+
+  /* Make sure the file extension is valid */
+
+  if ((filetype = GetValidFileExtension(filename)) == (char*)NULL)
+  {
+    InvalidFileExtensionError(interp, 1, LOADPFUSAGE);
+    return TCL_ERROR;
+  }
+
+  if (strcmp(filetype, "pfb") == 0)
+  {
+    /*--------------------------------------------------------------------
+     * Get the processor topology from the database
+     *--------------------------------------------------------------------*/
+    num_procs_x = GetInt(interp, "Process.Topology.P");
+    num_procs_y = GetInt(interp, "Process.Topology.Q");
+    num_procs_z = GetInt(interp, "Process.Topology.R");
+
+    num_procs = num_procs_x * num_procs_y * num_procs_z;
+
+
+    /*--------------------------------------------------------------------
+     * Get the initial grid info from the database
+     *--------------------------------------------------------------------*/
+    background = ReadBackground(interp);
+    user_grid = ReadUserGrid(interp);
+
+    /*--------------------------------------------------------------------
+     * Get inbox from input_filename
+     *--------------------------------------------------------------------*/
+
+    inbox = ReadChemCkptB(filename, 0.0, &num_vars);
+
+    /*--------------------------------------------------------------------
+     * Load the data
+     *--------------------------------------------------------------------*/
+
+    all_subgrids = DistributeUserGrid(user_grid, num_procs,
+                                      num_procs_x, num_procs_y, num_procs_z);
+
+    if (!all_subgrids)
+    {
+      printf("Incorrect process allocation input\n");
+      exit(1);
+    }
+
+#ifdef _WIN32
+    sprintf(command, "move %s %s.bak", filename, filename);
+    system(command);
+#else
+    sprintf(command, "mv %s %s.bak", filename, filename);
+    system(command);
+#endif
+
+    LoadChemCkptB(filename, all_subgrids, background, inbox, num_vars);
+
+#ifdef _WIN32
+    sprintf(command, "del %s.bak", filename);
+    system(command);
+#else
+    sprintf(command, "%s.bak", filename);
+    unlink(command);
+#endif
+
+
+    FreeBackground(background);
+    FreeGrid(user_grid);
+    FreeSubgridArray(all_subgrids);
+    FreeDatabox(inbox);
+
+    return TCL_OK;
+  }
+  else
+  {
+    InvalidFileExtensionError(interp, 1, LOADPFUSAGE);
+    return TCL_ERROR;
+  }
+}
+
+
+/*-----------------------------------------------------------------------
  * routine for `pfdistondomain' command
  * Description: distributes the file to the virtual distributed file
  *              system.  Based on supplied domain.

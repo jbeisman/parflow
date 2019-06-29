@@ -94,6 +94,11 @@ typedef struct {
   (DataboxCoeffs(databox) + \
    (k) * DataboxNy(databox) * DataboxNx(databox) + (j) * DataboxNx(databox) + (i))
 
+ /* chem checkpoint databox macro jjb */
+#define DataboxChemCkptCoeff(databox, i, j, k, v) \
+  (DataboxCoeffs(databox) + \
+   (k) * DataboxNy(databox) * DataboxNx(databox) * (v) + (j) * DataboxNx(databox) * (v) + (v) * (i))
+
 
 /* Defines how a grid definition is */
 /* to be interpreted.               */
@@ -104,7 +109,6 @@ typedef enum {
 } GridType;
 
 
-
 /*-----------------------------------------------------------------------
  * function prototypes
  *-----------------------------------------------------------------------*/
@@ -113,6 +117,8 @@ typedef enum {
 Databox *NewDatabox(int nx, int ny, int nz, double x, double y, double z, double dx, double dy, double dz);
 Databox *NewDataboxDefault(int nx, int ny, int nz, double x, double y, double z, double dx, double dy, double dz,
                            double default_value);
+Databox *NewDataboxChemCkpt(int nx, int ny, int nz, double x, double y, double z, double dx, double dy, double dz,
+                           double default_value, int num_vars);
 void GetDataboxGrid(Tcl_Interp *interp, Databox *databox);
 void SetDataboxGrid(Databox *databox, int nx, int ny, int nz, double x, double y, double z,
                     double dx, double dy, double dz);

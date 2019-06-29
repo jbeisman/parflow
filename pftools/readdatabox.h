@@ -65,6 +65,7 @@ extern "C" {
 
 /* readdatabox.c */
 Databox *ReadParflowB(char *file_name, double default_value);
+Databox *ReadChemCkptB(char *file_name, double default_value, int *num_vars);
 Databox *ReadParflowSB(char *file_name, double default_value);
 Databox *ReadSimpleA(char *file_name, double default_value);
 Databox *ReadRealSA(char *file_name, double default_value);

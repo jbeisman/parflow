@@ -255,11 +255,13 @@ void WriteChemChkpt(Grid *grid,
   Subgrid        *subgrid;
   GrGeomSolid    *gr_domain;
 
-  int num_chem_doubles, num_chem_ints;
+  int num_chem_vars;
   int is;
   int p;
   int num_cells;
   long size;
+  double tmp;
+  int ai = 0;
 
   char file_extn[7] = "pfb";
   char filename[255];
@@ -271,22 +273,24 @@ void WriteChemChkpt(Grid *grid,
   p = amps_Rank(amps_CommWorld);
 
   if (p == 0)
-    size = 6 * amps_SizeofDouble + 4 * amps_SizeofInt;
+    size = 6 * amps_SizeofDouble + 5 * amps_SizeofInt;
   else
     size = 0;
 
+
   // how big is the chemistry problem?
-  num_chem_ints = chem_sizes->num_aux_integers;
-  num_chem_doubles = chem_sizes->num_primary + // total mobile
-                     chem_sizes->num_minerals * 3 + // volfx, ssa, rate constant
-                     chem_sizes->num_surface_sites + // surface sites
-                     chem_sizes->num_ion_exchange_sites + // ion exchange sites 
-                     chem_sizes->num_isotherm_species * 3 + // isotherm, Freundlich, Langmuir
-                     chem_sizes->num_aqueous_kinetics + // aqueous rate constant
-                     chem_sizes->num_aux_doubles; // aux data doubles
+  num_chem_vars = chem_sizes->num_primary + // total mobile
+                  chem_sizes->num_minerals * 3 + // volfx, ssa, rate constant
+                  chem_sizes->num_surface_sites + // surface sites
+                  chem_sizes->num_ion_exchange_sites + // ion exchange sites 
+                  chem_sizes->num_isotherm_species * 3 + // isotherm, Freundlich, Langmuir
+                  chem_sizes->num_aqueous_kinetics + // aqueous rate constant
+                  chem_sizes->num_aux_doubles + // aux data doubles
+                  chem_sizes->num_aux_integers; // aux num ints
+
   if (chem_sizes->num_sorbed > 0)
   {
-    num_chem_doubles += chem_sizes->num_primary; // sorbed immobile primary
+    num_chem_vars += chem_sizes->num_primary; // sorbed immobile primary
   }
 
   ForSubgridI(is, subgrids)
@@ -295,8 +299,7 @@ void WriteChemChkpt(Grid *grid,
   }
 
   num_cells = SubgridNumCells(grid, problem_data);
-  size += num_cells * num_chem_doubles * amps_SizeofDouble;
-  size += num_cells * num_chem_ints * amps_SizeofInt;
+  size += num_cells * num_chem_vars * amps_SizeofDouble;
 
   /* open file */
   sprintf(filename, "%s.%s.%s", file_prefix, file_suffix, file_extn);
@@ -339,6 +342,7 @@ void WriteChemChkpt(Grid *grid,
     amps_WriteDouble(file, &BackgroundDZ(GlobalsBackground), 1);
 
     amps_WriteInt(file, &num_subgrids, 1);
+    amps_WriteInt(file, &num_chem_vars, 1);
   }
 
 
@@ -355,9 +359,6 @@ void WriteChemChkpt(Grid *grid,
     int ny = SubgridNY(subgrid);
     int nz = SubgridNZ(subgrid);
 
-    int r = SubgridRX(subgrid);
-
-
     amps_WriteInt(file, &ix, 1);
     amps_WriteInt(file, &iy, 1);
     amps_WriteInt(file, &iz, 1);
@@ -370,7 +371,9 @@ void WriteChemChkpt(Grid *grid,
     amps_WriteInt(file, &SubgridRY(subgrid), 1);
     amps_WriteInt(file, &SubgridRZ(subgrid), 1);
 
-    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+    BoxLoopI1(i, j, k,
+            ix, iy, iz, nx, ny, nz,
+            ai, nx, ny, nz, 1, 1, 1,
     {
       int chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
 
@@ -429,7 +432,8 @@ void WriteChemChkpt(Grid *grid,
 
       for (int idx = 0; idx < chem_sizes->num_aux_integers; idx++)
       {
-        amps_WriteInt(file, &chem_aux_data[chem_index].aux_ints.data[idx], 1);
+        tmp = (double)chem_aux_data[chem_index].aux_ints.data[idx];
+        amps_WriteDouble(file, &tmp, 1);
       }
 
     });
@@ -461,6 +465,9 @@ void ReadChemChkpt(Grid *grid,
   double X, Y, Z;
   int NX, NY, NZ;
   double DX, DY, DZ;
+  int num_vars;
+  double tmp;
+  int ai = 0;
 
   BeginTiming(PFBTimingIndex);
   
@@ -496,6 +503,7 @@ void ReadChemChkpt(Grid *grid,
     amps_ReadDouble(file, &DZ, 1);
 
     amps_ReadInt(file, &P, 1);
+    amps_ReadInt(file, &num_vars, 1);
   }
 
 
@@ -522,7 +530,10 @@ void ReadChemChkpt(Grid *grid,
     amps_ReadInt(file, &ry, 1);
     amps_ReadInt(file, &rz, 1);
 
-    GrGeomInLoop(i, j, k, gr_domain, rx, ix, iy, iz, nx, ny, nz,
+
+    BoxLoopI1(i, j, k,
+            ix, iy, iz, nx, ny, nz,
+            ai, nx, ny, nz, 1, 1, 1,
     {
       int chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
 
@@ -581,7 +592,8 @@ void ReadChemChkpt(Grid *grid,
 
       for (int idx = 0; idx < chem_sizes->num_aux_integers; idx++)
       {
-        amps_ReadInt(file, &chem_aux_data[chem_index].aux_ints.data[idx], 1);
+        amps_ReadDouble(file, &tmp, 1);
+        chem_aux_data[chem_index].aux_ints.data[idx] = (int)tmp;
       }
 
     });

@@ -74,6 +74,7 @@ namespace eval Parflow {
     namespace export pfreload
     namespace export pfreloadall
     namespace export pfdist
+    namespace export pfdistchem
     namespace export pfsave
     namespace export pfvtksave
     namespace export pfgetelt

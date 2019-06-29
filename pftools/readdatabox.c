@@ -398,6 +398,95 @@ Databox         *ReadParflowB(
 
 
 /*-----------------------------------------------------------------------
+ * read a binary chemistry checkpoint file jjb
+ *-----------------------------------------------------------------------*/
+
+Databox         *ReadChemCkptB(
+                              char * file_name,
+                              double default_value,
+                              int *num_vars)
+{
+  Databox         *v;
+
+  FILE           *fp;
+
+  double X, Y, Z;
+  int NX, NY, NZ;
+  double DX, DY, DZ;
+  int num_subgrids;
+
+  int x, y, z;
+  int nx, ny, nz;
+  int rx, ry, rz;
+
+  int nsg, i, j, k;
+
+  double         *ptr;
+
+
+  /* open the input file */
+  if ((fp = fopen(file_name, "rb")) == NULL)
+    return NULL;
+
+  /* read in header info */
+  tools_ReadDouble(fp, &X, 1);
+  tools_ReadDouble(fp, &Y, 1);
+  tools_ReadDouble(fp, &Z, 1);
+
+  tools_ReadInt(fp, &NX, 1);
+  tools_ReadInt(fp, &NY, 1);
+  tools_ReadInt(fp, &NZ, 1);
+
+  tools_ReadDouble(fp, &DX, 1);
+  tools_ReadDouble(fp, &DY, 1);
+  tools_ReadDouble(fp, &DZ, 1);
+
+  tools_ReadInt(fp, &num_subgrids, 1);
+  tools_ReadInt(fp, num_vars, 1);
+
+  /* create the new databox structure */
+  if ((v = NewDataboxChemCkpt(NX, NY, NZ, X, Y, Z, DX, DY, DZ, default_value, *num_vars)) == NULL)
+  {
+    fclose(fp);
+    return((Databox*)NULL);
+  }
+
+  /* read in the databox data */
+  for (nsg = num_subgrids; nsg--;)
+  {
+    tools_ReadInt(fp, &x, 1);
+    tools_ReadInt(fp, &y, 1);
+    tools_ReadInt(fp, &z, 1);
+
+    tools_ReadInt(fp, &nx, 1);
+    tools_ReadInt(fp, &ny, 1);
+    tools_ReadInt(fp, &nz, 1);
+
+    tools_ReadInt(fp, &rx, 1);
+    tools_ReadInt(fp, &ry, 1);
+    tools_ReadInt(fp, &rz, 1);
+
+
+
+    for (k = 0; k < nz; k++)
+    {
+      for (j = 0; j < ny; j++)
+      {
+        for (i = 0; i < nx; i++)
+        {
+          ptr = DataboxChemCkptCoeff(v, (x + i), (y + j), (z + k), *num_vars);
+          tools_ReadDouble(fp, ptr, *num_vars);
+        }
+      }
+    }
+  }
+
+  fclose(fp);
+  return v;
+}
+
+
+/*-----------------------------------------------------------------------
  * read a scattered binary `parflow' file
  *-----------------------------------------------------------------------*/
 

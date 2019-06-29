@@ -112,6 +112,67 @@ Databox         *NewDataboxDefault(
 
 
 /*-----------------------------------------------------------------------
+ * create new databox structure for single-file chemistry checkpoint files jjb
+ *-----------------------------------------------------------------------*/
+Databox         *NewDataboxChemCkpt(
+                                   int    nx,
+                                   int    ny,
+                                   int    nz,
+                                   double x,
+                                   double y,
+                                   double z,
+                                   double dx,
+                                   double dy,
+                                   double dz,
+                                   double default_value,
+                                   int num_vars)
+{
+  Databox         *new_databox;
+  int i;
+  int j;
+  int k;
+  int v;
+
+  if ((new_databox = (Databox*)calloc(1, sizeof(Databox))) == NULL)
+    return((Databox*)NULL);
+
+  if ((DataboxCoeffs(new_databox) = (double*)calloc((nx * ny * nz * num_vars), sizeof(double))) == NULL)
+  {
+    free(new_databox);
+    return((Databox*)NULL);
+  }
+
+  for (k = 0; k < nz; ++k)
+  {
+    for (j = 0; j < ny; ++j)
+    {
+      for (i = 0; i < nx; ++i)
+      {
+        for (v = 0; v < num_vars; ++v)
+        {
+          DataboxCoeffs(new_databox)[k * ny * nx * num_vars + j * nx * num_vars + i * num_vars + v] = default_value;
+        }
+      }
+    }
+  }
+
+  DataboxNx(new_databox) = nx;
+  DataboxNy(new_databox) = ny;
+  DataboxNz(new_databox) = nz;
+
+  DataboxX(new_databox) = x;
+  DataboxY(new_databox) = y;
+  DataboxZ(new_databox) = z;
+
+  DataboxDx(new_databox) = dx;
+  DataboxDy(new_databox) = dy;
+  DataboxDz(new_databox) = dz;
+
+  return new_databox;
+}
+
+
+/*-----------------------------------------------------------------------
  * print Databox grid info
  *-----------------------------------------------------------------------*/
 

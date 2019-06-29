@@ -93,6 +93,7 @@ typedef struct {
 
 /* pftools.c */
 int PFDistCommand (ClientData clientData, Tcl_Interp *interp, int argc, char *argv []);
+int PFDistChemCommand (ClientData clientData, Tcl_Interp *interp, int argc, char *argv []);
 char *GetString (Tcl_Interp *interp, char *key);
 int GetInt (Tcl_Interp *interp, char *key);
 int GetIntDefault (Tcl_Interp *interp, char *key, int def);
