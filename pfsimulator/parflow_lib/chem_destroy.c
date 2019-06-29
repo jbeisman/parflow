@@ -48,9 +48,9 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
   int i, j, k;
   int ix, iy, iz;
   int nx, ny, nz;
-  int r;
   int chem_index;
   gr_domain = ProblemDataGrDomain(problem_data);
+  int ai = 0;
 
   int num_primary = alquimia_data->chem_sizes.num_primary;
   int num_minerals = alquimia_data->chem_sizes.num_minerals;
@@ -173,10 +173,9 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
     ny = SubgridNY(subgrid);
     nz = SubgridNZ(subgrid);
 
-    /* RDF: assume resolution is the same in all 3 directions */
-    r = SubgridRX(subgrid);
-
-    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+    BoxLoopI1(i, j, k,
+            ix, iy, iz, nx, ny, nz,
+            ai, nx, ny, nz, 1, 1, 1,
     {
       
       chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;

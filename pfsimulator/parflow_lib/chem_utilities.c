@@ -105,11 +105,10 @@ int SubgridNumCells(Grid *grid, ProblemData *problem_data)
   int i, j, k;
   int ix, iy, iz;
   int nx, ny, nz;
-  int r;
-  int num_cells;
+  int num_cells = 0;
+  int ai = 0;
 
   gr_domain = ProblemDataGrDomain(problem_data);
-  num_cells = 0;
 
   ForSubgridI(is, subgrids)
   {
@@ -123,10 +122,9 @@ int SubgridNumCells(Grid *grid, ProblemData *problem_data)
     ny = SubgridNY(subgrid);
     nz = SubgridNZ(subgrid);
 
-    /* RDF: assume resolution is the same in all 3 directions */
-    r = SubgridRX(subgrid);
-
-    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+    BoxLoopI1(i, j, k,
+            ix, iy, iz, nx, ny, nz,
+            ai, nx, ny, nz, 1, 1, 1,
     {
       num_cells++;
     });

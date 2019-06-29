@@ -165,8 +165,8 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
   int i, j, k;
   int ix, iy, iz;
   int nx, ny, nz;
-  int r;
   int chem_index;
+  int ai = 0;
 
   gr_domain = ProblemDataGrDomain(problem_data);
 
@@ -182,10 +182,9 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
     ny = SubgridNY(subgrid);
     nz = SubgridNZ(subgrid);
 
-    /* RDF: assume resolution is the same in all 3 directions */
-    r = SubgridRX(subgrid);
-
-    GrGeomInLoop(i, j, k, gr_domain, r, ix, iy, iz, nx, ny, nz,
+    BoxLoopI1(i, j, k,
+            ix, iy, iz, nx, ny, nz,
+            ai, nx, ny, nz, 1, 1, 1,
     {
       
       chem_index = (i-ix) + (j-iy) * nx + (k-iz) * nx * ny;
