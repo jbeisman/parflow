@@ -33,8 +33,11 @@
 *****************************************************************************/
 
 #include "parflow.h"
-#include "alquimia/alquimia_containers.h"
 #include "pf_alquimia.h"
+
+#ifdef HAVE_ALQUIMIA
+#include "alquimia/alquimia_containers.h"
+
 
 void AdvectedPrimaryToChem(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Vector **concentrations, ProblemData *problem_data)
 {
@@ -326,3 +329,5 @@ void ReactedPrimaryToPF(AlquimiaState* chem_state, AlquimiaSizes* chem_sizes, Ve
       }
     }
 }
+#endif
+

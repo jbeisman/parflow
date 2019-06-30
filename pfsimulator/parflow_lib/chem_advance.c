@@ -36,8 +36,11 @@
 
 #include "parflow.h"
 #include "pf_alquimia.h"
+
+#ifdef HAVE_ALQUIMIA
 #include "alquimia/alquimia_interface.h"
 #include "alquimia/alquimia_util.h"
+#endif
 
 /*--------------------------------------------------------------------------
  * Structures
@@ -60,7 +63,7 @@ typedef struct {
 /*--------------------------------------------------------------------------
  * AdvanceChemistry
  *--------------------------------------------------------------------------*/
-
+#ifdef HAVE_ALQUIMIA
 void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, Vector **concentrations, Vector *saturation, double dt, double t, int *any_file_dumped, int dump_files, int file_number, char *file_prefix)
 {
   PFModule      *this_module = ThisPFModule;
@@ -391,4 +394,4 @@ int AdvanceChemistrySizeOfTempData()
 
   return sz;
 }
-
+#endif

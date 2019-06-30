@@ -33,10 +33,11 @@
 *****************************************************************************/
 
 #include "parflow.h"
-#include "alquimia/alquimia_interface.h"
-#include "alquimia/alquimia_memory.h"
 #include "pf_alquimia.h"
 
+#ifdef HAVE_ALQUIMIA
+#include "alquimia/alquimia_interface.h"
+#include "alquimia/alquimia_memory.h"
 
 
 void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data)
@@ -207,3 +208,5 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
   tfree(alquimia_data->print_flags);
   tfree(alquimia_data);
 }
+#endif
+

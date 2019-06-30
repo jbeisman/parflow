@@ -34,8 +34,10 @@
 *****************************************************************************/
 #include "parflow.h"
 #include "pf_alquimia.h"
+#ifdef HAVE_ALQUIMIA
 #include "alquimia/alquimia_memory.h"
 #include "alquimia/alquimia_util.h"
+#endif
 
 
 
@@ -217,7 +219,7 @@ void SelectReactTransTimeStep(double max_velocity, double CFL,
 //}
 
 
-
+#ifdef HAVE_ALQUIMIA
 void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_state, AlquimiaProperties *chem_properties, void *chem_engine, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaEngineStatus *chem_status, double original_dt)
 {
   double tenth_dt = 0.1 * original_dt;
@@ -600,4 +602,4 @@ void ReadChemChkpt(Grid *grid,
   amps_FFclose(file);
   EndTiming(PFBTimingIndex);
 }
-
+#endif

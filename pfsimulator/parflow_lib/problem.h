@@ -41,7 +41,6 @@ typedef struct {
   int num_phases;
 
   int num_contaminants;
-  int num_geochem_conds;
 
   double base_time_unit;
   int start_count;
@@ -67,7 +66,6 @@ typedef struct {
   PFModule   *porosity;
   PFModule   *retardation;
   PFModule   *phase_mobility;
-  PFModule   *geochemcond;
   PFModule   *phase_rel_perm;           /* relative permeability used in
                                          * SolverRichards */
   PFModule   *phase_source;
@@ -81,7 +79,6 @@ typedef struct {
   PFModule   *bc_pressure;
   PFModule   *bc_pressure_package;
   PFModule   *bc_phase_saturation;      /* RDF assume Dirichlet from IC */
-  PFModule   *bc_concentration;
 
   /* initial conditions */
   PFModule   *ic_phase_concen;
@@ -109,6 +106,13 @@ typedef struct {
   /* @RMM Variable dZ */
   PFModule  *dz_mult;           //rmm
   PFModule  *real_space_z;
+
+#ifdef HAVE_ALQUIMIA
+  PFModule *geochemcond;
+  PFModule *bc_concentration;
+  int num_geochem_conds;
+#endif
+
 } Problem;
 
 typedef struct {
@@ -133,7 +137,7 @@ typedef struct {
   Vector         *permeability_z;
 
   Vector         *porosity;
-  Vector         *geochemcond;
+  
 
   Vector         *specific_storage;   //sk
 
@@ -152,6 +156,11 @@ typedef struct {
   /* @RMM variable dz  */
   Vector *dz_mult;
   Vector *rsz;
+
+#ifdef HAVE_ALQUIMIA
+  Vector *geochemcond;
+#endif
+
 } ProblemData;
 
 /* Values of solver argument to NewProblem function */
@@ -174,9 +183,6 @@ typedef struct {
 #define ProblemContaminants(problem)              ((problem)->contaminants)
 #define ProblemNumContaminants(problem)           ((problem)->num_contaminants)
 
-#define ProblemConditions(problem)                ((problem)->geochem_conds)
-#define ProblemNumGeochemConds(problem)           ((problem)->num_geochem_conds)
-#define ProblemGeochemCond(problem)               ((problem)->geochemcond)
 
 /* Time accessors */
 #define ProblemBaseTimeUnit(problem)              ((problem)->base_time_unit)
@@ -220,7 +226,6 @@ typedef struct {
 #define ProblemBCPressure(problem)                ((problem)->bc_pressure)
 #define ProblemBCPressurePackage(problem)         ((problem)->bc_pressure_package)
 #define ProblemBCPhaseSaturation(problem)         ((problem)->bc_phase_saturation)
-#define ProblemBCConcentration(problem)           ((problem)->bc_concentration)
 
 /* initial condition accessors */
 #define ProblemICPhaseConcen(problem)             ((problem)->ic_phase_concen)
@@ -265,7 +270,6 @@ typedef struct {
 #define ProblemDataSSlopeY(problem_data)        ((problem_data)->y_sslope)   //RMM
 #define ProblemDataZmult(problem_data)          ((problem_data)->dz_mult)    //RMM
 #define ProblemDataRealSpaceZ(problem_data)     ((problem_data)->rsz)
-#define ProblemDataGeochemCond(problem_data)    ((problem_data)->geochemcond)
 /*--------------------------------------------------------------------------
  * Misc macros
  *   RDF not quite right, maybe?
@@ -278,5 +282,12 @@ typedef struct {
 #define PermeabilityFreePublicXtra     SubsrfSimFreePublicXtra
 #define PermeabilitySizeOfTempData     SubsrfSimSizeOfTempData
 
+/* Alquimia macros */
+#ifdef HAVE_ALQUIMIA
+#define ProblemNumGeochemConds(problem)           ((problem)->num_geochem_conds)
+#define ProblemGeochemCond(problem)               ((problem)->geochemcond)
+#define ProblemBCConcentration(problem)           ((problem)->bc_concentration)
+#define ProblemDataGeochemCond(problem_data)      ((problem_data)->geochemcond)
+#endif
 
 #endif

@@ -33,9 +33,12 @@
 *****************************************************************************/
 
 #include "parflow.h"
+#include "pf_alquimia.h"
+
+#ifdef HAVE_ALQUIMIA
 #include "alquimia/alquimia_interface.h"
 #include "alquimia/alquimia_memory.h"
-#include "pf_alquimia.h"
+
 
 void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *problem_data, int num_ic_conds, NameArray ic_cond_na, Vector * saturation)
 {
@@ -149,3 +152,5 @@ void ProcessGeochemICs(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
     });
   }
 }
+#endif
+

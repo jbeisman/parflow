@@ -78,8 +78,10 @@ typedef struct {
   int write_silo_satur;                           /* print saturations? */
   int write_silo_concen;                          /* print concentrations? */
 
+#ifdef HAVE_ALQUIMIA
   PFModule *init_chem;
   PFModule *advance_chem;
+#endif
 } PublicXtra;
 
 typedef struct {
@@ -108,9 +110,12 @@ typedef struct {
 
   ProblemData *problem_data;
   double *temp_data;
+
+#ifdef HAVE_ALQUIMIA
   PFModule *init_chem;
   PFModule *advance_chem;
   AlquimiaDataPF *alquimia_data;
+#endif
 } InstanceXtra;
 
 
@@ -226,10 +231,12 @@ void      SolverImpes()
   t = start_time;
 
   // Alquimia
-  int chem_flag = GlobalsChemistryFlag;
+#ifdef HAVE_ALQUIMIA
   PFModule *init_chem = (instance_xtra->init_chem);
   PFModule *advance_chem = (instance_xtra->advance_chem);
+#endif
   Vector *sat_rt = NULL;
+  int chem_flag = GlobalsChemistryFlag;
 
 
   /*-------------------------------------------------------------------
@@ -242,7 +249,6 @@ void      SolverImpes()
     temp_mobility_z = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
     stemp = NewVectorType(instance_xtra->grid, 1, 3, vector_cell_centered);
   }
-  ctemp = NewVectorType(instance_xtra->grid, 1, 3, vector_cell_centered);
 
 
   IfLogging(1)
@@ -418,6 +424,7 @@ void      SolverImpes()
       if (ProblemNumContaminants(problem) > 0)
       {
         solidmassfactor = NewVectorType(grid, 1, 2, vector_cell_centered);
+        ctemp = NewVectorType(instance_xtra->grid, 1, 3, vector_cell_centered);
 
         /*----------------------------------------------------------------
          * Allocate and set up initial concentrations
@@ -442,6 +449,12 @@ void      SolverImpes()
             indx++;
           }
         }
+
+        if (!chem_flag)
+        {
+          BCConcenCopyAdjacent(problem, grid, concentrations, gr_domain);
+        }
+
       }
 
       /*----------------------------------------------------------------
@@ -502,15 +515,13 @@ void      SolverImpes()
       /*****************************************************************/
       /*          Call the geochemical engine         */
       /*****************************************************************/
-
+#ifdef HAVE_ALQUIMIA
       if (chem_flag) /*Initialize the geochemical system*/
       {
       	if (!amps_Rank(amps_CommWorld))
-          {
-            amps_Printf("Initializing geochemical system \n");
-          }
-
-        sat_rt = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
+        {
+          amps_Printf("Initializing geochemical system \n");
+        }
 
         instance_xtra->alquimia_data = ctalloc(AlquimiaDataPF, 1);
 
@@ -520,6 +531,9 @@ void      SolverImpes()
                           &any_file_dumped, dump_files, t,
                           file_number, file_prefix));
       }
+#endif
+
+      sat_rt = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
 
       /*----------------------------------------------------------------
        * Print out the initial saturations?
@@ -1203,7 +1217,7 @@ void      SolverImpes()
       /*****************************************************************/
       /*          Call the geochemical engine         */
       /*****************************************************************/
-
+#ifdef HAVE_ALQUIMIA
         if (chem_flag) /*advance the geochemical system*/
         {
           PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem,
@@ -1212,6 +1226,7 @@ void      SolverImpes()
                             &any_file_dumped, dump_files,
                             file_number-1, file_prefix));
         }
+#endif
 
 
           /* Print the concentration values at this time-step? */
@@ -1432,7 +1447,8 @@ void      SolverImpes()
         }
       }
       tfree(concentrations);
-
+      FreeVector(ctemp);
+      FreeVector(sat_rt);
       FreeVector(solidmassfactor);
     }
   }
@@ -1458,7 +1474,6 @@ void      SolverImpes()
     FreeVector(temp_mobility_y);
     FreeVector(temp_mobility_z);
   }
-  FreeVector(ctemp);
 
   FreeVector(total_mobility_x);
   FreeVector(total_mobility_y);
@@ -1475,11 +1490,12 @@ void      SolverImpes()
   /*-------------------------------------------------------------------
    * Free Alquimia chemistry data and corresponding PF Vectors
    *-------------------------------------------------------------------*/
-
+#ifdef HAVE_ALQUIMIA
   if (chem_flag)
     {
       FreeAlquimiaDataPF(instance_xtra->alquimia_data, grid, problem_data);
     }
+#endif
 
 
   /*----------------------------------------------------------------------
@@ -1700,6 +1716,7 @@ PFModule *SolverImpesInitInstanceXtra()
     (instance_xtra->phase_density) =
       PFModuleNewInstance(ProblemPhaseDensity(problem), ());
 
+#ifdef HAVE_ALQUIMIA
     if (chem_flag)
     {
       (instance_xtra->init_chem) =
@@ -1712,6 +1729,7 @@ PFModule *SolverImpesInitInstanceXtra()
                              (public_xtra->advance_chem),
                              (problem, grid));
     }
+#endif
 
     if (is_multiphase)
     {
@@ -1764,7 +1782,8 @@ PFModule *SolverImpesInitInstanceXtra()
     PFModuleReNewInstance((instance_xtra->phase_mobility), ());
     PFModuleReNewInstance((instance_xtra->ic_phase_concen), ());
     PFModuleReNewInstance((instance_xtra->phase_density), ());
-    
+
+#ifdef HAVE_ALQUIMIA
     if (chem_flag)
     {
       PFModuleReNewInstanceType(InitializeChemistryInitInstanceXtraType,
@@ -1774,6 +1793,7 @@ PFModule *SolverImpesInitInstanceXtra()
                                (instance_xtra->advance_chem),
                                (problem, grid));
     }
+#endif
 
     if (is_multiphase)
     {
@@ -1935,11 +1955,14 @@ void  SolverImpesFreeInstanceXtra()
     PFModuleFreeInstance((instance_xtra->diag_scale));
     PFModuleFreeInstance((instance_xtra->discretize_pressure));
     PFModuleFreeInstance((instance_xtra->phase_density));
+
+#ifdef HAVE_ALQUIMIA
     if (chem_flag)
     {
       PFModuleFreeInstance((instance_xtra->init_chem));
       PFModuleFreeInstance((instance_xtra->advance_chem));
     }
+#endif
 
     if (is_multiphase)
     {
@@ -2072,11 +2095,13 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
   (public_xtra->advect_satur) = PFModuleNewModule(SatGodunov, ());
   (public_xtra->advect_concen) = PFModuleNewModule(Godunov, ());
 
+#ifdef HAVE_ALQUIMIA
   if (chem_flag)
   {
     (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
     (public_xtra->advance_chem) = PFModuleNewModule(AdvanceChemistry, ());
   }
+#endif
 
   (public_xtra->set_problem_data) = PFModuleNewModule(SetProblemData, ());
 
@@ -2253,12 +2278,14 @@ void   SolverImpesFreePublicXtra()
     PFModuleFreeModule(public_xtra->phase_velocity_face);
     PFModuleFreeModule(public_xtra->permeability_face);
     PFModuleFreeModule(public_xtra->discretize_pressure);
+
+#ifdef HAVE_ALQUIMIA
     if (chem_flag)
     {
       PFModuleFreeModule(public_xtra->init_chem);
       PFModuleFreeModule(public_xtra->advance_chem);
     }
-
+#endif
 
     tfree(public_xtra);
   }

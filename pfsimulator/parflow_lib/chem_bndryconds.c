@@ -34,9 +34,12 @@
 *****************************************************************************/
 
 #include "parflow.h"
+#include "pf_alquimia.h"
+
+#ifdef HAVE_ALQUIMIA
 #include "alquimia/alquimia_interface.h"
 #include "alquimia/alquimia_memory.h"
-#include "pf_alquimia.h"
+
 
 
 void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArray bc_cond_na)
@@ -79,3 +82,4 @@ void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArra
     }
   }
 }
+#endif

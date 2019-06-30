@@ -36,10 +36,10 @@
 *****************************************************************************/
 
 #include "parflow.h"
-#include "alquimia/alquimia_memory.h"
 #include "pf_alquimia.h"
 
-
+#ifdef HAVE_ALQUIMIA
+#include "alquimia/alquimia_memory.h"
 
 void AllocatePFChemData(AlquimiaDataPF *alquimia_data, Grid *grid)
 {
@@ -201,4 +201,4 @@ void AllocateChemCells(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *p
 
 
 }
-
+#endif

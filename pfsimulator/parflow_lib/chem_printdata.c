@@ -36,6 +36,7 @@
 #include "pf_alquimia.h"
 
 
+#ifdef HAVE_ALQUIMIA
 void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata, double t, int file_number, 
   char* file_prefix, int *any_file_dumped, Vector **concentrations, Vector **total_immobilePF, Vector **mineral_specific_surfacePF, Vector **mineral_volume_fractionsPF,
   Vector **surface_site_densityPF, Vector **cation_exchange_capacityPF, Vector *pH, Vector **aqueous_kinetic_ratePF, Vector **mineral_saturation_indexPF, 
@@ -400,3 +401,5 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
 		*any_file_dumped = 1;
 	}
 }
+#endif
+

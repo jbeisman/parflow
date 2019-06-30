@@ -38,6 +38,7 @@ void SelectReactTransTimeStep(double max_velocity, double CFL,
 
 int  SubgridNumCells(Grid *grid, ProblemData *problem_data);
 
+#ifdef HAVE_ALQUIMIA
 void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_state, AlquimiaProperties *chem_properties, void *chem_engine, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaEngineStatus *chem_status, double original_dt);
 
 //void CutTimeStepandSolveRecursively(AlquimiaDataPF * alquimia_data, double original_dt, int level, int chem_index);
@@ -45,7 +46,7 @@ void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_s
 void WriteChemChkpt(Grid *grid, ProblemData *problem_data, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *file_prefix, char *file_suffix);
 
 void ReadChemChkpt(Grid *grid,  ProblemData *problem_data, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *filename);
-
+#endif
 
 #endif
 

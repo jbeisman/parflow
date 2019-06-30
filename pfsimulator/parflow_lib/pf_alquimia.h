@@ -31,6 +31,7 @@
 #ifndef PF_ALQUIMIA_H
 #define PF_ALQUIMIA_H
 
+#ifdef HAVE_ALQUIMIA
 #include "chem_advance.h"
 #include "chem_allocate.h"
 #include "chem_datastructs.h"
@@ -43,5 +44,11 @@
 #include "problem_bc_concen.h"
 #include "problem_geochem_cond.h"
 #include "set_chem_data.h"
+#else
+#include "chem_utilities.h"
+#include "problem_bc_concen.h"
+#endif
+
+
 
 #endif

@@ -56,7 +56,7 @@ typedef struct {
 /*--------------------------------------------------------------------------
  * SetChemData
  *--------------------------------------------------------------------------*/
-
+#ifdef HAVE_ALQUIMIA
 void          SetChemData(ProblemData *problem_data)
 {
   PFModule      *this_module = ThisPFModule;
@@ -185,6 +185,7 @@ void  SetChemDataFreePublicXtra()
 
 int       SetChemDataSizeOfTempData()
 {
-
   return 0;
 }
+#endif
+

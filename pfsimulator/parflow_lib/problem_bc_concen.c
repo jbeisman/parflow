@@ -32,7 +32,6 @@
 #include "parflow.h"
 #include "pf_alquimia.h"
 
-
 /*--------------------------------------------------------------------------
  * Structures
  *--------------------------------------------------------------------------*/
@@ -62,19 +61,18 @@ typedef struct {
   char  *filename;
 } Type1;                      /* .pfb file */
 
-
 /*--------------------------------------------------------------------------
  * BCConcentration
- *   This routine implements the saturation boundary conditions
- *   (Dirichlet only) by setting the saturations of 3 ghost layers
+ *   This routine implements the concentration boundary conditions
+ *   (Dirichlet only) by setting the concentration of 3 ghost layers
  *   outside of the boundary.
  *--------------------------------------------------------------------------*/
-
-void          BCConcentration(  Problem *problem,
-                                Grid *grid,
-                                Vector **concentrations,
-                                AlquimiaState *chem_bc_state,
-                                GrGeomSolid *gr_domain)
+#ifdef HAVE_ALQUIMIA
+void BCConcentration(Problem *problem,
+                     Grid *grid,
+                     Vector **concentrations,
+                     AlquimiaState *chem_bc_state,
+                     GrGeomSolid *gr_domain)
 {
   PFModule       *this_module = ThisPFModule;
   PublicXtra     *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
@@ -120,34 +118,9 @@ void          BCConcentration(  Problem *problem,
     {
       case -1:
       {
-        for (int concen = 0; concen < num_concen; concen++)
-        {
-          ForSubgridI(is, GridSubgrids(grid))
-          {
-            concen_sub = VectorSubvector(concentrations[concen],is);
-            concen_dat = SubvectorData(concen_sub);
-            nx_v = SubvectorNX(concen_sub);
-            ny_v = SubvectorNY(concen_sub);
-            nz_v = SubvectorNZ(concen_sub);
-            sx_v = 1;
-            sy_v = nx_v;
-            sz_v = ny_v * nx_v;
-            BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
-            {
-              iv = SubvectorEltIndex(concen_sub, i, j, k);
-              sv = 0;
-              if (fdir[0])
-               sv = fdir[0] * sx_v;
-              else if (fdir[1])
-               sv = fdir[1] * sy_v;
-              else if (fdir[2])
-               sv = fdir[2] * sz_v;
-              concen_dat[iv + 3 * sv] = concen_dat[iv]; 
-              concen_dat[iv + sv] = concen_dat[iv];
-              concen_dat[iv + 2 * sv] =concen_dat[iv];
-            });
-          }
-        }
+
+        BCConcenCopyPatch(problem, grid, concentrations, ipatch, bc_struct);
+
         break;
       }
       case 0:
@@ -219,7 +192,6 @@ void          BCConcentration(  Problem *problem,
               concen_dat[iv + 3 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
               concen_dat[iv + sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen]; 
               concen_dat[iv + 2 * sv] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
-              //printf("case 1, concen: %d bc: %f\n",concen, chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen]);
             });
           }
         }
@@ -230,12 +202,118 @@ void          BCConcentration(  Problem *problem,
   }  
   FreeBCStruct(bc_struct);  
 }
+#endif
 
+/*--------------------------------------------------------------------------
+ * copy concen of adjacent interior cell into 3 ghost boundary layers
+ *
+ * operates on only 1 patch
+ *--------------------------------------------------------------------------*/
+
+void BCConcenCopyPatch(Problem *problem, Grid *grid, 
+                       Vector **concentrations, 
+                       int ipatch, BCStruct *bc_struct)
+{
+  Subvector      *concen_sub;
+  double         *concen_dat;
+
+  int nx_v, ny_v, nz_v;
+  int sx_v, sy_v, sz_v;
+  int *fdir;
+  int is, i, j, k, ival, iv, sv;
+  int num_concen;
+
+  /*-----------------------------------------------------------------------
+   * Implement BC's
+   *-----------------------------------------------------------------------*/
+
+  num_concen =  ProblemNumContaminants(problem);
+
+  for (int concen = 0; concen < num_concen; concen++)
+  {
+    ForSubgridI(is, GridSubgrids(grid))
+    {
+      concen_sub = VectorSubvector(concentrations[concen],is);
+      concen_dat = SubvectorData(concen_sub);
+      nx_v = SubvectorNX(concen_sub);
+      ny_v = SubvectorNY(concen_sub);
+      nz_v = SubvectorNZ(concen_sub);
+      sx_v = 1;
+      sy_v = nx_v;
+      sz_v = ny_v * nx_v;
+      BCStructPatchLoop(i, j, k, fdir, ival, bc_struct, ipatch, is,
+      {
+        iv = SubvectorEltIndex(concen_sub, i, j, k);
+        sv = 0;
+        if (fdir[0])
+         sv = fdir[0] * sx_v;
+        else if (fdir[1])
+         sv = fdir[1] * sy_v;
+        else if (fdir[2])
+         sv = fdir[2] * sz_v;
+        concen_dat[iv + 3 * sv] = concen_dat[iv]; 
+        concen_dat[iv + sv] = concen_dat[iv];
+        concen_dat[iv + 2 * sv] =concen_dat[iv];
+      });
+    }
+  }
+}
+
+
+/*--------------------------------------------------------------------------
+ * copy concen of adjacent interior cell into 3 ghost boundary layers
+ *
+ *--------------------------------------------------------------------------*/
+
+void BCConcenCopyAdjacent(Problem *problem, Grid *grid, 
+                          Vector **concentrations, 
+                          GrGeomSolid *gr_domain)
+{
+  SubgridArray *subgrids = GridSubgrids(grid);
+  int num_domain_patches;
+  int *patch_indexes;
+  int *bc_types;
+  int domain_index;
+  char *switch_name;
+  BCStruct *bc_struct;
+
+  switch_name = GetString("Domain.GeomName");
+  domain_index = NA_NameToIndex(GlobalsGeomNames, switch_name);
+  
+  if (domain_index < 0)
+    InputError("Error: invalid geometry name <%s> for key <%s>\n",
+                switch_name, "Domain.GeomName");
+
+  num_domain_patches = NA_Sizeof(GlobalsGeometries[domain_index]->patches);
+  patch_indexes = ctalloc(int, num_domain_patches);
+  bc_types = ctalloc(int, num_domain_patches);
+
+  for (int j = 0; j < num_domain_patches; j++)
+  {
+    bc_types[j] = DirichletBC;
+    patch_indexes[j] = j;
+  }
+
+  /*-----------------------------------------------------------------------
+   * Set up bc_struct with NULL values component
+   *-----------------------------------------------------------------------*/
+  bc_struct = NewBCStruct(subgrids, gr_domain,
+                          num_domain_patches, patch_indexes, bc_types, NULL);
+  for (int ipatch = 0; ipatch < num_domain_patches; ipatch++)
+  {
+    BCConcenCopyPatch(problem, grid, concentrations, 
+                      ipatch, bc_struct);
+  }
+
+  tfree(bc_types);
+  tfree(patch_indexes);
+  FreeBCStruct(bc_struct);
+}
 
 /*--------------------------------------------------------------------------
  * BCConcentrationInitInstanceXtra
  *--------------------------------------------------------------------------*/
-
+#ifdef HAVE_ALQUIMIA
 PFModule *BCConcentrationInitInstanceXtra()
 {
   PFModule      *this_module = ThisPFModule;
@@ -444,3 +522,5 @@ int  BCConcentrationSizeOfTempData()
 {
   return 0;
 }
+
+#endif
