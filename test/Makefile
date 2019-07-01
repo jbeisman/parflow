@@ -74,7 +74,6 @@ PARALLEL_2DTOPO_TESTS :=
 ifeq (${AMPS},mpi1)
 
 PARALLEL_3DTOPO_TESTS += \
-	default_single.tcl \
 	default_single.tcl
 
 ifeq (${PARFLOW_HAVE_HYPRE},yes)
