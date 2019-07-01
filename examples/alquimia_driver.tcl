@@ -14,8 +14,8 @@ pfset FileVersion 4
 # Process Topology
 #-----------------------------------------------------------------------------
 
-pfset Process.Topology.P        1
-pfset Process.Topology.Q        4
+pfset Process.Topology.P        4
+pfset Process.Topology.Q        1
 pfset Process.Topology.R        1
 
 #-----------------------------------------------------------------------------
@@ -25,13 +25,13 @@ pfset ComputationalGrid.Lower.X                0.0
 pfset ComputationalGrid.Lower.Y                 0.0
 pfset ComputationalGrid.Lower.Z                  0.0
 
-pfset ComputationalGrid.DX	                 1.0
-pfset ComputationalGrid.DY                   1.0
-pfset ComputationalGrid.DZ	                 1.5
+pfset ComputationalGrid.DX	                 2.0
+pfset ComputationalGrid.DY                   2.0
+pfset ComputationalGrid.DZ	                 3.0
 
-pfset ComputationalGrid.NX                      100
-pfset ComputationalGrid.NY                      100
-pfset ComputationalGrid.NZ                      2
+pfset ComputationalGrid.NX                      50
+pfset ComputationalGrid.NY                      50
+pfset ComputationalGrid.NZ                      1
 
 #-----------------------------------------------------------------------------
 # The Names of the GeomInputs

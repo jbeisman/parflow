@@ -202,10 +202,6 @@ void     Godunov(
    * Advect on all the subgrids
    *-----------------------------------------------------------------------*/
 
-  handle = InitVectorUpdate(old_concentration, VectorUpdateGodunov);
-  FinalizeVectorUpdate(handle);
-
-
   ForSubgridI(sg, subgrids)
   {
     subgrid = GridSubgrid(grid, sg);
@@ -239,11 +235,13 @@ void     Godunov(
                 num_iterations,fx,fy,fz,smin,smax);
   }
 
+  
+
   if (public_xtra->high_order)
   {
     handle = InitVectorUpdate(new_concentration, VectorUpdateGodunov);
     FinalizeVectorUpdate(handle);
-
+    
     ForSubgridI(sg, subgrids)
     {
       subgrid = GridSubgrid(grid, sg);

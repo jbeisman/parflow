@@ -175,11 +175,8 @@ typedef struct {
  *--------------------------------------------------------------------------*/
 
 #define ProblemGeometries(problem)                ((problem)->geometries)
-
 #define ProblemDomain(problem)                    ((problem)->domain)
-
 #define ProblemNumPhases(problem)                 ((problem)->num_phases)
-
 #define ProblemContaminants(problem)              ((problem)->contaminants)
 #define ProblemNumContaminants(problem)           ((problem)->num_contaminants)
 
@@ -218,7 +215,6 @@ typedef struct {
 
 #define ProblemOverlandFlowEval(problem)          ((problem)->overlandflow_eval)   //DOK
 #define ProblemOverlandFlowEvalDiff(problem)          ((problem)->overlandflow_eval_diff)   //@RMM
-
 #define ProblemdzScale(problem)            ((problem)->dz_mult)    //RMM
 #define ProblemRealSpaceZ(problem)            ((problem)->real_space_z)
 

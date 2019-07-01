@@ -1228,8 +1228,8 @@ SetupRichards(PFModule * this_module)
       for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
       {
         sprintf(file_postfix, "concen.%02d.%05d", concen, instance_xtra->file_number);
-        WritePFBinary(file_prefix, file_postfix,
-                       instance_xtra->concentrations[concen]);
+        WritePFSBinary(file_prefix, file_postfix,
+                         instance_xtra->concentrations[concen], public_xtra->drop_tol);
       }
       any_file_dumped = 1;
     }
@@ -1361,15 +1361,15 @@ SetupRichards(PFModule * this_module)
     /* print initial velocities??? jjb */
     if (print_velocities)
     {
-      sprintf(file_postfix, "velx.%05d", instance_xtra->file_number);
+      sprintf(file_postfix, "phase_xvelxvel.%05d", instance_xtra->file_number);
       WritePFBinary(file_prefix, file_postfix,
                     instance_xtra->x_velocity);
 
-      sprintf(file_postfix, "vely.%05d", instance_xtra->file_number);
+      sprintf(file_postfix, "phase_yvel.%05d", instance_xtra->file_number);
       WritePFBinary(file_prefix, file_postfix,
                     instance_xtra->y_velocity);
 
-      sprintf(file_postfix, "velz.%05d", instance_xtra->file_number);
+      sprintf(file_postfix, "phase_zvel.%05d", instance_xtra->file_number);
       WritePFBinary(file_prefix, file_postfix,
                     instance_xtra->z_velocity);
 
@@ -2849,6 +2849,9 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
           handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
           FinalizeVectorUpdate(handle);
 
+          handle = InitVectorUpdate(instance_xtra->concentrations[concen], VectorUpdateGodunov);
+          FinalizeVectorUpdate(handle);
+
           InitVectorAll(instance_xtra->ctemp, 0.0);
           CopyConcenWithBoundary(instance_xtra->concentrations[concen], instance_xtra->ctemp);
 
@@ -2967,15 +2970,15 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
       if (public_xtra->print_velocities)        //jjb
       {
-        sprintf(file_postfix, "velx.%05d", instance_xtra->file_number);
+        sprintf(file_postfix, "phase_xvel.%05d", instance_xtra->file_number);
         WritePFBinary(file_prefix, file_postfix,
                       instance_xtra->x_velocity);
 
-        sprintf(file_postfix, "vely.%05d", instance_xtra->file_number);
+        sprintf(file_postfix, "phase_yvel.%05d", instance_xtra->file_number);
         WritePFBinary(file_prefix, file_postfix,
                       instance_xtra->y_velocity);
 
-        sprintf(file_postfix, "velz.%05d", instance_xtra->file_number);
+        sprintf(file_postfix, "phase_zvel.%05d", instance_xtra->file_number);
         WritePFBinary(file_prefix, file_postfix,
                       instance_xtra->z_velocity);
 
@@ -2988,8 +2991,8 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
         {
           sprintf(file_postfix, "concen.%02d.%05d", concen, instance_xtra->file_number);
-          WritePFBinary(file_prefix, file_postfix,
-                         instance_xtra->concentrations[concen]);
+          WritePFSBinary(file_prefix, file_postfix,
+                         instance_xtra->concentrations[concen], public_xtra->drop_tol);
         }
         any_file_dumped = 1;
       }
@@ -3737,27 +3740,27 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
 
     if (public_xtra->print_concen)
+    {
+      for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
       {
-        for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
-        {
-          sprintf(file_postfix, "concen.%02d.%05d", concen, instance_xtra->file_number);
-          WritePFBinary(file_prefix, file_postfix,
-                         instance_xtra->concentrations[concen]);
-        }
-        any_file_dumped = 1;
+        sprintf(file_postfix, "concen.%02d.%05d", concen, instance_xtra->file_number);
+        WritePFSBinary(file_prefix, file_postfix,
+                         instance_xtra->concentrations[concen], public_xtra->drop_tol);
       }
+      any_file_dumped = 1;
+    }
 
-      if (public_xtra->write_silo_concen)
+    if (public_xtra->write_silo_concen)
+    {
+      for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
       {
-        for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
-        {
-          sprintf(file_postfix, "%02d.%05d", concen, instance_xtra->file_number);
-          sprintf(file_type, "concen");
-          WriteSilo(file_prefix, file_type, file_postfix, instance_xtra->concentrations[concen],
-                      t, instance_xtra->file_number, "Concentration");
-        }
-        any_file_dumped = 1;
+        sprintf(file_postfix, "%02d.%05d", concen, instance_xtra->file_number);
+        sprintf(file_type, "concen");
+        WriteSilo(file_prefix, file_type, file_postfix, instance_xtra->concentrations[concen],
+                    t, instance_xtra->file_number, "Concentration");
       }
+      any_file_dumped = 1;
+    }
 
     if (public_xtra->print_evaptrans)
     {
@@ -5182,7 +5185,7 @@ SolverRichardsNewPublicXtra(char *name)
   public_xtra->print_satur = switch_value;
 
   sprintf(key, "%s.PrintConcentration", name);
-  switch_name = GetStringDefault(key, "True");
+  switch_name = GetStringDefault(key, "False");
   switch_value = NA_NameToIndex(switch_na, switch_name);
   if (switch_value < 0)
   {

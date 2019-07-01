@@ -3,7 +3,6 @@ include(ParflowTest)
 
 set(TESTS 
   default_single.tcl
-  default_single_new.tcl
   default_richards_wells.tcl
   octree-simple.tcl
   octree-large-domain.tcl
@@ -68,8 +67,7 @@ list(APPEND PARALLEL_2DTOPO_TESTS "")
 
 if(${PARFLOW_AMPS_LAYER} STREQUAL "mpi1")
   list(APPEND PARALLEL_3DTOPO_TESTS 
-    default_single.tcl
-    default_single_new.tcl)
+    default_single.tcl)
 
   if(${PARFLOW_HAVE_HYPRE})
     list(APPEND PARALLEL_3DTOPO_TESTS 

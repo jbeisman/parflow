@@ -767,8 +767,7 @@ void      SolverImpes()
           phase_maximum = MaxPhaseFieldValue(phase_x_velocity[phase],
                                              phase_y_velocity[phase],
                                              phase_z_velocity[phase],
-                                             ProblemDataPorosity(
-                                                                 problem_data));
+                                             ProblemDataPorosity(problem_data));
 
           /* Put in a check for a possibly 0 velocity in this phase */
           if (phase_maximum != 0.0)
@@ -839,7 +838,7 @@ void      SolverImpes()
         if (public_xtra->write_silo_press)
         {
           sprintf(file_postfix, "%05d", file_number - 1);
-          sprintf(file_postfix, "press");
+          sprintf(file_type, "press");
           WriteSilo(file_prefix, file_type, file_postfix, pressure,
                     t, file_number - 1, "Pressure");
           IfLogging(1)
@@ -849,18 +848,17 @@ void      SolverImpes()
           pressure_file_dumped = 1;
         }
 
-
         if (print_velocities)
         {
           for (phase = 0; phase < ProblemNumPhases(problem); phase++)
           {
-            sprintf(file_postfix, "phasex.%01d.%05d", phase, file_number - 1);
+            sprintf(file_postfix, "phase_xvel.%01d.%05d", phase, file_number - 1);
             WritePFBinary(file_prefix, file_postfix, phase_x_velocity[phase]);
 
-            sprintf(file_postfix, "phasey.%01d.%05d", phase, file_number - 1);
+            sprintf(file_postfix, "phase_yvel.%01d.%05d", phase, file_number - 1);
             WritePFBinary(file_prefix, file_postfix, phase_y_velocity[phase]);
 
-            sprintf(file_postfix, "phasez.%01d.%05d", phase, file_number - 1);
+            sprintf(file_postfix, "phase_zvel.%01d.%05d", phase, file_number - 1);
             WritePFBinary(file_prefix, file_postfix, phase_z_velocity[phase]);
 
             IfLogging(1)
@@ -872,13 +870,13 @@ void      SolverImpes()
 
           if (is_multiphase)
           {
-            sprintf(file_postfix, "totalx.%05d", file_number - 1);
+            sprintf(file_postfix, "total_xvel.%05d", file_number - 1);
             WritePFBinary(file_prefix, file_postfix, total_x_velocity);
 
-            sprintf(file_postfix, "totaly.%05d", file_number - 1);
+            sprintf(file_postfix, "total_yvel.%05d", file_number - 1);
             WritePFBinary(file_prefix, file_postfix, total_y_velocity);
 
-            sprintf(file_postfix, "totalz.%05d", file_number - 1);
+            sprintf(file_postfix, "total_zvel.%05d", file_number - 1);
             WritePFBinary(file_prefix, file_postfix, total_z_velocity);
             IfLogging(1)
             {
@@ -1194,6 +1192,8 @@ void      SolverImpes()
               handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
               FinalizeVectorUpdate(handle);
 
+              handle = InitVectorUpdate(concentrations[indx], VectorUpdateGodunov);
+              FinalizeVectorUpdate(handle);
 
               InitVectorAll(ctemp, 0.0);
               CopyConcenWithBoundary(concentrations[indx], ctemp);

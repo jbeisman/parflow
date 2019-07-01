@@ -314,6 +314,7 @@ pfset Solver.WriteSiloSubsurfData True
 pfset Solver.WriteSiloPressure True
 pfset Solver.WriteSiloSaturation True
 pfset Solver.WriteSiloConcentration True
+pfset Solver.PrintConcentration True
 
 
 #-----------------------------------------------------------------------------
