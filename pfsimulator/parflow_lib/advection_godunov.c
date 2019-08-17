@@ -1095,6 +1095,12 @@ IncFLOPCount(VectorSize(new_concentration));
   FreeVector(right_hand_side);
   FreeVector(scale);
 
+  if (public_xtra->enforce_minmax)
+  {
+    FreeVector(min_concen);
+    FreeVector(max_concen);
+  }
+
   /*-----------------------------------------------------------------------
    * End timing
    *-----------------------------------------------------------------------*/
