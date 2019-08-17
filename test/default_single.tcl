@@ -310,10 +310,10 @@ pfset PhaseConcen.water.tce.GeomNames                 concen_region
 pfset PhaseConcen.water.tce.Geom.concen_region.Value  0.8
 
 
-pfset Solver.WriteSiloSubsurfData True
-pfset Solver.WriteSiloPressure True
-pfset Solver.WriteSiloSaturation True
-pfset Solver.WriteSiloConcentration True
+#pfset Solver.WriteSiloSubsurfData True
+#pfset Solver.WriteSiloPressure True
+#pfset Solver.WriteSiloSaturation True
+#pfset Solver.WriteSiloConcentration True
 pfset Solver.PrintConcentration True
 
 
@@ -322,6 +322,7 @@ pfset Solver.PrintConcentration True
 # results we need to set it back to what it was
 #-----------------------------------------------------------------------------
 pfset Solver.MaxIter 5
+pfset Solver.AbsTol 1e-25
 
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files
@@ -353,6 +354,9 @@ if ![pftestFile default_single.out.perm_y.pfb "Max difference in perm_y" $sig_di
     set passed 0
 }
 if ![pftestFile default_single.out.perm_z.pfb "Max difference in perm_z" $sig_digits] {
+    set passed 0
+}
+if ![pftestFile default_single.out.porosity.pfb "Max difference in porosity" $sig_digits] {
     set passed 0
 }
 

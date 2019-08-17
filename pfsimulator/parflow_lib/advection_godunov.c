@@ -43,6 +43,7 @@
 typedef struct {
   int time_index;
   int high_order;
+  int transverse;
 } PublicXtra;
 
 typedef struct {
@@ -64,8 +65,6 @@ typedef struct {
   double *wy;
   double *uz;
   double *vz;
-  double *smin;
-  double *smax;
 } InstanceXtra;
 
 
@@ -109,8 +108,6 @@ void     Godunov(
   double *wy     = (instance_xtra->wy);
   double *uz     = (instance_xtra->uz);
   double *vz     = (instance_xtra->vz);
-  double *smin   = (instance_xtra->smin);
-  double *smax   = (instance_xtra->smax);
 
 
   WellData         *well_data = ProblemDataWellData(problem_data);
@@ -151,16 +148,17 @@ void     Godunov(
     nx_xv, ny_xv, nz_xv,
     nx_yv, ny_yv, nz_yv,
     nx_zv, ny_zv, nz_zv;
+
   int i, j, k, ci, pi, wi, xi, yi, zi;
   int nx_cells, ny_cells, nz_cells, index, flopest;
   double lambda, decay_factor;
 
-  double           *c, *cn, *old_sat, *sat;
-  double           *rhs, *scal, *smf;
-  double           *px, *py, *pz;
-  double           *xvel_u, *xvel_l, *yvel_u, *yvel_l, *zvel_u, *zvel_l;
-  double           *uedge, *vedge, *wedge;
-  double           *phi;
+  double *c, *cn, *old_sat, *sat;
+  double *rhs, *scal, *smf;
+  double *px, *py, *pz;
+  double *xvel_u, *xvel_l, *yvel_u, *yvel_l, *zvel_u, *zvel_l;
+  double *uedge, *vedge, *wedge;
+  double *phi;
 
   int cycle_number, interval_number;
   int dlo[3], dhi[3];
@@ -232,60 +230,8 @@ void     Godunov(
     /***** Make the call to the low-order advection routine *****/
     CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,phi,dlo,
                 dhi,hx,dt,old_sat,sat,iteration,
-                num_iterations,fx,fy,fz,smin,smax);
+                num_iterations,fx,fy,fz);
   }
-
-  
-
-  if (public_xtra->high_order)
-  {
-    handle = InitVectorUpdate(new_concentration, VectorUpdateGodunov);
-    FinalizeVectorUpdate(handle);
-    
-    ForSubgridI(sg, subgrids)
-    {
-      subgrid = GridSubgrid(grid, sg);
-      
-      /**** Get locations for subvector data of vectors passed in ****/
-      c       = SubvectorData(VectorSubvector(old_concentration, sg));
-      cn      = SubvectorData(VectorSubvector(new_concentration, sg));
-      old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
-      sat     = SubvectorData(VectorSubvector(saturation, sg));
-      uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
-      vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
-      wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
-      phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
-     
-      /***** Compute extents of data *****/
-      dlo[0] = SubgridIX(subgrid);
-      dlo[1] = SubgridIY(subgrid);
-      dlo[2] = SubgridIZ(subgrid);
-      dhi[0] = SubgridIX(subgrid) + (SubgridNX(subgrid) - 1);
-      dhi[1] = SubgridIY(subgrid) + (SubgridNY(subgrid) - 1);
-      dhi[2] = SubgridIZ(subgrid) + (SubgridNZ(subgrid) - 1);
-      
-      /***** Compute the grid spacing *****/
-      hx[0] = SubgridDX(subgrid);
-      hx[1] = SubgridDY(subgrid);
-      hx[2] = SubgridDZ(subgrid);
-
-        /*compute anti-diffusive fluxes */
-        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge,
-                              dlo, dhi, hx, dt, fx, fy, fz);
-
-        /*compute transverse flux contributions */
-        CALL_ADVECT_TRANSVERSE(c, uedge, vedge, wedge,
-                               dlo, dhi, hx, dt, vx, wx, uy, wy, uz, vz, fx, fy, fz);
-
-        /*multi-dimensional limiter */
-        CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
-                          vx, wx, uy, wy, uz, vz);
-
-        /*add fluxes to  new concentration, account for transient saturation*/
-        CALL_ADVECT_COMPUTECONCEN(cn, phi, dlo, dhi, hx, dt, old_sat, sat,
-                                  iteration, num_iterations, smin, smax, fx, fy, fz);
-      }
-    }
 
   /*-----------------------------------------------------------------------
    * Adjust for degradation
@@ -371,8 +317,8 @@ void     Godunov(
         subgrid = SubgridArraySubgrid(subgrids, sg);
 
         subvector_scal = VectorSubvector(scale, sg);
-        subvector_rhs = VectorSubvector(right_hand_side, sg);
-        subvector_smf = VectorSubvector(solid_mass_factor, sg);
+        subvector_rhs  = VectorSubvector(right_hand_side, sg);
+        subvector_smf  = VectorSubvector(solid_mass_factor, sg);
         subvector_xvel = VectorSubvector(x_velocity, sg);
         subvector_yvel = VectorSubvector(y_velocity, sg);
         subvector_zvel = VectorSubvector(z_velocity, sg);
@@ -410,9 +356,9 @@ void     Godunov(
 
           cell_volume = dx * dy * dz;
 
-          rhs = SubvectorElt(subvector_rhs, ix, iy, iz);
-          scal = SubvectorElt(subvector_scal, ix, iy, iz);
-          smf = SubvectorElt(subvector_smf, ix, iy, iz);
+          rhs    = SubvectorElt(subvector_rhs, ix, iy, iz);
+          scal   = SubvectorElt(subvector_scal, ix, iy, iz);
+          smf    = SubvectorElt(subvector_smf, ix, iy, iz);
 
           xvel_l = SubvectorElt(subvector_xvel, ix, iy, iz);
           xvel_u = SubvectorElt(subvector_xvel, ix + 1, iy, iz);
@@ -536,8 +482,8 @@ void     Godunov(
         subgrid = SubgridArraySubgrid(subgrids, sg);
 
         subvector_scal = VectorSubvector(scale, sg);
-        subvector_rhs = VectorSubvector(right_hand_side, sg);
-        subvector_smf = VectorSubvector(solid_mass_factor, sg);
+        subvector_rhs  = VectorSubvector(right_hand_side, sg);
+        subvector_smf  = VectorSubvector(solid_mass_factor, sg);
 
         px_sub = VectorSubvector(perm_x, sg);
         py_sub = VectorSubvector(perm_y, sg);
@@ -575,6 +521,7 @@ void     Godunov(
           rhs = SubvectorElt(subvector_rhs, ix, iy, iz);
           scal = SubvectorElt(subvector_scal, ix, iy, iz);
           smf = SubvectorElt(subvector_smf, ix, iy, iz);
+
           px = SubvectorElt(px_sub, ix, iy, iz);
           py = SubvectorElt(py_sub, ix, iy, iz);
           pz = SubvectorElt(pz_sub, ix, iy, iz);
@@ -685,8 +632,6 @@ void     Godunov(
       }
     }
   }
-
-
 
   /*-----------------------------------------------------------------------
    * Compute contributions due to well terms.
@@ -915,6 +860,59 @@ void     Godunov(
   }
 
 
+  if (public_xtra->high_order)
+  {
+    handle = InitVectorUpdate(new_concentration, VectorUpdateGodunov);
+    FinalizeVectorUpdate(handle);
+
+    ForSubgridI(sg, subgrids)
+    {
+      subgrid = GridSubgrid(grid, sg);
+
+      /**** Get locations for subvector data of vectors passed in ****/
+      c       = SubvectorData(VectorSubvector(old_concentration, sg));
+      cn      = SubvectorData(VectorSubvector(new_concentration, sg));
+      old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
+      sat     = SubvectorData(VectorSubvector(saturation, sg));
+      uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
+      vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
+      wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
+      phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
+
+      /***** Compute extents of data *****/
+      dlo[0] = SubgridIX(subgrid);
+      dlo[1] = SubgridIY(subgrid);
+      dlo[2] = SubgridIZ(subgrid);
+      dhi[0] = SubgridIX(subgrid) + (SubgridNX(subgrid) - 1);
+      dhi[1] = SubgridIY(subgrid) + (SubgridNY(subgrid) - 1);
+      dhi[2] = SubgridIZ(subgrid) + (SubgridNZ(subgrid) - 1);
+
+      /***** Compute the grid spacing *****/
+      hx[0] = SubgridDX(subgrid);
+      hx[1] = SubgridDY(subgrid);
+      hx[2] = SubgridDZ(subgrid);
+
+        /*compute anti-diffusive fluxes */
+        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge,
+                              dlo, dhi, hx, dt, fx, fy, fz);
+
+        if (public_xtra->transverse)
+        {
+          /*compute transverse flux contributions */
+          CALL_ADVECT_TRANSVERSE(c, uedge, vedge, wedge,
+                                dlo, dhi, hx, dt, vx, wx, uy, wy, uz, vz, fx, fy, fz);
+        }
+
+                /*multi-dimensional limiter */
+        CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
+                          vx, wx, uy, wy, uz, vz);
+
+        /*add fluxes to  new concentration, account for transient saturation*/
+        CALL_ADVECT_COMPUTECONCEN(cn, phi, dlo, dhi, hx, dt, old_sat, sat,
+                                  iteration, num_iterations, fx, fy, fz);
+      }
+    }
+
 
   /*-----------------------------------------------------------------------
    * Informational computation and printing.
@@ -1036,10 +1034,6 @@ PFModule  *GodunovInitInstanceXtra(
     max_nz = (instance_xtra->max_nz);
 
     /*** set temp data pointers ***/
-    (instance_xtra->smin) = temp_data;
-    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
-    (instance_xtra->smax) = temp_data;
-    temp_data += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2);
     (instance_xtra->fx) = temp_data;
     temp_data += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3);
     (instance_xtra->fy) = temp_data;
@@ -1089,6 +1083,10 @@ PFModule  *GodunovNewPublicXtra()
   PublicXtra   *public_xtra;
   char key[IDB_MAX_KEY_LEN];
   int order;
+  NameArray switch_na;
+  char *switch_name;
+  int switch_value;
+  switch_na = NA_NewNameArray("False True");
 
   public_xtra = ctalloc(PublicXtra, 1);
 
@@ -1105,6 +1103,17 @@ PFModule  *GodunovNewPublicXtra()
   {
     public_xtra->high_order = 0;
   }
+
+  sprintf(key, "Solver.AdvectTransverse");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if (switch_value < 0)
+  {
+    InputError("Error: Invalid value <%s> for key <%s>. Options are 'True' or 'False'\n",
+               switch_name, key);
+  }
+  public_xtra->transverse = switch_value;
+
 
   PFModulePublicXtra(this_module) = public_xtra;
   return this_module;
@@ -1142,7 +1151,7 @@ int  GodunovSizeOfTempData()
 
   /* add local TempData size to `sz' */
   sz += (max_nx + 2 + 3) * (max_ny + 2 + 3) * (max_nz + 2 + 3) * 3;
-  sz += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2) * 8;
+  sz += (max_nx + 1 + 2) * (max_ny + 1 + 2) * (max_nz + 1 + 2) * 6;
 
   return sz;
 }

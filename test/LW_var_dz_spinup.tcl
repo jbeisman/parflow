@@ -358,8 +358,8 @@ pfset Solver.Linear.Preconditioner                       MGSemi
 pfset Solver.Linear.Preconditioner                       PFMG
 pfset Solver.Linear.Preconditioner.PCMatrixType     FullJacobian
 
-pfset Solver.WriteSiloPressure                          True
-pfset Solver.WriteSiloSaturation                        True
+#pfset Solver.WriteSiloPressure                          True
+#pfset Solver.WriteSiloSaturation                        True
 
 ##---------------------------------------------------------
 # Initial conditions: water pressure

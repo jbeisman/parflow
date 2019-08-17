@@ -1084,7 +1084,7 @@ SetupRichards(PFModule * this_module)
 
       if (!GlobalsChemistryFlag)
       {
-        BCConcenCopyAdjacent(problem, grid, instance_xtra->concentrations, ProblemDataGrDomain(problem_data));
+        BCConcenCopyAdjacent(problem, grid, instance_xtra->concentrations);
       }
     }
 
@@ -1361,7 +1361,7 @@ SetupRichards(PFModule * this_module)
     /* print initial velocities??? jjb */
     if (print_velocities)
     {
-      sprintf(file_postfix, "phase_xvelxvel.%05d", instance_xtra->file_number);
+      sprintf(file_postfix, "phase_xvel.%05d", instance_xtra->file_number);
       WritePFBinary(file_prefix, file_postfix,
                     instance_xtra->x_velocity);
 
@@ -2774,10 +2774,10 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
     }
 
     /* velocity updates - not sure these are necessary jjb */
-    handle = InitVectorUpdate(instance_xtra->x_velocity, VectorUpdateVelX);
+    handle = InitVectorUpdate(instance_xtra->x_velocity, VectorUpdateVelZ);
     FinalizeVectorUpdate(handle);
 
-    handle = InitVectorUpdate(instance_xtra->y_velocity, VectorUpdateVelY);
+    handle = InitVectorUpdate(instance_xtra->y_velocity, VectorUpdateVelZ);
     FinalizeVectorUpdate(handle);
 
     handle = InitVectorUpdate(instance_xtra->z_velocity, VectorUpdateVelZ);
@@ -2852,7 +2852,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
           handle = InitVectorUpdate(instance_xtra->concentrations[concen], VectorUpdateGodunov);
           FinalizeVectorUpdate(handle);
 
-          InitVectorAll(instance_xtra->ctemp, 0.0);
+          //InitVectorAll(instance_xtra->ctemp, 0.0);
           CopyConcenWithBoundary(instance_xtra->concentrations[concen], instance_xtra->ctemp);
 
           PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,

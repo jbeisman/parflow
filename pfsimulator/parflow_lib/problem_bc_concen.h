@@ -31,8 +31,8 @@
 
 /* problem_bc_concen.c */
 #ifdef HAVE_ALQUIMIA
-typedef void (*BCConcentrationInvoke) (Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states, GrGeomSolid *gr_domain);
-void BCConcentration(Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states, GrGeomSolid *gr_domain);
+typedef void (*BCConcentrationInvoke) (Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states);
+void BCConcentration(Problem *problem, Grid *grid, Vector ** concentrations, AlquimiaState *bc_chem_states);
 
 PFModule *BCConcentrationInitInstanceXtra(void);
 void BCConcentrationFreeInstanceXtra(void);
@@ -42,8 +42,9 @@ int BCConcentrationSizeOfTempData(void);
 #endif
 
 
-void BCConcenCopyPatch(Problem *problem, Grid *grid, Vector **concentrations, int ipatch, BCStruct *bc_struct);
-void BCConcenCopyAdjacent(Problem *problem, Grid *grid, Vector **concentrations, GrGeomSolid *gr_domain);
+void BCConcenCopyPatch(Problem *problem, Grid *grid, Vector **concentrations, int ipatch);
+void BCConcenCopyAdjacent(Problem *problem, Grid *grid, Vector **concentrations);
+void BCConcenPatchExtent(Subgrid *subgrid, int *ix, int *iy, int *iz, int *nx, int *ny, int *nz, int ipatch);
 
 #endif
 

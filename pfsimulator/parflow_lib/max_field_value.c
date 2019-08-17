@@ -218,9 +218,9 @@ double  MaxPhaseFieldValue(
     {
       subgrid = GridSubgrid(grid, i_s);
 
-      ix = SubgridIX(subgrid);
-      iy = SubgridIY(subgrid);
-      iz = SubgridIZ(subgrid);
+      ix = SubgridIX(subgrid) - 1;
+      iy = SubgridIY(subgrid) - 1;
+      iz = SubgridIZ(subgrid) - 1;
 
       nx = SubgridNX(subgrid) + 1;
       ny = SubgridNY(subgrid) + 1;
@@ -262,7 +262,7 @@ double  MaxPhaseFieldValue(
                 vi, nx_v, ny_v, nz_v, 1, 1, 1,
                 pi, nx_p, ny_p, nz_p, 1, 1, 1,
       {
-        psi_max = pfmax(fabs(plp[pi]), fabs(prp[pi])) * ds;
+        psi_max = pfmin(fabs(plp[pi]), fabs(prp[pi])) * ds;
         if (psi_max != 0.0)
         {
           tmp_max = fabs(vp[vi]) / psi_max;

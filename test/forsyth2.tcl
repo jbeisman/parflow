@@ -195,24 +195,37 @@ pfset Phase.water.Density.Value	        1.0
 pfset Phase.water.Viscosity.Type	Constant
 pfset Phase.water.Viscosity.Value	1.124e-2
 
+##-----------------------------------------------------------------------------
+## Contaminants
+##-----------------------------------------------------------------------------
+#
+#pfset Contaminants.Names			"tce"
+#pfset Contaminants.tce.Degradation.Value	 0.0
+#
+#pfset PhaseConcen.water.tce.Type                 Constant
+#pfset PhaseConcen.water.tce.GeomNames            domain
+#pfset PhaseConcen.water.tce.Geom.domain.Value    0.0
+#
+##-----------------------------------------------------------------------------
+## Retardation
+##-----------------------------------------------------------------------------
+#
+#pfset Geom.Retardation.GeomNames           background
+#pfset Geom.background.tce.Retardation.Type     Linear
+#pfset Geom.background.tce.Retardation.Rate     0.0
+
+
 #-----------------------------------------------------------------------------
 # Contaminants
 #-----------------------------------------------------------------------------
 
-pfset Contaminants.Names			"tce"
-pfset Contaminants.tce.Degradation.Value	 0.0
-
-pfset PhaseConcen.water.tce.Type                 Constant
-pfset PhaseConcen.water.tce.GeomNames            domain
-pfset PhaseConcen.water.tce.Geom.domain.Value    0.0
+pfset Contaminants.Names			""
 
 #-----------------------------------------------------------------------------
 # Retardation
 #-----------------------------------------------------------------------------
 
-pfset Geom.Retardation.GeomNames           background
-pfset Geom.background.tce.Retardation.Type     Linear
-pfset Geom.background.tce.Retardation.Rate     0.0
+pfset Geom.Retardation.GeomNames           ""
 
 #-----------------------------------------------------------------------------
 # Gravity

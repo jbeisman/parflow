@@ -58,16 +58,16 @@ BEGIN_EXTERN_C
 
 #define CALL_ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
                     dlo, dhi, hx, dt,\
-                    old_sat, sat, iteration, num_iterations,fx,fy,fz,smin,smax)\
+                    old_sat, sat, iteration, num_iterations,fx,fy,fz)\
              ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
                     dlo, dhi, hx, &dt,\
-                    old_sat, sat, &iteration, &num_iterations,fx,fy,fz,smin,smax)
+                    old_sat, sat, &iteration, &num_iterations,fx,fy,fz)
 
 void ADVECT_UPWIND(double *s, double *sn,
             double *uedge, double *vedge, double *wedge, double *phi,
             int *dlo, int *dhi, double *hx, double *dt,
             double *old_sat, double *sat, int *iteration, int *num_iterations,
-            double *fx, double *fy,double *fz, double *smin, double *smax);
+            double *fx, double *fy,double *fz);
 
 
 #if defined(_CRAYMPP)
@@ -119,15 +119,14 @@ void ADVECT_TRANSVERSE(double *s, double *uedge, double *vedge, double *wedge,
 
 #define CALL_ADVECT_COMPUTECONCEN(sn, phi,\
                     dlo, dhi, hx, dt,old_sat,sat,\
-                    iteration,num_iterations,smin,smax,sx,sy,sz)\
+                    iteration,num_iterations,sx,sy,sz)\
              ADVECT_COMPUTECONCEN(sn, phi,\
                     dlo, dhi, hx, &dt,old_sat,sat,\
-                    &iteration,&num_iterations,smin,smax,sx,sy,sz)
+                    &iteration,&num_iterations,sx,sy,sz)
 
 void ADVECT_COMPUTECONCEN(double *sn, double *phi, 
             int *dlo, int *dhi, double *hx, double *dt,
             double *old_sat, double *sat,int *iteration, int *num_iterations,
-             double *smin, double *smax,
             double *sx, double *sy,double *sz);
 
 

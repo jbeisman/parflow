@@ -273,7 +273,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   ChemDataToPFVectors(alquimia_data,grid,problem_data);
 
   // fill concen vector with assigned boundaries
-  PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state, gr_domain));
+  PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state));
   
 
   // print initial concen volume 

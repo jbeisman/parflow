@@ -52,7 +52,6 @@
 #define VectorUpdatePGS2     9
 #define VectorUpdatePGS3     10
 #define VectorUpdatePGS4     11
-
 /*--------------------------------------------------------------------------
  * CommPkg:
  *   Structure containing information for communicating subregions of

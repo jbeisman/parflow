@@ -79,7 +79,8 @@ PARALLEL_3DTOPO_TESTS += \
 ifeq (${PARFLOW_HAVE_HYPRE},yes)
 
 PARALLEL_3DTOPO_TESTS += \
-	default_richards.tcl 
+	default_richards.tcl \
+	default_richards_wells.tcl
 
 PARALLEL_2DTOPO_TESTS += \
 	default_overland.tcl \
@@ -178,7 +179,8 @@ check_parallel:
 	done
 	@-for i in $(SUBDIRS); \
 	do \
-	        (cd $$i; make check_parallel); \
+			make --no-print-directory testclean; \
+	        (cd $$i; make check_parallel; make --no-print-directory testclean); \
 	done 
 
 

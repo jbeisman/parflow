@@ -169,20 +169,20 @@ void  CreateComputePkgs(
                                  { 0, 0, 2 } };
   int update_velx_shape[][3] = { { -1, 0, 0 },
                                  { 1, 0, 0 },
+                                 { -2, 0, 0 },
+                                 { 2, 0, 0 },
                                  { 0, -1, 0 },
                                  { 0, 1, 0 },
                                  { 0, 0, -1 },
-                                 { 0, 0, 1 },
-                                 { -2, 0, 0 },
-                                 { 2, 0, 0 } };
+                                 { 0, 0, 1 } };
   int update_vely_shape[][3] = { { -1, 0, 0 },
                                  { 1, 0, 0 },
                                  { 0, -1, 0 },
                                  { 0, 1, 0 },
-                                 { 0, 0, -1 },
-                                 { 0, 0, 1 },
                                  { 0, -2, 0 },
-                                 { 0, 2, 0 } };
+                                 { 0, 2, 0 },
+                                 { 0, 0, -1 },
+                                 { 0, 0, 1 } };
   int update_velz_shape[][3] = { { -1, 0, 0 },
                                  { 1, 0, 0 },
                                  { 0, -1, 0 },
@@ -190,7 +190,7 @@ void  CreateComputePkgs(
                                  { 0, 0, -1 },
                                  { 0, 0, 1 },
                                  { 0, 0, -2 },
-                                 { 0, 0, 2 } };
+                                 { 0, 0, 2 }};
 
   StencilElt *update_godunov_shape;
   StencilElt *update_pgs1_shape;
@@ -314,16 +314,16 @@ void  CreateComputePkgs(
    * in the code.
    *------------------------------------------------------*/
 
-  update_all_stencil = NewStencil(update_all_shape, 6);
-  update_all2_stencil = NewStencil(update_all2_shape, 12);
+  update_all_stencil     = NewStencil(update_all_shape, 6);
+  update_all2_stencil    = NewStencil(update_all2_shape, 12);
   update_godunov_stencil = NewStencil(update_godunov_shape, 135);
-  update_velx_stencil = NewStencil(update_velx_shape, 8);
-  update_vely_stencil = NewStencil(update_vely_shape, 8);
-  update_velz_stencil = NewStencil(update_velz_shape, 8);
-  update_pgs1_stencil = NewStencil(update_pgs1_shape, 27);
-  update_pgs2_stencil = NewStencil(update_pgs2_shape, 125);
-  update_pgs3_stencil = NewStencil(update_pgs3_shape, 343);
-  update_pgs4_stencil = NewStencil(update_pgs4_shape, 729);
+  update_velx_stencil    = NewStencil(update_velx_shape, 8);
+  update_vely_stencil    = NewStencil(update_vely_shape, 8);
+  update_velz_stencil    = NewStencil(update_velz_shape, 8);
+  update_pgs1_stencil    = NewStencil(update_pgs1_shape, 27);
+  update_pgs2_stencil    = NewStencil(update_pgs2_shape, 125);
+  update_pgs3_stencil    = NewStencil(update_pgs3_shape, 343);
+  update_pgs4_stencil    = NewStencil(update_pgs4_shape, 729);
 
   /*------------------------------------------------------
    * Malloc ComputePkg arrays.
@@ -354,6 +354,7 @@ void  CreateComputePkgs(
 
   GridComputePkg(grid, VectorUpdateAll2) =
     NewComputePkg(send_reg, recv_reg, dep_reg, ind_reg);
+
 
   /*------------------------------------------------------
    * Define VectorUpdateRPoint and VectorUpdateBPoint modes.

@@ -452,7 +452,7 @@ void      SolverImpes()
 
         if (!chem_flag)
         {
-          BCConcenCopyAdjacent(problem, grid, concentrations, gr_domain);
+          BCConcenCopyAdjacent(problem, grid, concentrations);
         }
 
       }

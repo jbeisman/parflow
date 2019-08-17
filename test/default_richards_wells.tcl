@@ -32,11 +32,11 @@ pfset ComputationalGrid.Lower.X                -10.0
 pfset ComputationalGrid.Lower.Y                 10.0
 pfset ComputationalGrid.Lower.Z                  1.0
 
-pfset ComputationalGrid.DX	                 8.8888888888888893
+pfset ComputationalGrid.DX	                     8.42105263158
 pfset ComputationalGrid.DY                      10.666666666666666
-pfset ComputationalGrid.DZ	                 1.0
+pfset ComputationalGrid.DZ	                     1.0
 
-pfset ComputationalGrid.NX                      18
+pfset ComputationalGrid.NX                      19
 pfset ComputationalGrid.NY                      15
 pfset ComputationalGrid.NZ                       8
 
@@ -111,12 +111,12 @@ pfset GeomInput.concen_region_input.GeomName        concen_region
 #---------------------------------------------------------
 # Concen_Region Geometry
 #---------------------------------------------------------
-pfset Geom.concen_region.Lower.X   60.0
-pfset Geom.concen_region.Lower.Y   80.0
+pfset Geom.concen_region.Lower.X   65.7894736842
+pfset Geom.concen_region.Lower.Y   84.6666666667
 pfset Geom.concen_region.Lower.Z    4.0
 
-pfset Geom.concen_region.Upper.X   80.0
-pfset Geom.concen_region.Upper.Y  100.0
+pfset Geom.concen_region.Upper.X   74.2105263158
+pfset Geom.concen_region.Upper.Y   95.3333333333
 pfset Geom.concen_region.Upper.Z    6.0
 
 #-----------------------------------------------------------------------------
@@ -178,13 +178,13 @@ pfset Gravity				1.0
 # Setup timing info
 #-----------------------------------------------------------------------------
 
-pfset TimingInfo.BaseUnit       1.0
+pfset TimingInfo.BaseUnit       0.5
 pfset TimingInfo.StartCount     0
 pfset TimingInfo.StartTime      0.0
-pfset TimingInfo.StopTime       100.0
-pfset TimingInfo.DumpInterval   20.0
+pfset TimingInfo.StopTime       2.5
+pfset TimingInfo.DumpInterval   -1
 pfset TimeStep.Type             Constant
-pfset TimeStep.Value            20.0
+pfset TimeStep.Value            .5
 
 #-----------------------------------------------------------------------------
 # Porosity
@@ -193,7 +193,7 @@ pfset TimeStep.Value            20.0
 pfset Geom.Porosity.GeomNames          background
 
 pfset Geom.background.Porosity.Type    Constant
-pfset Geom.background.Porosity.Value   1.0
+pfset Geom.background.Porosity.Value   0.25
 
 #-----------------------------------------------------------------------------
 # Domain
@@ -223,28 +223,19 @@ pfset Geom.domain.Saturation.SSat      0.99
 #-----------------------------------------------------------------------------
 # Wells
 #-----------------------------------------------------------------------------
-pfset Wells.Names snoopy
-
-pfset Wells.snoopy.InputType                Recirc
-
-pfset Wells.snoopy.Cycle            constant
-
-pfset Wells.snoopy.ExtractionType       Flux
-pfset Wells.snoopy.InjectionType            Flux
-
-pfset Wells.snoopy.X                71.0 
-pfset Wells.snoopy.Y                90.0
-pfset Wells.snoopy.ExtractionZLower      5.0
-pfset Wells.snoopy.ExtractionZUpper      5.0
-pfset Wells.snoopy.InjectionZLower       2.0
-pfset Wells.snoopy.InjectionZUpper       2.0
-
-pfset Wells.snoopy.ExtractionMethod     Standard
-pfset Wells.snoopy.InjectionMethod          Standard
-
-pfset Wells.snoopy.alltime.Extraction.Flux.water.Value               5.0
-pfset Wells.snoopy.alltime.Injection.Flux.water.Value            7.5
-pfset Wells.snoopy.alltime.Injection.Concentration.water.tce.Fraction 0.1
+pfset Wells.Names                               "pumping_well"
+pfset Wells.pumping_well.InputType              Vertical
+pfset Wells.pumping_well.Action                 Injection
+pfset Wells.pumping_well.Type                   Pressure
+pfset Wells.pumping_well.X                      70.0
+pfset Wells.pumping_well.Y                      90.0
+pfset Wells.pumping_well.ZUpper                 3.5
+pfset Wells.pumping_well.ZLower                 3.5
+pfset Wells.pumping_well.Method                 Standard
+pfset Wells.pumping_well.Cycle                  "constant"
+pfset Wells.pumping_well.alltime.Pressure.Value      0.01
+pfset Wells.pumping_well.alltime.Saturation.water.Value 1.0
+pfset Wells.pumping_well.alltime.Concentration.water.tce.Value 1e-10
 
 #-----------------------------------------------------------------------------
 # Time Cycles
@@ -263,21 +254,25 @@ pfset Patch.left.BCPressure.Type            DirEquilRefPatch
 pfset Patch.left.BCPressure.Cycle           "constant"
 pfset Patch.left.BCPressure.RefGeom         domain
 pfset Patch.left.BCPressure.RefPatch            bottom
-pfset Patch.left.BCPressure.alltime.Value       6.0
+pfset Patch.left.BCPressure.alltime.Value       -150.0
 
 pfset Patch.right.BCPressure.Type           DirEquilRefPatch
 pfset Patch.right.BCPressure.Cycle          "constant"
 pfset Patch.right.BCPressure.RefGeom            domain
 pfset Patch.right.BCPressure.RefPatch           bottom
-pfset Patch.right.BCPressure.alltime.Value      4.0
+pfset Patch.right.BCPressure.alltime.Value      -150.0
 
-pfset Patch.front.BCPressure.Type           FluxConst
-pfset Patch.front.BCPressure.Cycle          "constant"
-pfset Patch.front.BCPressure.alltime.Value      0.0
+pfset Patch.front.BCPressure.Type            DirEquilRefPatch
+pfset Patch.front.BCPressure.Cycle           "constant"
+pfset Patch.front.BCPressure.RefGeom         domain
+pfset Patch.front.BCPressure.RefPatch            bottom
+pfset Patch.front.BCPressure.alltime.Value       -150.0
 
-pfset Patch.back.BCPressure.Type            FluxConst
-pfset Patch.back.BCPressure.Cycle           "constant"
-pfset Patch.back.BCPressure.alltime.Value       0.0
+pfset Patch.back.BCPressure.Type           DirEquilRefPatch
+pfset Patch.back.BCPressure.Cycle          "constant"
+pfset Patch.back.BCPressure.RefGeom            domain
+pfset Patch.back.BCPressure.RefPatch           bottom
+pfset Patch.back.BCPressure.alltime.Value      -150.0
 
 pfset Patch.bottom.BCPressure.Type          FluxConst
 pfset Patch.bottom.BCPressure.Cycle         "constant"
@@ -319,7 +314,7 @@ pfset Mannings.Geom.domain.Value 0.
 
 pfset ICPressure.Type                                   HydroStaticPatch
 pfset ICPressure.GeomNames                              domain
-pfset Geom.domain.ICPressure.Value                      5.0
+pfset Geom.domain.ICPressure.Value                      10.0
 pfset Geom.domain.ICPressure.RefGeom                    domain
 pfset Geom.domain.ICPressure.RefPatch                   bottom
 
@@ -332,8 +327,9 @@ pfset PhaseSources.water.GeomNames                    background
 pfset PhaseSources.water.Geom.background.Value        0.0
 
 pfset PhaseConcen.water.tce.Type                      Constant
-pfset PhaseConcen.water.tce.GeomNames                 concen_region
-pfset PhaseConcen.water.tce.Geom.concen_region.Value  0.8
+pfset PhaseConcen.water.tce.GeomNames                 "background concen_region"
+pfset PhaseConcen.water.tce.Geom.background.Value  1e-10
+pfset PhaseConcen.water.tce.Geom.concen_region.Value  10.0
 
 
 #-----------------------------------------------------------------------------
@@ -349,25 +345,36 @@ pfset KnownSolution                                    NoKnownSolution
 pfset Solver                                             Richards
 pfset Solver.MaxIter                                     5
 
-pfset Solver.Nonlinear.MaxIter                           10
-pfset Solver.Nonlinear.ResidualTol                       1e-9
+pfset Solver.Nonlinear.MaxIter                           20
+pfset Solver.Nonlinear.ResidualTol                       1e-11
 pfset Solver.Nonlinear.EtaChoice                         EtaConstant
-pfset Solver.Nonlinear.EtaValue                          1e-5
+pfset Solver.Nonlinear.EtaValue                          1e-9
 pfset Solver.Nonlinear.UseJacobian                       True
-pfset Solver.Nonlinear.DerivativeEpsilon                 1e-2
+pfset Solver.Nonlinear.DerivativeEpsilon                 1e-3
+pfset Solver.Linear.Preconditioner.SymmetricMat Nonsymmetric
 
-pfset Solver.Linear.KrylovDimension                      10
+pfset Solver.Linear.KrylovDimension                      15
 
 pfset Solver.Linear.Preconditioner                       MGSemi
-pfset Solver.Linear.Preconditioner.MGSemi.MaxIter        1
+pfset Solver.Linear.Preconditioner.MGSemi.MaxIter        5
 pfset Solver.Linear.Preconditioner.MGSemi.MaxLevels      100
+
+
+pfset Solver.Nonlinear.StepTol 1e-30
+pfset Solver.AbsTol 1E-30
 
 
 #pfset Solver.WriteSiloSubsurfData True
 #pfset Solver.WriteSiloPressure True
-pfset Solver.WriteSiloSaturation True
-pfset Solver.WriteSiloConcentration True
+#pfset Solver.WriteSiloSaturation True
+#pfset Solver.WriteSiloConcentration True
 pfset Solver.PrintConcentration True
+pfset Solver.PrintVelocities True
+
+pfset Solver.AdvectOrder 2
+pfset Solver.CFL 0.8
+
+pfset Solver.Drop 1e-30
 
 #-----------------------------------------------------------------------------
 # Run and Unload the ParFlow output files
@@ -380,6 +387,7 @@ pfundist $runname
 #
 source pftest.tcl
 set passed 1
+#set sig_digits 10
 
 if ![pftestFile $runname.out.perm_x.pfb "Max difference in perm_x" $sig_digits] {
     set passed 0
@@ -390,6 +398,9 @@ if ![pftestFile $runname.out.perm_y.pfb "Max difference in perm_y" $sig_digits] 
 if ![pftestFile $runname.out.perm_z.pfb "Max difference in perm_z" $sig_digits] {
     set passed 0
 }
+if ![pftestFile $runname.out.porosity.pfb "Max difference in porosity" $sig_digits] {
+    set passed 0
+}
 
 foreach i "00000 00001 00002 00003 00004 00005" {
     if ![pftestFile $runname.out.press.$i.pfb "Max difference in Pressure for timestep $i" $sig_digits] {
@@ -398,9 +409,20 @@ foreach i "00000 00001 00002 00003 00004 00005" {
     if ![pftestFile $runname.out.satur.$i.pfb "Max difference in Saturation for timestep $i" $sig_digits] {
     set passed 0
 }
-    if ![pftestFile default_richards_wells.out.concen.00.$i.pfsb "Max difference in concen timestep $i" $sig_digits] {
+    set sig_digits 3
+    if ![pftestFile $runname.out.concen.00.$i.pfsb "Max difference in concen timestep $i" $sig_digits] {
     set passed 0
-    }
+}
+    set sig_digits 6
+    if ![pftestFile $runname.out.phase_xvel.$i.pfb "Max difference in phase_xvel for timestep $i" $sig_digits] {
+    set passed 0
+}
+    if ![pftestFile $runname.out.phase_yvel.$i.pfb "Max difference in phase_yvel for timestep $i" $sig_digits] {
+    set passed 0
+}
+    if ![pftestFile $runname.out.phase_zvel.$i.pfb "Max difference in phase_zvel for timestep $i" $sig_digits] {
+    set passed 0
+}
 }
 
 if $passed {
