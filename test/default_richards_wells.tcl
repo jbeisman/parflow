@@ -372,6 +372,7 @@ pfset Solver.PrintConcentration True
 pfset Solver.PrintVelocities True
 
 pfset Solver.AdvectOrder 2
+pfset Solver.AdvectEnforceMinMax True
 pfset Solver.CFL 0.8
 
 pfset Solver.Drop 1e-30

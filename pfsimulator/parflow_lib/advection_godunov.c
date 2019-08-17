@@ -44,6 +44,7 @@ typedef struct {
   int time_index;
   int high_order;
   int transverse;
+  int enforce_minmax;
 } PublicXtra;
 
 typedef struct {
@@ -98,6 +99,8 @@ void     Godunov(
 
   Vector     *scale = NULL;
   Vector     *right_hand_side = NULL;
+  Vector     *min_concen = NULL;
+  Vector     *max_concen = NULL;
 
   double *fx     = (instance_xtra->fx);
   double *fy     = (instance_xtra->fy);
@@ -134,6 +137,9 @@ void     Godunov(
     *subvector_xvel,
     *subvector_yvel,
     *subvector_zvel,
+    *concen_sub,
+    *min_sub,
+    *max_sub,
     *px_sub,
     *py_sub,
     *pz_sub;
@@ -143,13 +149,14 @@ void     Godunov(
   int nx, ny, nz;
   double dx, dy, dz;
   int nx_c, ny_c, nz_c,
+    nx_m, ny_m, nz_m,
     nx_p, ny_p, nz_p,
     nx_w, ny_w, nz_w,
     nx_xv, ny_xv, nz_xv,
     nx_yv, ny_yv, nz_yv,
     nx_zv, ny_zv, nz_zv;
 
-  int i, j, k, ci, pi, wi, xi, yi, zi;
+  int i, j, k, ci, mi, pi, wi, xi, yi, zi;
   int nx_cells, ny_cells, nz_cells, index, flopest;
   double lambda, decay_factor;
 
@@ -157,7 +164,9 @@ void     Godunov(
   double *rhs, *scal, *smf;
   double *px, *py, *pz;
   double *xvel_u, *xvel_l, *yvel_u, *yvel_l, *zvel_u, *zvel_l;
+  double *c_xl, *c_xu, *c_yl, *c_yu, *c_zl, *c_zu;
   double *uedge, *vedge, *wedge;
+  double *min, *max;
   double *phi;
 
   int cycle_number, interval_number;
@@ -183,6 +192,13 @@ void     Godunov(
 
   scale = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
   right_hand_side = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+
+  
+  if (public_xtra->enforce_minmax)
+  {
+    min_concen = NewVectorType(instance_xtra->grid, 1, 0, vector_cell_centered);
+    max_concen = NewVectorType(instance_xtra->grid, 1, 0, vector_cell_centered);
+  }
 
   /*-----------------------------------------------------------------------
    * Initialize some data
@@ -231,6 +247,58 @@ void     Godunov(
     CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,phi,dlo,
                 dhi,hx,dt,old_sat,sat,iteration,
                 num_iterations,fx,fy,fz);
+  }
+
+
+  if (public_xtra->enforce_minmax)
+  {
+
+    ForSubgridI(sg, subgrids)
+    {
+      subgrid = SubgridArraySubgrid(subgrids, sg);
+
+      concen_sub = VectorSubvector(old_concentration, sg);
+      min_sub = VectorSubvector(min_concen, sg);
+      max_sub = VectorSubvector(max_concen, sg);
+
+      ix = SubgridIX(subgrid);
+      iy = SubgridIY(subgrid);
+      iz = SubgridIZ(subgrid);
+
+      nx = SubgridNX(subgrid);
+      ny = SubgridNY(subgrid);
+      nz = SubgridNZ(subgrid);
+
+      nx_c = SubvectorNX(concen_sub);
+      ny_c = SubvectorNY(concen_sub);
+      nz_c = SubvectorNZ(concen_sub);
+
+      nx_m = SubvectorNX(min_sub);
+      ny_m = SubvectorNY(min_sub);
+      nz_m = SubvectorNZ(min_sub);
+
+      min = SubvectorElt(min_sub, ix, iy, iz);
+      max = SubvectorElt(max_sub, ix, iy, iz);
+
+      c = SubvectorElt(concen_sub, ix, iy, iz);
+      c_xl = SubvectorElt(concen_sub, ix-1, iy, iz);
+      c_xu = SubvectorElt(concen_sub, ix+1, iy, iz);
+      c_yl = SubvectorElt(concen_sub, ix, iy-1, iz);
+      c_yu = SubvectorElt(concen_sub, ix, iy+1, iz);
+      c_zl = SubvectorElt(concen_sub, ix, iy, iz-1);
+      c_zu = SubvectorElt(concen_sub, ix, iy, iz+1);
+
+      ci = 0;
+      mi = 0;
+      BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+              mi, nx_m, ny_m, nz_m, 1, 1, 1,
+              ci, nx_c, ny_c, nz_c, 1, 1, 1,
+      {
+        min[mi] = pfmin(c[ci], pfmin(c_xl[ci], pfmin(c_xu[ci], pfmin(c_yl[ci], pfmin(c_yu[ci], pfmin(c_zl[ci], c_zu[ci]))))));
+        max[mi] = pfmax(c[ci], pfmax(c_xl[ci], pfmax(c_xu[ci], pfmax(c_yl[ci], pfmax(c_yu[ci], pfmax(c_zl[ci], c_zu[ci]))))));
+//printf("%d %d %d min: %e max: %e \n",i,j,k,min[mi],max[mi]);
+      });
+    }
   }
 
   /*-----------------------------------------------------------------------
@@ -385,6 +453,27 @@ void     Godunov(
             {
               input_c = WellDataValueContaminantValue(well_data_value,
                                                       index);
+            }
+
+            if (public_xtra->enforce_minmax)
+            {
+              min_sub = VectorSubvector(min_concen, sg);
+              max_sub = VectorSubvector(max_concen, sg);
+
+              nx_m = SubvectorNX(min_sub);
+              ny_m = SubvectorNY(min_sub);
+              nz_m = SubvectorNZ(min_sub);
+
+              min = SubvectorElt(min_sub, ix, iy, iz);
+              max = SubvectorElt(max_sub, ix, iy, iz);
+
+              mi = 0;
+              BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+                        mi, nx_m, ny_m, nz_m, 1, 1, 1,
+              {
+                min[mi] = pfmin(input_c, min[mi]);
+                max[mi] = pfmax(input_c, max[mi]);
+              });
             }
 
             if (input_c > 0.0)
@@ -542,6 +631,27 @@ void     Godunov(
             {
               input_c = WellDataValueContaminantValue(well_data_value,
                                                       index);
+            }
+
+            if (public_xtra->enforce_minmax)
+            {
+              min_sub = VectorSubvector(min_concen, sg);
+              max_sub = VectorSubvector(max_concen, sg);
+
+              nx_m = SubvectorNX(min_sub);
+              ny_m = SubvectorNY(min_sub);
+              nz_m = SubvectorNZ(min_sub);
+
+              min = SubvectorElt(min_sub, ix, iy, iz);
+              max = SubvectorElt(max_sub, ix, iy, iz);
+
+              mi = 0;
+              BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+                        mi, nx_m, ny_m, nz_m, 1, 1, 1,
+              {
+                min[mi] = pfmin(input_c, min[mi]);
+                max[mi] = pfmax(input_c, max[mi]);
+              });
             }
 
             if (input_c > 0.0)
@@ -913,6 +1023,54 @@ void     Godunov(
       }
     }
 
+    if (public_xtra->enforce_minmax)
+  {
+
+    ForSubgridI(sg, subgrids)
+    {
+      subgrid = SubgridArraySubgrid(subgrids, sg);
+
+      concen_sub = VectorSubvector(new_concentration, sg);
+      min_sub = VectorSubvector(min_concen, sg);
+      max_sub = VectorSubvector(max_concen, sg);
+
+      ix = SubgridIX(subgrid);
+      iy = SubgridIY(subgrid);
+      iz = SubgridIZ(subgrid);
+
+      nx = SubgridNX(subgrid);
+      ny = SubgridNY(subgrid);
+      nz = SubgridNZ(subgrid);
+
+      nx_c = SubvectorNX(concen_sub);
+      ny_c = SubvectorNY(concen_sub);
+      nz_c = SubvectorNZ(concen_sub);
+
+      nx_m = SubvectorNX(min_sub);
+      ny_m = SubvectorNY(min_sub);
+      nz_m = SubvectorNZ(min_sub);
+
+      min = SubvectorElt(min_sub, ix, iy, iz);
+      max = SubvectorElt(max_sub, ix, iy, iz);
+
+      cn = SubvectorElt(concen_sub, ix, iy, iz);
+
+      ci = 0;
+      mi = 0;
+      BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+              mi, nx_m, ny_m, nz_m, 1, 1, 1,
+              ci, nx_c, ny_c, nz_c, 1, 1, 1,
+      {
+        //min[mi] = pfmin(c[ci], pfmin(c_xl[ci], pfmin(c_xu[ci], pfmin(c_yl[ci], pfmin(c_yu[ci], pfmin(c_zl[ci], c_zu[ci]))))));
+        //max[mi] = pfmax(c[ci], pfmax(c_xl[ci], pfmax(c_xu[ci], pfmax(c_yl[ci], pfmax(c_yu[ci], pfmax(c_zl[ci], c_zu[ci]))))));
+
+        cn[ci] = pfmin(max[mi],cn[ci]);
+        cn[ci] = pfmax(min[mi],cn[ci]);
+//printf("%d %d %d min: %e max: %e \n",i,j,k,min[mi],max[mi]);
+      });
+    }
+  }
+
 
   /*-----------------------------------------------------------------------
    * Informational computation and printing.
@@ -1114,6 +1272,19 @@ PFModule  *GodunovNewPublicXtra()
   }
   public_xtra->transverse = switch_value;
 
+
+  sprintf(key, "Solver.AdvectEnforceMinMax");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if (switch_value < 0)
+  {
+    InputError("Error: Invalid value <%s> for key <%s>. Options are 'True' or 'False'\n",
+               switch_name, key);
+  }
+  public_xtra->enforce_minmax = switch_value;
+
+
+  NA_FreeNameArray(switch_na);
 
   PFModulePublicXtra(this_module) = public_xtra;
   return this_module;
