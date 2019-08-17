@@ -233,6 +233,14 @@ Problem   *NewProblem(
   ProblemdzScale(problem) =
     PFModuleNewModule(dzScale, ()); //RMM
 
+  ProblemFBx(problem) =
+    PFModuleNewModule(FBx, ()); //RMM
+
+  ProblemFBy(problem) =
+    PFModuleNewModule(FBy, ()); //RMM
+
+  ProblemFBz(problem) =
+    PFModuleNewModule(FBz, ()); //RMM
 
   ProblemRealSpaceZ(problem) =
     PFModuleNewModule(realSpaceZ, ());
@@ -243,6 +251,9 @@ Problem   *NewProblem(
 
   ProblemOverlandFlowEvalDiff(problem) =
     PFModuleNewModule(OverlandFlowEvalDiff, ()); //@RMM
+
+  ProblemOverlandFlowEvalKin(problem) =
+    PFModuleNewModule(OverlandFlowEvalKin, ());
 
   if (solver != RichardsSolve)
   {
@@ -419,11 +430,15 @@ void      FreeProblem(
   PFModuleFreeModule(ProblemYSlope(problem));
   PFModuleFreeModule(ProblemMannings(problem));
   PFModuleFreeModule(ProblemdzScale(problem));    //RMM
+  PFModuleFreeModule(ProblemFBx(problem));    //RMM
+  PFModuleFreeModule(ProblemFBy(problem));    //RMM
+  PFModuleFreeModule(ProblemFBz(problem));    //RMM
   PFModuleFreeModule(ProblemRealSpaceZ(problem));
 
 
   PFModuleFreeModule(ProblemOverlandFlowEval(problem));  //DOK
   PFModuleFreeModule(ProblemOverlandFlowEvalDiff(problem));   //@RMM
+  PFModuleFreeModule(ProblemOverlandFlowEvalKin(problem));
 
   PFModuleFreeModule(ProblemDomain(problem));
 
@@ -467,6 +482,12 @@ ProblemData   *NewProblemData(
 
   /* @RMM added vector dz multiplier */
   ProblemDataZmult(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);   //RMM
+
+  /* @RMM added flow barrier in X, Y, Z  */
+  /* these values are on the cell edges e.g. [ip] is really from i to i+1 or i+1/2 */
+  ProblemDataFBx(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);   //RMM
+  ProblemDataFBy(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);   //RMM
+  ProblemDataFBz(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);   //RMM
 
   ProblemDataRealSpaceZ(problem_data) = NewVectorType(grid, 1, 1, vector_cell_centered);
 
@@ -515,6 +536,10 @@ void          FreeProblemData(
     FreeVector(ProblemDataSSlopeX(problem_data));   //RMM
     FreeVector(ProblemDataSSlopeY(problem_data));   //RMM
     FreeVector(ProblemDataZmult(problem_data));   //RMM
+    FreeVector(ProblemDataFBx(problem_data));   //RMM
+    FreeVector(ProblemDataFBy(problem_data));   //RMM
+    FreeVector(ProblemDataFBz(problem_data));   //RMM
+
     FreeVector(ProblemDataRealSpaceZ(problem_data));
     FreeVector(ProblemDataIndexOfDomainTop(problem_data));
 

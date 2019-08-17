@@ -102,7 +102,13 @@ NewSolver()
 
   GlobalsMaxRefLevel = 0;
 
-
+  {
+     NameArray switch_na;
+     switch_na = NA_NewNameArray("False True");
+     switch_name = GetStringDefault("UseClustering", "True");
+     GlobalsUseClustering = NA_NameToIndex(switch_na, switch_name);
+     NA_FreeNameArray(switch_na);
+  }
 
   /*-----------------------------------------------------------------------
    * Initialize SAMRAI hierarchy
@@ -115,8 +121,13 @@ NewSolver()
   GlobalsParflowSimulation->initializePatchHierarchy(time);
 #endif
 
-  switch_name = GetStringDefault("Solver", "Impes");
-  solver = NA_NameToIndex(solver_na, switch_name);
+  {
+     NameArray solver_na;
+     solver_na = NA_NewNameArray("Richards Diffusion Impes");
+     switch_name = GetStringDefault("Solver", "Impes");
+     solver = NA_NameToIndex(solver_na, switch_name);
+     NA_FreeNameArray(solver_na);
+  }
 
     sprintf(key, "Solver.Chemistry");
   switch_name = GetStringDefault(key, "False");
@@ -157,6 +168,7 @@ NewSolver()
 
   NA_FreeNameArray(solver_na);
   NA_FreeNameArray(switch_na);
+
 }
 
 /*--------------------------------------------------------------------------

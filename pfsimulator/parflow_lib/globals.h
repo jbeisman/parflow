@@ -90,6 +90,8 @@ typedef struct _Globals {
   Grid     *grid3d;
   Grid     *grid2d;
 
+  int use_clustering;
+
 #ifdef  HAVE_SAMRAI
   SAMRAI::tbox::Pointer < Parflow > parflow_simulation;
 #endif
@@ -145,6 +147,8 @@ amps_ThreadLocalDcl(extern IDB *, input_database);
 #define GlobalsChemistryFlag      (globals->chem_flag)
 
 #define GlobalsParflowSimulation   (globals->parflow_simulation)
+
+#define GlobalsUseClustering      (globals->use_clustering)
 
 #define pqr_to_process(p, q, r, P, Q, R)  ((((r) * (Q)) + (q)) * (P) + (p))
 
