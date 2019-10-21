@@ -70,7 +70,7 @@ void ProcessGeochemBCs(AlquimiaDataPF *alquimia_data, int num_bc_conds, NameArra
     {
       alquimia_data->chem_bc_state[i].water_density = water_density;
       alquimia_data->chem_bc_state[i].temperature = 25.0;
-      alquimia_data->chem_bc_state[i].porosity = 0.25;
+      alquimia_data->chem_bc_state[i].porosity = 1.0;
       alquimia_data->chem_bc_state[i].aqueous_pressure = aqueous_pressure;
 
       alquimia_data->chem.ProcessCondition(&alquimia_data->chem_engine,

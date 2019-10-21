@@ -50,6 +50,10 @@ if (${PARFLOW_HAVE_CRUNCH})
   target_link_libraries (parflow ${CRUNCH_LIBRARIES})
 endif (${PARFLOW_HAVE_CRUNCH})
 
+if (${PARFLOW_HAVE_PFLOTRAN})
+  target_link_libraries (parflow ${PFLOTRAN_LIBRARIES})
+endif (${PARFLOW_HAVE_PFLOTRAN})
+
 if (${PARFLOW_HAVE_PETSC})
   target_link_libraries (parflow ${PETSC_LIBRARIES})
 endif (${PARFLOW_HAVE_PETSC})

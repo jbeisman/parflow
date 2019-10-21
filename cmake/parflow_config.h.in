@@ -66,5 +66,8 @@
 #cmakedefine PARFLOW_HAVE_CRUNCH
 #cmakedefine HAVE_CRUNCH
 
+#cmakedefine PARFLOW_HAVE_PFLOTRAN
+#cmakedefine HAVE_PFLOTRAN
+
 
 

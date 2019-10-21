@@ -130,6 +130,20 @@ if (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
     set(PARFLOW_HAVE_ALQUIMIA "yes")
     set(HAVE_ALQUIMIA ${PARFLOW_HAVE_ALQUIMIA})
   endif (${ALQUIMIA_FOUND})
+
+
+  # PETSC - needed by CrunchFlow and PFLOTRAN
+  find_package(PETSc)
+  if (${PETSC_FOUND})
+    set(PARFLOW_HAVE_PETSC "yes")
+    set(HAVE_PETSC ${PARFLOW_HAVE_PETSC})
+    set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDES})
+  message("petsc include dirs : ${PETSC_INCLUDE_DIRS}")
+   message("petsc libs : ${PETSC_LIBRARIES}")
+
+
+  endif (${PETSC_FOUND})
+
 endif (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
 
 #-----------------------------------------------------------------------------
@@ -142,23 +156,20 @@ if (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
   message("Checking Crunch lib and include dirs : ${CRUNCH_LIBRARIES} ${CRUNCH_INCLUDE_DIRS}")
   set(PARFLOW_HAVE_CRUNCH "yes")
   set(HAVE_CRUNCH ${PARFLOW_HAVE_CRUNCH})
-
-# PETSC - needed by CrunchFlow
-  find_package(PETSc)
-  if (${PETSC_FOUND})
-    set(PARFLOW_HAVE_PETSC "yes")
-    set(HAVE_PETSC ${PARFLOW_HAVE_PETSC})
-    set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDES})
-  message("petsc include dirs : ${PETSC_INCLUDE_DIRS}")
-   message("petsc libs : ${PETSC_LIBRARIES}")
-
-
-  endif (${PETSC_FOUND})
-
-
-
-
 endif (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
+
+
+#-----------------------------------------------------------------------------
+# PFLOTRAN geochemistry engine jjb
+#-----------------------------------------------------------------------------
+set (PARFLOW_ENABLE_PFLOTRAN False CACHE BOOL "Build with PFLOTRAN")
+if (${PARFLOW_ENABLE_PFLOTRAN} OR DEFINED PFLOTRAN_ROOT)
+  set(PFLOTRAN_INCLUDE_DIRS ${PFLOTRAN_ROOT})
+  set(PFLOTRAN_LIBRARIES ${PFLOTRAN_ROOT}/src/pflotran/libpflotranchem.a)
+  message("Checking PFLOTRAN lib and include dirs : ${PFLOTRAN_LIBRARIES} ${PFLOTRAN_INCLUDE_DIRS}")
+  set(PARFLOW_HAVE_PFLOTRAN "yes")
+  set(HAVE_PFLOTRAN ${PARFLOW_HAVE_PFLOTRAN})
+endif (${PARFLOW_ENABLE_PFLOTRAN} OR DEFINED PFLOTRAN_ROOT)
 
 #-----------------------------------------------------------------------------
 # NetCDF

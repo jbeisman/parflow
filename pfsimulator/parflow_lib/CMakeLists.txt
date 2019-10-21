@@ -202,6 +202,10 @@ if (${PARFLOW_HAVE_CRUNCH})
     target_include_directories (pfsimulator PUBLIC "${CRUNCH_INCLUDE_DIRS}")
 endif (${PARFLOW_HAVE_CRUNCH})
 
+if (${PARFLOW_HAVE_PFLOTRAN})
+    target_include_directories (pfsimulator PUBLIC "${PFLOTRAN_INCLUDE_DIRS}")
+endif (${PARFLOW_HAVE_PFLOTRAN})
+
 if (${PARFLOW_HAVE_PETSC})
     target_include_directories (pfsimulator PUBLIC "${PETSC_INCLUDE_DIRS}")
 endif (${PARFLOW_HAVE_PETSC})
