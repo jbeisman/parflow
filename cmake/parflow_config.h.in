@@ -69,5 +69,7 @@
 #cmakedefine PARFLOW_HAVE_PFLOTRAN
 #cmakedefine HAVE_PFLOTRAN
 
+#cmakedefine PARFLOW_HAVE_ETRACE
+
 
 

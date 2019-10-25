@@ -333,6 +333,7 @@ proc Parflow::pfundist { runname } {
 	append filelist [glob -nocomplain $root.obf.?????.*$postfix] " "
 	append filelist [glob -nocomplain $root.mask.?????.*$postfix] " "
 	append filelist [glob -nocomplain $root.mask.*$postfix] " "
+	append filelist [glob -nocomplain $root.specific_storage.*$postfix] " "
     }
 
     foreach i $filelist {
