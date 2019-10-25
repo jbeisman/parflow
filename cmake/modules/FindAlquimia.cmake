@@ -21,14 +21,10 @@ if(NOT ALQUIMIA_ROOT)
     set(ALQUIMIA_ROOT $ENV{ALQUIMIA_ROOT})
 endif()
 
-find_path(ALQUIMIA_INCLUDE_DIR NAMES alquimia
-  PATH_SUFFIXES alquimia
-  HINTS ${ALQUIMIA_ROOT}/include
-  PATHS /usr/include /usr/local/include)
+set(ALQUIMIA_INCLUDE_DIR ${ALQUIMIA_ROOT}/include)
 
 find_library(ALQUIMIA_LIBRARY NAMES alquimia
-  HINTS ${ALQUIMIA_ROOT}/lib
-  PATHS /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib)
+  PATHS ${ALQUIMIA_ROOT}/lib)
 
 set(ALQUIMIA_INCLUDE_DIRS ${ALQUIMIA_INCLUDE_DIR})
 set(ALQUIMIA_LIBRARIES ${ALQUIMIA_LIBRARY})

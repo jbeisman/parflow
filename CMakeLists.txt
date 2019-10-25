@@ -124,52 +124,67 @@ endif (${PARFLOW_ENABLE_SILO} OR DEFINED SILO_ROOT)
 # Alquimia geochemistry interface jjb
 #-----------------------------------------------------------------------------
 set (PARFLOW_ENABLE_ALQUIMIA False CACHE BOOL "Build with Alquimia")
+
 if (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
   find_package(Alquimia)
   if (${ALQUIMIA_FOUND})
     set(PARFLOW_HAVE_ALQUIMIA "yes")
     set(HAVE_ALQUIMIA ${PARFLOW_HAVE_ALQUIMIA})
+  else (${ALQUIMIA_FOUND})
+    message(FATAL_ERROR "Unable to find Alquimia")
   endif (${ALQUIMIA_FOUND})
 
 
-  # PETSC - needed by CrunchFlow and PFLOTRAN
+  #-----------------------------------------------------------------------------
+  # # PETSC - needed by CrunchFlow and PFLOTRAN
+  #-----------------------------------------------------------------------------
   find_package(PETSc)
   if (${PETSC_FOUND})
     set(PARFLOW_HAVE_PETSC "yes")
     set(HAVE_PETSC ${PARFLOW_HAVE_PETSC})
     set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDES})
-  message("petsc include dirs : ${PETSC_INCLUDE_DIRS}")
-   message("petsc libs : ${PETSC_LIBRARIES}")
-
-
+  else (${PETSC_FOUND})
+    message(FATAL_ERROR "PETSc not found, but required if building Alquimia")
   endif (${PETSC_FOUND})
 
+
+  if (NOT DEFINED CRUNCH_ROOT AND NOT DEFINED PFLOTRAN_ROOT)
+    message(FATAL_ERROR "No geochemical engine specified. Building with Alquimia requires CrunchFlow and/or PFLOTRAN libraries.")
+  endif (NOT DEFINED CRUNCH_ROOT AND NOT DEFINED PFLOTRAN_ROOT)
+
+
+  #-----------------------------------------------------------------------------
+  # CrunchFlow geochemistry engine jjb
+  #-----------------------------------------------------------------------------
+  set (PARFLOW_ENABLE_CRUNCH False CACHE BOOL "Build with CrunchFlow")
+  if (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
+    find_package(CrunchFlow)
+    if (${CRUNCH_FOUND})
+      set(PARFLOW_HAVE_CRUNCH "yes")
+      set(HAVE_CRUNCH ${PARFLOW_HAVE_CRUNCH})
+    else (${CRUNCH_FOUND})
+      message(FATAL_ERROR "Unable to find CrunchFlow")
+    endif (${CRUNCH_FOUND})
+  endif (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
+
+
+  #-----------------------------------------------------------------------------
+  # PFLOTRAN geochemistry engine jjb
+  #-----------------------------------------------------------------------------
+  set (PARFLOW_ENABLE_PFLOTRAN False CACHE BOOL "Build with PFLOTRAN")
+  if (${PARFLOW_ENABLE_PFLOTRAN} OR DEFINED PFLOTRAN_ROOT)
+    find_package(Pflotran)
+    if (${PFLOTRAN_FOUND})
+      set(PARFLOW_HAVE_PFLOTRAN "yes")
+      set(HAVE_PFLOTRAN ${PARFLOW_HAVE_PFLOTRAN})
+    else (${PFLOTRAN_FOUND})
+      message(FATAL_ERROR "Unable to find PFLOTRAN")
+    endif (${PFLOTRAN_FOUND})
+  endif (${PARFLOW_ENABLE_PFLOTRAN} OR DEFINED PFLOTRAN_ROOT)
+
 endif (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
+## end of Alquimia geochemistry build options
 
-#-----------------------------------------------------------------------------
-# CrunchFlow geochemistry engine jjb
-#-----------------------------------------------------------------------------
-set (PARFLOW_ENABLE_CRUNCH False CACHE BOOL "Build with CrunchFlow")
-if (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
-  set(CRUNCH_INCLUDE_DIRS ${CRUNCH_ROOT})
-  set(CRUNCH_LIBRARIES ${CRUNCH_ROOT}/libcrunchchem.a)
-  message("Checking Crunch lib and include dirs : ${CRUNCH_LIBRARIES} ${CRUNCH_INCLUDE_DIRS}")
-  set(PARFLOW_HAVE_CRUNCH "yes")
-  set(HAVE_CRUNCH ${PARFLOW_HAVE_CRUNCH})
-endif (${PARFLOW_ENABLE_CRUNCH} OR DEFINED CRUNCH_ROOT)
-
-
-#-----------------------------------------------------------------------------
-# PFLOTRAN geochemistry engine jjb
-#-----------------------------------------------------------------------------
-set (PARFLOW_ENABLE_PFLOTRAN False CACHE BOOL "Build with PFLOTRAN")
-if (${PARFLOW_ENABLE_PFLOTRAN} OR DEFINED PFLOTRAN_ROOT)
-  set(PFLOTRAN_INCLUDE_DIRS ${PFLOTRAN_ROOT})
-  set(PFLOTRAN_LIBRARIES ${PFLOTRAN_ROOT}/src/pflotran/libpflotranchem.a)
-  message("Checking PFLOTRAN lib and include dirs : ${PFLOTRAN_LIBRARIES} ${PFLOTRAN_INCLUDE_DIRS}")
-  set(PARFLOW_HAVE_PFLOTRAN "yes")
-  set(HAVE_PFLOTRAN ${PARFLOW_HAVE_PFLOTRAN})
-endif (${PARFLOW_ENABLE_PFLOTRAN} OR DEFINED PFLOTRAN_ROOT)
 
 #-----------------------------------------------------------------------------
 # NetCDF
