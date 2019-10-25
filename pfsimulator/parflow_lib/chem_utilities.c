@@ -34,6 +34,7 @@
 *****************************************************************************/
 #include "parflow.h"
 #include "pf_alquimia.h"
+
 #ifdef HAVE_ALQUIMIA
 #include "alquimia/alquimia_memory.h"
 #include "alquimia/alquimia_util.h"
