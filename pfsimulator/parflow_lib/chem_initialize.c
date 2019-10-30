@@ -405,6 +405,7 @@ PFModule   *InitializeChemistryNewPublicXtra()
   NameArray switch_na;
   char *switch_name;
   int switch_value;
+  int print_all, write_silo_all;
   switch_na = NA_NewNameArray("False True");
 
   public_xtra = ctalloc(PublicXtra, 1);
@@ -758,6 +759,68 @@ PFModule   *InitializeChemistryNewPublicXtra()
      switch_name, key );
   }
   public_xtra -> silo_sorbed = switch_value;
+
+
+
+  sprintf(key, "Chemistry.PrintAll");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  print_all = switch_value;
+
+
+  sprintf(key, "Chemistry.WriteSiloAll");
+  switch_name = GetStringDefault(key, "False");
+  switch_value = NA_NameToIndex(switch_na, switch_name);
+  if(switch_value < 0)
+  {
+     InputError("Error: invalid value <%s> for key <%s>\n",
+     switch_name, key );
+  }
+  write_silo_all = switch_value;
+
+
+  if (print_all)
+  {
+    public_xtra->print_sorbed =
+    public_xtra->print_secondary_activity =
+    public_xtra->print_secondary_freeion =
+    public_xtra->print_primary_activity =
+    public_xtra->print_primary_freeion =
+    public_xtra->print_mineral_SI =
+    public_xtra->print_aqueous_rate =
+    public_xtra->print_pH =
+    public_xtra->print_CEC =
+    public_xtra->print_surf_dens =
+    public_xtra->print_mineral_surfarea =
+    public_xtra->print_mineral_volfx =
+    public_xtra->print_mineral_rate =
+    public_xtra->print_primary_mobile = print_all;
+  }
+
+
+  if (write_silo_all)
+  {
+    public_xtra->silo_sorbed =
+    public_xtra->silo_secondary_activity =
+    public_xtra->silo_secondary_freeion =
+    public_xtra->silo_primary_activity =
+    public_xtra->silo_primary_freeion =
+    public_xtra->silo_mineral_SI =
+    public_xtra->silo_aqueous_rate =
+    public_xtra->silo_pH =
+    public_xtra->silo_CEC =
+    public_xtra->silo_surf_dens =
+    public_xtra->silo_mineral_surfarea =
+    public_xtra->silo_mineral_volfx =
+    public_xtra->silo_mineral_rate =
+    public_xtra->silo_primary_mobile = write_silo_all;
+  }
+
 
   if (public_xtra->silo_sorbed ||
       public_xtra->silo_secondary_activity ||
