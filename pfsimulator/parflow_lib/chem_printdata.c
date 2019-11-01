@@ -72,7 +72,7 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
 
 
 	//primary sorbed
-	if (print_flags->print_sorbed)
+	if (print_flags->print_sorbed && chem_sizes->num_sorbed > 0)
 	{
 		for (int i = 0; i < chem_sizes->num_primary; i++)
 		{
@@ -83,7 +83,7 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
 		*any_file_dumped = 1;
 	}
 
-	if (print_flags->silo_sorbed)
+	if (print_flags->silo_sorbed && chem_sizes->num_sorbed > 0)
 	{
 		for (int i = 0; i < chem_sizes->num_primary; i++)
 		{
