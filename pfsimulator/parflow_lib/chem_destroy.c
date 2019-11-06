@@ -192,6 +192,10 @@ void FreeAlquimiaDataPF(AlquimiaDataPF *alquimia_data, Grid *grid, ProblemData *
   tfree(alquimia_data->chem_properties);
   tfree(alquimia_data->chem_aux_data);
   tfree(alquimia_data->chem_aux_output);
+  tfree(alquimia_data->chem_bc_state);
+  tfree(alquimia_data->chem_bc_aux_data);
+  tfree(alquimia_data->chem_bc_properties);
+
   FreeAlquimiaProblemMetaData(&alquimia_data->chem_metadata);
 
   // free temp alquimia data

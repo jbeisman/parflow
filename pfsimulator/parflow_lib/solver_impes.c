@@ -1459,6 +1459,10 @@ void      SolverImpes()
       FreeVector(saturations[phase]);
     }
   }
+  else
+  {
+    FreeVector(saturations[0]);
+  }
   tfree(saturations);
   tfree(phase_densities);
 
