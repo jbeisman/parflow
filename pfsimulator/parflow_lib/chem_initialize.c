@@ -116,6 +116,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   PFModule      *bc_concentration = (instance_xtra -> bc_concentration);
 
   GrGeomSolid   *gr_domain;
+  VectorUpdateCommHandle *handle;
 
   int num_cells;
   bool hands_off = true;
@@ -163,7 +164,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   PFModuleInvokeType(SetChemDataInvoke, set_chem_data, (problem_data));
 
   // find number of active cells for this subgrid
-  num_cells = SubgridNumCells(grid, problem_data);
+  num_cells = SubgridNumCells(grid);
 
   // create alquimia interface
   AllocateAlquimiaEngineStatus(&alquimia_data->chem_status);
@@ -237,7 +238,7 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   if (public_xtra->chem_restart)
   {
     // read restart file, populate chem_state, chem_properties, chem_aux_data
-    ReadChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, public_xtra->chem_restart_file);
+    ReadChemChkpt(grid, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, public_xtra->chem_restart_file);
   }
   else
   {
@@ -272,6 +273,13 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
   ReactedPrimaryToPF(alquimia_data->chem_state, &alquimia_data->chem_sizes, concentrations, problem_data);
   ChemDataToPFVectors(alquimia_data,grid,problem_data);
 
+  // scatter to ghost in case boundary routine needs to copy from interior domain
+  for(int concen = 0; concen < ProblemNumContaminants(problem); concen++)
+      {
+        handle = InitVectorUpdate(concentrations[concen], VectorUpdateGodunov);
+        FinalizeVectorUpdate(handle);
+      }
+
   // fill concen vector with assigned boundaries
   PFModuleInvokeType(BCConcentrationInvoke, bc_concentration, (problem, grid, concentrations, alquimia_data->chem_bc_state));
   
@@ -303,8 +311,6 @@ void InitializeChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_dat
       alquimia_data->secondary_free_ion_concentrationPF,
       alquimia_data->secondary_activity_coeffPF);
   }
-
-  // WriteChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, file_prefix, "TEST_CHKPT");
 
 EndTiming(public_xtra->time_index);
 }

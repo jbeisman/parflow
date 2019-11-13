@@ -30,22 +30,24 @@
 #define CHEM_UTILITIES_H
 
 /* chem_utilities.c  */
-void CopyConcenWithBoundary(Vector *x, Vector *y);
+double InterpolateTimeCycle(double total_cycle_length, double subcycle_dt);
+
+void TransportSaturation(Vector *sat_transport_start, Vector *delta_sat, Vector *old_sat, Vector *new_sat);
 
 void SelectReactTransTimeStep(double max_velocity, double CFL, 
                 double PF_dt, double *advect_react_dt, 
                 int *num_rt_iterations);
 
-int  SubgridNumCells(Grid *grid, ProblemData *problem_data);
+int  SubgridNumCells(Grid *grid);
 
 #ifdef HAVE_ALQUIMIA
 void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_state, AlquimiaProperties *chem_properties, void *chem_engine, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaEngineStatus *chem_status, double original_dt);
 
 //void CutTimeStepandSolveRecursively(AlquimiaDataPF * alquimia_data, double original_dt, int level, int chem_index);
 
-void WriteChemChkpt(Grid *grid, ProblemData *problem_data, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *file_prefix, char *file_suffix);
+void WriteChemChkpt(Grid *grid, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *file_prefix, char *file_suffix);
 
-void ReadChemChkpt(Grid *grid,  ProblemData *problem_data, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *filename);
+void ReadChemChkpt(Grid *grid, AlquimiaSizes *chem_sizes, AlquimiaState *chem_state, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaProperties *chem_properties, char *filename);
 #endif
 
 #endif

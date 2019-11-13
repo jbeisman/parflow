@@ -38,34 +38,33 @@
 !    in time, although small errors (~ 0.3%) may arise in the case of transient 
 !    saturations 
 !-------------------------------------------------------------------------------
-  subroutine advect_upwind(s,sn,uedge,vedge,wedge,phi, &
-      dlo,dhi,hx,dt,old_sat,sat, &
-      iteration,num_iterations,fx,fy,fz)
+  subroutine advect_upwind(s,sn,uedge,vedge,wedge,phi,old_sat, &
+      sat,fx,fy,fz,dlo,dhi,hx,dt)
 
   use, intrinsic :: iso_c_binding
 
   implicit none
-  integer, parameter          :: dp = selected_real_kind(15)
+  integer, parameter          :: dp = selected_real_kind(15, 307)
   integer(c_int), intent(in)  :: dlo(3), dhi(3)
-  real(c_double), intent(in)  :: hx(3), dt
-  integer(c_int), intent(in)  :: iteration,num_iterations
   real(c_double), intent(in)  :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
   real(c_double), intent(out) :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
   real(c_double), intent(in)  :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
   real(c_double), intent(in)  :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
   real(c_double), intent(in)  :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
   real(c_double), intent(in)  :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(c_double), intent(in)  :: old_sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(c_double), intent(in)  :: sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent(out) :: fx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
   real(c_double), intent(out) :: fy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
-  real(c_double), intent(out) :: fz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
-  real(c_double), intent(in)  :: old_sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1) 
-  real(c_double), intent(in)  :: sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1)
- 
-  integer i,j,k
-  integer is,ie,js,je,ks,ke
-  integer ii,jj,kk
+  real(c_double), intent(out) :: fz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+  real(c_double), intent(in)  :: hx(3), dt
+
+  integer  i,j,k
+  integer  is,ie,js,je,ks,ke
+  integer  ii,jj,kk
   real(dp) dx_inv,dy_inv,dz_inv
-  real(dp) sat_diff,iter,num_iter,num_iter_inv
+
+
 
   is = dlo(1)
   ie = dhi(1)
@@ -76,15 +75,12 @@
   dx_inv = 1.0_dp/hx(1)
   dy_inv = 1.0_dp/hx(2)
   dz_inv = 1.0_dp/hx(3)
-  iter=DBLE(iteration)
-  num_iter=DBLE(num_iterations)
-  num_iter_inv = 1.0_dp/num_iter
 
   !x fluxes
   do k=ks,ke
     do j=js,je
       do i=is,ie+1
-     
+
       if (uedge(i,j,k) .ge. 0.0)then
         ii =  i-1
       else
@@ -135,11 +131,10 @@
   do k=ks,ke
     do j=js,je
       do i=is,ie
-        sat_diff=(sat(i,j,k) - old_sat(i,j,k)) * num_iter_inv
 
-        sn(i,j,k) = ((iter*sat_diff + old_sat(i,j,k))*phi(i,j,k)*s(i,j,k) + &
-        ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
-        (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+      sn(i,j,k) = (old_sat(i,j,k)*phi(i,j,k)*s(i,j,k) + &
+      ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
+      (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (sat(i,j,k)*phi(i,j,k))
 
       enddo
     enddo
@@ -164,30 +159,33 @@
 !    Lax-Wendrof style centered approximation 
 !-------------------------------------------------------------------------------
   subroutine advect_highorder(s,uedge,vedge,wedge, &
-      dlo,dhi,hx,dt,sx,sy,sz)
+                             phi,sat,sx,sy,sz,dlo,dhi,hx,dt)
 
   use, intrinsic :: iso_c_binding
 
   implicit none
-  integer, parameter             :: dp = selected_real_kind(15)
+  integer, parameter             :: dp = selected_real_kind(15, 307)
   integer(c_int), intent (in)    :: dlo(3), dhi(3)
-  real(c_double), intent (in)    :: hx(3), dt
   real(c_double), intent (in)    :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
   real(c_double), intent (in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent (in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2)
   real(c_double), intent (in)    :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3)
+  real(c_double), intent (in)    :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(c_double), intent (in)    :: sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent (inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
   real(c_double), intent (inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
   real(c_double), intent (inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+  real(c_double), intent (in)    :: hx(3), dt
   
-  integer i,j,k
-  integer is,ie,js,je,ks,ke
-  integer ii3,jj3,kk3
+  integer  i,j,k
+  integer  is,ie,js,je,ks,ke
+  integer  ii,jj,kk
   real(dp) dx_inv,dy_inv,dz_inv
   real(dp) half
   real(dp) rx,ry,rz
   real(dp) mclimit,thetax,thetay,thetaz
-  real(dp) limx,limy,limz
+  real(dp) limx,limy,limz,abs_vel
+  real(dp) porsat_inv(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
 
   is = dlo(1)
   ie = dhi(1)
@@ -198,7 +196,16 @@
   dx_inv = 1.0_dp/hx(1)
   dy_inv = 1.0_dp/hx(2)
   dz_inv = 1.0_dp/hx(3)
-  half = 0.5_dp
+  half   = 0.5_dp
+
+  !! compute inverse velocity scaling factor
+  do k=ks-2,ke+2
+    do j=js-2,je+2
+      do i=is-2,ie+2
+        porsat_inv(i,j,k) = 1.0_dp / (phi(i,j,k) * sat(i,j,k))
+      enddo
+    enddo
+  enddo
 
   !! compute second order corrections
   !x values
@@ -207,16 +214,19 @@
       do i=is-1,ie+2
  
       if (uedge(i,j,k) .ge. 0.0)then
-        ii3 = i-1
+        ii  = i-1
       else
-        ii3 = i+1
+        ii  = i+1
       endif
 
       rx=s(i,j,k)-s(i-1,j,k)
 
-      thetax=(s(ii3,j,k)-s(ii3-1,j,k))/rx
+      thetax=(s(ii,j,k)-s(ii-1,j,k))/rx
       limx=mclimit(thetax)
-      sx(i,j,k) = half*abs(uedge(i,j,k))*(1.0_dp-(dt*dx_inv)*abs(uedge(i,j,k)))*rx*limx
+      abs_vel = abs(uedge(i,j,k))
+
+      sx(i,j,k) = half* abs_vel * &
+      (1.0_dp-(dt*dx_inv)*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i-1,j,k)))*rx*limx
 
       enddo
     enddo
@@ -228,16 +238,19 @@
       do i=is-1,ie+1
 
       if (vedge(i,j,k) .ge. 0.0)then
-        jj3 = j-1
+        jj  = j-1
       else
-        jj3 = j+1
+        jj  = j+1
       endif
 
       ry=s(i,j,k)-s(i,j-1,k)
 
-      thetay=(s(i,jj3,k)-s(i,jj3-1,k))/ry
+      thetay=(s(i,jj,k)-s(i,jj-1,k))/ry
       limy=mclimit(thetay)
-      sy(i,j,k) = half*abs(vedge(i,j,k))*(1.0_dp-(dt*dy_inv)*abs(vedge(i,j,k)))*ry*limy
+      abs_vel = abs(vedge(i,j,k))
+
+      sy(i,j,k) = half* abs_vel * &
+      (1.0_dp-(dt*dy_inv)*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j-1,k)))*ry*limy
 
       enddo
     enddo
@@ -249,16 +262,19 @@
       do i=is-1,ie+1
 
       if (wedge(i,j,k) .ge. 0.0)then
-        kk3 = k-1
+        kk  = k-1
       else
-        kk3 = k+1
+        kk  = k+1
       endif
 
       rz=s(i,j,k)-s(i,j,k-1)
 
-      thetaz=(s(i,j,kk3)-s(i,j,kk3-1))/rz
+      thetaz=(s(i,j,kk)-s(i,j,kk-1))/rz
       limz=mclimit(thetaz)
-      sz(i,j,k) = half*abs(wedge(i,j,k))*(1.0_dp-(dt*dz_inv)*abs(wedge(i,j,k)))*rz*limz
+      abs_vel = abs(wedge(i,j,k))
+
+      sz(i,j,k) = half* abs_vel * &
+      (1.0_dp-(dt*dz_inv)*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j,k-1)))*rz*limz
 
       enddo
     enddo
@@ -275,210 +291,210 @@
 !    computes transverse corrections to both the first-order increment waves
 !    and second-order correction waves
 !-------------------------------------------------------------------------------
-      subroutine advect_transverse(s,uedge,vedge,wedge, &
-          dlo,dhi,hx,dt,vx,wx,uy,wy,uz,vz, &
-          sx,sy,sz)
+  subroutine advect_transverse(s,uedge,vedge,wedge, &
+      dlo,dhi,hx,dt,vx,wx,uy,wy,uz,vz, &
+      sx,sy,sz)
 
-      implicit none
-      integer,  parameter     :: dp = selected_real_kind(15)
-      integer,  intent(in)    :: dlo(3), dhi(3)
-      real(dp), intent(in)    :: hx(3), dt
-      real(dp), intent(in)    :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
-      real(dp), intent(in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
-      real(dp), intent(in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
-      real(dp), intent(in)    :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
-      real(dp), intent(out)   :: vx(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
-      real(dp), intent(out)   :: wx(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
-      real(dp), intent(out)   :: uy(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
-      real(dp), intent(out)   :: wy(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
-      real(dp), intent(out)   :: uz(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
-      real(dp), intent(out)   :: vz(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)  
-      real(dp), intent(inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)  
-      real(dp), intent(inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
-      real(dp), intent(inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
+  implicit none
+  integer,  parameter     :: dp = selected_real_kind(15, 307)
+  integer,  intent(in)    :: dlo(3), dhi(3)
+  real(dp), intent(in)    :: hx(3), dt
+  real(dp), intent(in)    :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
+  real(dp), intent(in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(dp), intent(in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2)
+  real(dp), intent(in)    :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3)
+  real(dp), intent(out)   :: vx(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
+  real(dp), intent(out)   :: wx(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
+  real(dp), intent(out)   :: uy(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
+  real(dp), intent(out)   :: wy(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
+  real(dp), intent(out)   :: uz(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
+  real(dp), intent(out)   :: vz(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
+  real(dp), intent(inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+  real(dp), intent(inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+  real(dp), intent(inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
  
-      integer i,j,k
-      integer is,ie,js,je,ks,ke
-      integer ks1,ke1
-      integer js1,je1
-      integer is1,ie1
-      integer ii2,jj2,kk2
-      integer iiz,iiz2,jjx,jjx2,kky,kky2,iiy,jjz,kkx
-      real(dp) dx_inv,dy_inv,dz_inv
-      real(dp) half,third
-      real(dp) rx,ry,rz
-      real(dp) transvel
+  integer i,j,k
+  integer is,ie,js,je,ks,ke
+  integer ks1,ke1
+  integer js1,je1
+  integer is1,ie1
+  integer ii2,jj2,kk2
+  integer iiz,iiz2,jjx,jjx2,kky,kky2,iiy,jjz,kkx
+  real(dp) dx_inv,dy_inv,dz_inv
+  real(dp) half,third
+  real(dp) rx,ry,rz
+  real(dp) transvel
 
-      is = dlo(1)
-      ie = dhi(1)
-      js = dlo(2)
-      je = dhi(2)
-      ks = dlo(3)
-      ke = dhi(3)
-      dx_inv = 1.0_dp/hx(1)
-      dy_inv = 1.0_dp/hx(2)
-      dz_inv = 1.0_dp/hx(3)
-      half = 0.5_dp
-      third = 1.0_dp/3.0_dp
+  is = dlo(1)
+  ie = dhi(1)
+  js = dlo(2)
+  je = dhi(2)
+  ks = dlo(3)
+  ke = dhi(3)
+  dx_inv = 1.0_dp/hx(1)
+  dy_inv = 1.0_dp/hx(2)
+  dz_inv = 1.0_dp/hx(3)
+  half = 0.5_dp
+  third = 1.0_dp/3.0_dp
 
 
-      !! make smaller and faster for lower D problems
-      if((ie-is) == 0) then
-        is1 = is+1
-        ie1 = ie-2
+  !! make smaller and faster for lower D problems
+  if((ie-is) == 0) then
+    is1 = is+1
+    ie1 = ie-2
+  else
+    is1 = is
+    ie1 = ie
+  endif
+
+  if((je-js) == 0) then
+    js1 = js+1
+    je1 = je-2
+  else
+    js1 = js
+    je1 = je
+  endif
+
+  if((ke-ks) == 0) then
+    ks1 = ks+1
+    ke1 = ke-2
+  else
+    ks1 = ks
+    ke1 = ke
+  endif
+
+  !! main loop
+  !! compute increment fluxes and second order corrections
+  !! compute transverse riemann problem, move fluxes appropriately
+  do k=ks1-1,ke1+2
+    do j=js1-1,je1+2
+      do i=is1-1,ie1+2
+  
+      if (uedge(i,j,k) .ge. 0.0)then
+        ii2 = i
       else
-        is1 = is
-        ie1 = ie
+        ii2 = i-1
+      endif
+  
+      if (vedge(i,j,k) .ge. 0.0)then
+        jj2 = j
+      else
+        jj2 = j-1
       endif
 
-      if((je-js) == 0) then
-        js1 = js+1
-        je1 = je-2
+      if (wedge(i,j,k) .ge. 0.0)then
+        kk2 = k
       else
-        js1 = js
-        je1 = je
+        kk2 = k-1
       endif
 
-      if((ke-ks) == 0) then
-        ks1 = ks+1
-        ke1 = ke-2
+  
+      !! transverse velocities - 0 if both don't have same sign
+      vx(i,j,k) = (dt*dx_inv)*transvel(vedge(ii2,j,k),vedge(ii2,j+1,k)) 
+      wx(i,j,k) = (dt*dx_inv)*transvel(wedge(ii2,j,k),wedge(ii2,j,k+1)) 
+      uy(i,j,k) = (dt*dy_inv)*transvel(uedge(i,jj2,k),uedge(i+1,jj2,k)) 
+      wy(i,j,k) = (dt*dy_inv)*transvel(wedge(i,jj2,k),wedge(i,jj2,k+1))
+      uz(i,j,k) = (dt*dz_inv)*transvel(uedge(i,j,kk2),uedge(i+1,j,kk2))
+      vz(i,j,k) = (dt*dz_inv)*transvel(vedge(i,j,kk2),vedge(i,j+1,kk2))
+  
+      !gradient
+      rx=s(i,j,k)-s(i-1,j,k)
+      ry=s(i,j,k)-s(i,j-1,k)
+      rz=s(i,j,k)-s(i,j,k-1)
+  
+      
+      if (vx(i,j,k) .gt. 0.0)then
+        jjx = j+1
+        jjx2 = j+1
       else
-        ks1 = ks
-        ke1 = ke
+        jjx = j
+        jjx2 = j-1
       endif
-
-      !! main loop
-      !! compute increment fluxes and second order corrections
-      !! compute transverse riemann problem, move fluxes appropriately
-      do k=ks1-1,ke1+2
-        do j=js1-1,je1+2
-          do i=is1-1,ie1+2
-     
-          if (uedge(i,j,k) .ge. 0.0)then
-            ii2 = i
-          else
-            ii2 = i-1
-          endif
     
-          if (vedge(i,j,k) .ge. 0.0)then
-            jj2 = j
-          else
-            jj2 = j-1
-          endif
-
-          if (wedge(i,j,k) .ge. 0.0)then
-            kk2 = k
-          else
-            kk2 = k-1
-          endif
-
+      if (wx(i,j,k) .gt. 0.0)then
+        kkx = k+1
+      else
+        kkx = k
+      endif
     
-          !! transverse velocities - 0 if both don't have same sign
-          vx(i,j,k) = (dt*dx_inv)*transvel(vedge(ii2,j,k),vedge(ii2,j+1,k)) 
-          wx(i,j,k) = (dt*dx_inv)*transvel(wedge(ii2,j,k),wedge(ii2,j,k+1)) 
-          uy(i,j,k) = (dt*dy_inv)*transvel(uedge(i,jj2,k),uedge(i+1,jj2,k)) 
-          wy(i,j,k) = (dt*dy_inv)*transvel(wedge(i,jj2,k),wedge(i,jj2,k+1))
-          uz(i,j,k) = (dt*dz_inv)*transvel(uedge(i,j,kk2),uedge(i+1,j,kk2))
-          vz(i,j,k) = (dt*dz_inv)*transvel(vedge(i,j,kk2),vedge(i,j+1,kk2))
+      if (uy(i,j,k) .gt. 0.0)then
+        iiy = i+1
+      else
+        iiy = i
+      endif
     
-          !gradient
-          rx=s(i,j,k)-s(i-1,j,k)
-          ry=s(i,j,k)-s(i,j-1,k)
-          rz=s(i,j,k)-s(i,j,k-1)
+      if (wy(i,j,k) .gt. 0.0)then
+        kky = k+1
+        kky2 = k+1
+      else
+        kky = k
+        kky2 = k-1
+      endif
     
-          
-          if (vx(i,j,k) .gt. 0.0)then
-            jjx = j+1
-            jjx2 = j+1
-          else
-            jjx = j
-            jjx2 = j-1
-          endif
-        
-          if (wx(i,j,k) .gt. 0.0)then
-            kkx = k+1
-          else
-            kkx = k
-          endif
-        
-          if (uy(i,j,k) .gt. 0.0)then
-            iiy = i+1
-          else
-            iiy = i
-          endif
-        
-          if (wy(i,j,k) .gt. 0.0)then
-            kky = k+1
-            kky2 = k+1
-          else
-            kky = k
-            kky2 = k-1
-          endif
-        
-          if (uz(i,j,k) .gt. 0.0)then
-            iiz = i+1
-            iiz2 = i+1
-          else
-            iiz = i
-            iiz2 = i-1
-          endif
-        
-          if (vz(i,j,k) .gt. 0.0)then
-            jjz = j+1
-          else
-            jjz = j
-          endif
+      if (uz(i,j,k) .gt. 0.0)then
+        iiz = i+1
+        iiz2 = i+1
+      else
+        iiz = i
+        iiz2 = i-1
+      endif
     
-          ! these sweeps add transverse propogation information to the first order upwind method 
-          !x sweep
-          sy(ii2,jjx,k) = sy(ii2,jjx,k)-half*rx*uedge(i,j,k)*vx(i,j,k)
-          sz(ii2,j,kkx)=sz(ii2,j,kkx) - half*rx*uedge(i,j,k)*wx(i,j,k) + &
-          (third)*uedge(i,j,k)*abs(vx(i,j,k))*wx(i,j,k)*rx 
-          sz(ii2,jjx2,kkx)=sz(ii2,jjx2,kkx) - (third)*uedge(i,j,k) * &
-          abs(vx(i,j,k))*wx(i,j,k)*rx 
-    
-          !y sweep
-          sz(i,jj2,kky) = sz(i,jj2,kky)-half*ry*vedge(i,j,k)*wy(i,j,k)
-          sx(iiy,jj2,k)=sx(iiy,jj2,k) - half*ry*vedge(i,j,k)*uy(i,j,k) + &
-          (third)*vedge(i,j,k)*abs(wy(i,j,k))*uy(i,j,k)*ry 
-          sx(iiy,jj2,kky2)=sx(iiy,jj2,kky2) - (third)*vedge(i,j,k) * &
-          abs(wy(i,j,k))*uy(i,j,k)*ry 
-    
-          !z sweep
-          sx(iiz,j,kk2) = sx(iiz,j,kk2)-half*rz*wedge(i,j,k)*uz(i,j,k)
-          sy(i,jjz,kk2)=sy(i,jjz,kk2) - half*rz*wedge(i,j,k)*vz(i,j,k) + &
-          (third)*wedge(i,j,k)*abs(uz(i,j,k))*vz(i,j,k)*rz 
-          sy(iiz2,jjz,kk2)=sy(iiz2,jjz,kk2) - (third)*wedge(i,j,k) * &
-          abs(uz(i,j,k))*vz(i,j,k)*rz
-    
-          ! Add second order transverse propogation information
-          !x sweep
-          sy(i,jjx,k)      = sy(i,jjx,k) + vx(i,j,k)*sx(i,j,k)
-          sy(i-1,jjx,k)    = sy(i-1,jjx,k) - vx(i,j,k)*sx(i,j,k)
-          sz(i,j,kkx)      = sz(i,j,kkx) + (1.0_dp - abs(vx(i,j,k)))*wx(i,j,k)*sx(i,j,k)
-          sz(i,jjx2,kkx)   = sz(i,jjx2,kkx) + abs(vx(i,j,k))*wx(i,j,k)*sx(i,j,k)
-          sz(i-1,j,kkx)    = sz(i-1,j,kkx) - (1.0_dp - abs(vx(i,j,k)))*wx(i,j,k)*sx(i,j,k)
-          sz(i-1,jjx2,kkx) = sz(i-1,jjx2,kkx) - abs(vx(i,j,k))*wx(i,j,k)*sx(i,j,k)
-    
-          !y sweep
-          sz(i,j,kky)      = sz(i,j,kky) + wy(i,j,k)*sy(i,j,k)
-          sz(i,j-1,kky)    = sz(i,j-1,kky) - wy(i,j,k)*sy(i,j,k)
-          sx(iiy,j,k)      = sx(iiy,j,k) + (1.0_dp - abs(wy(i,j,k)))*uy(i,j,k)*sy(i,j,k)
-          sx(iiy,j,kky2)   = sx(iiy,j,kky2) + abs(wy(i,j,k))*uy(i,j,k)*sy(i,j,k)
-          sx(iiy,j-1,k)    = sx(iiy,j-1,k) - (1.0_dp - abs(wy(i,j,k)))*uy(i,j,k)*sy(i,j,k)
-          sx(iiy,j-1,kky2) = sx(iiy,j-1,kky2) - abs(wy(i,j,k))*uy(i,j,k)*sy(i,j,k)
-    
-          !z sweep
-          sx(iiz,j,k)      = sx(iiz,j,k) + uz(i,j,k)*sz(i,j,k)
-          sx(iiz,j,k-1)    = sx(iiz,j,k-1) - uz(i,j,k)*sz(i,j,k)
-          sy(i,jjz,k)      = sy(i,jjz,k) + (1.0_dp - abs(uz(i,j,k)))*vz(i,j,k)*sz(i,j,k)
-          sy(iiz2,jjz,k)   = sy(iiz2,jjz,k) + abs(uz(i,j,k))*vz(i,j,k)*sz(i,j,k)
-          sy(i,jjz,k-1)    = sy(i,jjz,k-1) - (1.0_dp - abs(uz(i,j,k)))*vz(i,j,k)*sz(i,j,k)
-          sy(iiz2,jjz,k-1) = sy(iiz2,jjz,k-1) - abs(uz(i,j,k))*vz(i,j,k)*sz(i,j,k)
-          
-          enddo
-        enddo
+      if (vz(i,j,k) .gt. 0.0)then
+        jjz = j+1
+      else
+        jjz = j
+      endif
+  
+      ! these sweeps add transverse propogation information to the first order upwind method 
+      !x sweep
+      sy(ii2,jjx,k) = sy(ii2,jjx,k)-half*rx*uedge(i,j,k)*vx(i,j,k)
+      sz(ii2,j,kkx)=sz(ii2,j,kkx) - half*rx*uedge(i,j,k)*wx(i,j,k) + &
+      (third)*uedge(i,j,k)*abs(vx(i,j,k))*wx(i,j,k)*rx 
+      sz(ii2,jjx2,kkx)=sz(ii2,jjx2,kkx) - (third)*uedge(i,j,k) * &
+      abs(vx(i,j,k))*wx(i,j,k)*rx 
+  
+      !y sweep
+      sz(i,jj2,kky) = sz(i,jj2,kky)-half*ry*vedge(i,j,k)*wy(i,j,k)
+      sx(iiy,jj2,k)=sx(iiy,jj2,k) - half*ry*vedge(i,j,k)*uy(i,j,k) + &
+      (third)*vedge(i,j,k)*abs(wy(i,j,k))*uy(i,j,k)*ry 
+      sx(iiy,jj2,kky2)=sx(iiy,jj2,kky2) - (third)*vedge(i,j,k) * &
+      abs(wy(i,j,k))*uy(i,j,k)*ry 
+  
+      !z sweep
+      sx(iiz,j,kk2) = sx(iiz,j,kk2)-half*rz*wedge(i,j,k)*uz(i,j,k)
+      sy(i,jjz,kk2)=sy(i,jjz,kk2) - half*rz*wedge(i,j,k)*vz(i,j,k) + &
+      (third)*wedge(i,j,k)*abs(uz(i,j,k))*vz(i,j,k)*rz 
+      sy(iiz2,jjz,kk2)=sy(iiz2,jjz,kk2) - (third)*wedge(i,j,k) * &
+      abs(uz(i,j,k))*vz(i,j,k)*rz
+  
+      ! Add second order transverse propogation information
+      !x sweep
+      sy(i,jjx,k)      = sy(i,jjx,k) + vx(i,j,k)*sx(i,j,k)
+      sy(i-1,jjx,k)    = sy(i-1,jjx,k) - vx(i,j,k)*sx(i,j,k)
+      sz(i,j,kkx)      = sz(i,j,kkx) + (1.0_dp - abs(vx(i,j,k)))*wx(i,j,k)*sx(i,j,k)
+      sz(i,jjx2,kkx)   = sz(i,jjx2,kkx) + abs(vx(i,j,k))*wx(i,j,k)*sx(i,j,k)
+      sz(i-1,j,kkx)    = sz(i-1,j,kkx) - (1.0_dp - abs(vx(i,j,k)))*wx(i,j,k)*sx(i,j,k)
+      sz(i-1,jjx2,kkx) = sz(i-1,jjx2,kkx) - abs(vx(i,j,k))*wx(i,j,k)*sx(i,j,k)
+  
+      !y sweep
+      sz(i,j,kky)      = sz(i,j,kky) + wy(i,j,k)*sy(i,j,k)
+      sz(i,j-1,kky)    = sz(i,j-1,kky) - wy(i,j,k)*sy(i,j,k)
+      sx(iiy,j,k)      = sx(iiy,j,k) + (1.0_dp - abs(wy(i,j,k)))*uy(i,j,k)*sy(i,j,k)
+      sx(iiy,j,kky2)   = sx(iiy,j,kky2) + abs(wy(i,j,k))*uy(i,j,k)*sy(i,j,k)
+      sx(iiy,j-1,k)    = sx(iiy,j-1,k) - (1.0_dp - abs(wy(i,j,k)))*uy(i,j,k)*sy(i,j,k)
+      sx(iiy,j-1,kky2) = sx(iiy,j-1,kky2) - abs(wy(i,j,k))*uy(i,j,k)*sy(i,j,k)
+  
+      !z sweep
+      sx(iiz,j,k)      = sx(iiz,j,k) + uz(i,j,k)*sz(i,j,k)
+      sx(iiz,j,k-1)    = sx(iiz,j,k-1) - uz(i,j,k)*sz(i,j,k)
+      sy(i,jjz,k)      = sy(i,jjz,k) + (1.0_dp - abs(uz(i,j,k)))*vz(i,j,k)*sz(i,j,k)
+      sy(iiz2,jjz,k)   = sy(iiz2,jjz,k) + abs(uz(i,j,k))*vz(i,j,k)*sz(i,j,k)
+      sy(i,jjz,k-1)    = sy(i,jjz,k-1) - (1.0_dp - abs(uz(i,j,k)))*vz(i,j,k)*sz(i,j,k)
+      sy(iiz2,jjz,k-1) = sy(iiz2,jjz,k-1) - abs(uz(i,j,k))*vz(i,j,k)*sz(i,j,k)
+      
       enddo
+    enddo
+  enddo
 
       return
       end subroutine advect_transverse
@@ -491,30 +507,25 @@
 !
 !    Also accounts for transient saturations    
 !-------------------------------------------------------------------------------
-  subroutine advect_computeconcen(sn,phi, &
-      dlo,dhi,hx,dt,old_sat,sat, &
-      iteration,num_iterations, &
-      sx,sy,sz)
+  subroutine advect_computeconcen(sn,sx,sy,sz, &
+                                phi,sat,dlo,dhi,hx,dt)
 
   use, intrinsic :: iso_c_binding
 
   implicit none
-  integer, parameter            :: dp = selected_real_kind(15)
+  integer, parameter            :: dp = selected_real_kind(15, 307)
   integer(c_int), intent(in)    :: dlo(3), dhi(3)
-  real(c_double), intent(in)    :: hx(3), dt
-  integer(c_int), intent(in)    :: iteration,num_iterations
   real(c_double), intent(inout) :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
-  real(c_double), intent(in)    :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
   real(c_double), intent(in)    :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)  
   real(c_double), intent(in)    :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
-  real(c_double), intent(in)    :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
-  real(c_double), intent(in)    :: old_sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1) 
-  real(c_double), intent(in)    :: sat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1)
+  real(c_double), intent(in)    :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+  real(c_double), intent(in)    :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)  
+  real(c_double), intent(in)    :: sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(c_double), intent(in)    :: hx(3), dt
  
   integer i,j,k
   integer is,ie,js,je,ks,ke
   real(dp) dx_inv,dy_inv,dz_inv
-  real(dp) sat_diff,iter,num_iter,num_iter_inv
 
   is = dlo(1)
   ie = dhi(1)
@@ -525,20 +536,15 @@
   dx_inv = 1.0_dp/hx(1)
   dy_inv = 1.0_dp/hx(2)
   dz_inv = 1.0_dp/hx(3)
-  iter=DBLE(iteration)
-  num_iter=DBLE(num_iterations)
-  num_iter_inv = 1.0_dp/num_iter
 
   do k=ks,ke
     do j=js,je
       do i=is,ie
 
-        sat_diff=(sat(i,j,k)-old_sat(i,j,k)) * num_iter_inv
-
-        sn(i,j,k)=sn(i,j,k) + ((dt*dx_inv)*(sx(i,j,k) - sx(i+1,j,k)) &
-        + (dt*dy_inv)*(sy(i,j,k)-sy(i,j+1,k)) + &
-        (dt*dz_inv)*(sz(i,j,k)-sz(i,j,k+1))) / &
-        (((iter+1.0_dp)*sat_diff + old_sat(i,j,k))*phi(i,j,k))
+       sn(i,j,k) = sn(i,j,k) + ((dt*dx_inv)*(sx(i,j,k) - sx(i+1,j,k)) &
+       + (dt*dy_inv)*(sy(i,j,k)-sy(i,j+1,k)) + &
+       (dt*dz_inv)*(sz(i,j,k)-sz(i,j,k+1))) / &
+       (sat(i,j,k)*phi(i,j,k))
 
       enddo
     enddo
@@ -559,8 +565,8 @@
   use, intrinsic :: iso_c_binding
 
   implicit none
-  integer,  parameter     :: dp = selected_real_kind(15)
-  integer(c_int),  intent(in)    :: dlo(3), dhi(3)
+  integer,  parameter           :: dp = selected_real_kind(15, 307)
+  integer(c_int),  intent(in)   :: dlo(3), dhi(3)
   real(c_double), intent(in)    :: dt,hx(3)
   real(c_double), intent(in)    :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
   real(c_double), intent(inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
@@ -599,9 +605,11 @@
         (dt*dy_inv)*(max(0.0_dp,sy(i,j+1,k)) - min(0.0_dp,sy(i,j,k))) + &
         (dt*dz_inv)*(max(0.0_dp,sz(i,j,k+1)) - min(0.0_dp,sz(i,j,k)))
 
-        q_plus(i,j,k) =  max(sn(i-1,j,k),sn(i,j,k),sn(i+1,j,k), sn(i,j-1,k),sn(i,j+1,k), sn(i,j,k-1),sn(i,j,k+1)) - sn(i,j,k)
+        q_plus(i,j,k) =  max(sn(i-1,j,k),sn(i,j,k),sn(i+1,j,k), sn(i,j-1,k),sn(i,j+1,k), &
+          sn(i,j,k-1),sn(i,j,k+1)) - sn(i,j,k)
 
-        q_minus(i,j,k) = sn(i,j,k) - min(sn(i-1,j,k),sn(i,j,k),sn(i+1,j,k), sn(i,j-1,k),sn(i,j+1,k), sn(i,j,k-1),sn(i,j,k+1))
+        q_minus(i,j,k) = sn(i,j,k) - min(sn(i-1,j,k),sn(i,j,k),sn(i+1,j,k), sn(i,j-1,k), &
+          sn(i,j+1,k), sn(i,j,k-1),sn(i,j,k+1))
 
         if (p_plus(i,j,k) .gt. 0.0_dp) then
           r_plus(i,j,k) = min(q_plus(i,j,k)/p_plus(i,j,k),1.0_dp)
@@ -613,6 +621,7 @@
         else
           r_minus(i,j,k) = 0.0_dp
         endif
+
 
       enddo
     enddo

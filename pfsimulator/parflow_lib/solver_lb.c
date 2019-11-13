@@ -20,6 +20,7 @@
  *****************************************************************************/
 
 #include "parflow.h"
+#include "pf_alquimia.h"
 
 #include <string.h>
 
@@ -146,6 +147,7 @@ void      SolverDiffusion()
   Vector       *temp_mobility_z = NULL;
   Vector       *stemp = NULL;
   Vector       *ctemp = NULL;
+  Vector       *sat_rt = NULL;
 
   int start_count = ProblemStartCount(problem);
   double start_time = ProblemStartTime(problem);
@@ -341,8 +343,12 @@ void      SolverDiffusion()
   }
   else
   {
-    saturations[0] = NULL;
+    saturations[0] = NewVectorType(grid, 1, 3, vector_cell_centered);
+      InitVectorAll(saturations[0], 1.0);
   }
+
+  sat_rt = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+      InitVectorAll(sat_rt, 1.0);
 
   /*-------------------------------------------------------------------
    * If (transient); initialize some stuff
@@ -376,6 +382,7 @@ void      SolverDiffusion()
         eval_struct = NewEvalStruct(problem);
 
       solidmassfactor = NewVectorType(grid, 1, 2, vector_cell_centered);
+      InitVectorAll(solidmassfactor, 1.0);
 
       /*-------------------------------------------------------------------
        * Allocate and set up initial concentrations
@@ -735,6 +742,12 @@ void      SolverDiffusion()
         /***********************************************************************/
         /*                      Compute the velocities                         */
         /***********************************************************************/
+
+        // put porosity into solidmassfactor and scatter for use in MaxPhaseFieldValue and advection
+        Copy(ProblemDataPorosity(problem_data),solidmassfactor);
+        handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
+        FinalizeVectorUpdate(handle);
+
         for (phase = 0; phase < ProblemNumPhases(problem); phase++)
         {
           /* Compute the velocity for this phase */
@@ -749,10 +762,15 @@ void      SolverDiffusion()
                               phase,
                               t));
 
+          Copy(saturations[phase], sat_rt);
+          handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
+          FinalizeVectorUpdate(handle);
+
           phase_maximum = MaxPhaseFieldValue(phase_x_velocity[phase],
                                              phase_y_velocity[phase],
                                              phase_z_velocity[phase],
-                                             ProblemDataPorosity(problem_data));
+                                             solidmassfactor,
+                                             sat_rt);
 
           phase_dt[phase] = CFL / phase_maximum;
           if (phase == 0)
@@ -1094,6 +1112,10 @@ void      SolverDiffusion()
         indx = 0;
         for (phase = 0; phase < ProblemNumPhases(problem); phase++)
         {
+          Copy(saturations[phase], sat_rt);
+          handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
+          FinalizeVectorUpdate(handle);
+
           for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
           {
             PFModuleInvokeType(RetardationInvoke, retardation,
@@ -1112,9 +1134,8 @@ void      SolverDiffusion()
                                 phase_x_velocity[phase], 
                                 phase_y_velocity[phase], 
                                 phase_z_velocity[phase],
-                                solidmassfactor, saturations[0], saturations[0],
-                                t, dt,
-                                iteration_number,iteration_number)); 
+                                solidmassfactor, sat_rt, sat_rt,
+                                t, dt)); 
             indx++;
           }
         }
@@ -1237,16 +1258,15 @@ void      SolverDiffusion()
     FreeVector(solidmassfactor);
   }
 
-  if (is_multiphase)
-  {
     for (phase = 0; phase < ProblemNumPhases(problem); phase++)
     {
       FreeVector(saturations[phase]);
     }
-  }
+
   tfree(saturations);
   tfree(phase_densities);
 
+  FreeVector(sat_rt);
   FreeVector(total_mobility_x);
   FreeVector(total_mobility_y);
   FreeVector(total_mobility_z);

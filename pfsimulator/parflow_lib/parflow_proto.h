@@ -1,10 +1,10 @@
 /* Header.c */
 
-typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor , Vector *old_saturation , Vector *saturation, double time , double deltat , int iteration, int num_iterations);
+typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor , Vector *old_saturation , Vector *saturation, double time , double deltat);
 typedef PFModule *(*AdvectionConcentrationInitInstanceXtraType) (Problem *problem , Grid *grid , double *temp_data );
 
 /* advection_godunov.c */
-void Godunov (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor, Vector *old_saturation , Vector *saturation, double time , double deltat , int iteration, int num_iterations);
+void Godunov (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor, Vector *old_saturation , Vector *saturation, double time , double deltat);
 PFModule *GodunovInitInstanceXtra (Problem *problem , Grid *grid , double *temp_data );
 void GodunovFreeInstanceXtra (void );
 PFModule *GodunovNewPublicXtra (void );
@@ -418,7 +418,7 @@ void            MatvecJacE(
 
 /* max_field_value.c */
 double MaxFieldValue(Vector *field, Vector *phi, int dir);
-double MaxPhaseFieldValue(Vector *x_velocity, Vector *y_velocity, Vector *z_velocity, Vector *phi);
+double MaxPhaseFieldValue(Vector *x_velocity, Vector *y_velocity, Vector *z_velocity, Vector *phi, Vector *sat);
 double MaxTotalFieldValue(Problem *problem, EvalStruct *eval_struct, Vector *saturation, Vector *x_velocity, Vector *y_velocity, Vector *z_velocity, Vector *beta, Vector *phi);
 
 
@@ -1285,6 +1285,7 @@ void PFVLin2(double a, Vector *x, Vector *y, Vector *z);
 void PFVAxpy(double a, Vector *x, Vector *y);
 void PFVScaleBy(double a, Vector *x);
 void PFVLayerCopy(int a, int b, Vector *x, Vector *y);
+void PFVMinVector(Vector *x, Vector *y, Vector *z);
 
 /* w_jacobi.c */
 void WJacobi(Vector *x, Vector *b, double tol, int zero);

@@ -86,9 +86,7 @@ void     Godunov(
                  Vector      *old_saturation,
                  Vector      *saturation,
                  double      time,
-                 double      deltat,
-                 int         iteration,
-                 int         num_iterations)
+                 double      deltat)
 {
   PFModule     *this_module = ThisPFModule;
   InstanceXtra *instance_xtra = (InstanceXtra*)PFModuleInstanceXtra(this_module);
@@ -244,9 +242,8 @@ void     Godunov(
     hx[2] = SubgridDZ(subgrid);
     
     /***** Make the call to the low-order advection routine *****/
-    CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,phi,dlo,
-                dhi,hx,dt,old_sat,sat,iteration,
-                num_iterations,fx,fy,fz);
+    CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,phi,old_sat,sat,
+      fx,fy,fz,dlo,dhi,hx,dt);
   }
 
 
@@ -1003,8 +1000,8 @@ void     Godunov(
       hx[2] = SubgridDZ(subgrid);
 
         /*compute anti-diffusive fluxes */
-        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge,
-                              dlo, dhi, hx, dt, fx, fy, fz);
+        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge, phi, sat,
+                            fx, fy, fz, dlo, dhi, hx, dt);
 
         if (public_xtra->transverse)
         {
@@ -1018,8 +1015,8 @@ void     Godunov(
                           vx, wx, uy, wy, uz, vz);
 
         /*add fluxes to  new concentration, account for transient saturation*/
-        CALL_ADVECT_COMPUTECONCEN(cn, phi, dlo, dhi, hx, dt, old_sat, sat,
-                                  iteration, num_iterations, fx, fy, fz);
+        CALL_ADVECT_COMPUTECONCEN(cn, fx, fy, fz, phi, sat,
+                          dlo, dhi, hx, dt);
       }
     }
 

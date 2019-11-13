@@ -390,6 +390,9 @@ void      SolverImpes()
       InitVectorAll(saturations[0], 1.0);
   }
 
+  sat_rt = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+      InitVectorAll(sat_rt, 1.0);
+
   /*-------------------------------------------------------------------
    * If (transient); initialize some stuff
    *-------------------------------------------------------------------*/
@@ -424,6 +427,7 @@ void      SolverImpes()
       if (ProblemNumContaminants(problem) > 0)
       {
         solidmassfactor = NewVectorType(grid, 1, 2, vector_cell_centered);
+        InitVectorAll(solidmassfactor, 1.0);
         ctemp = NewVectorType(instance_xtra->grid, 1, 3, vector_cell_centered);
 
         /*----------------------------------------------------------------
@@ -533,7 +537,6 @@ void      SolverImpes()
       }
 #endif
 
-      sat_rt = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
 
       /*----------------------------------------------------------------
        * Print out the initial saturations?
@@ -750,6 +753,12 @@ void      SolverImpes()
         /***************************************************************/
         /*                      Compute the velocities                 */
         /***************************************************************/
+
+        // put porosity into solidmassfactor and scatter for use in MaxPhaseFieldValue and advection
+        Copy(ProblemDataPorosity(problem_data),solidmassfactor);
+        handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
+        FinalizeVectorUpdate(handle);
+
         for (phase = 0; phase < ProblemNumPhases(problem); phase++)
         {
           /* Compute the velocity for this phase */
@@ -764,10 +773,15 @@ void      SolverImpes()
                              phase,
                              t));
 
+          Copy(saturations[phase], sat_rt);
+          handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
+          FinalizeVectorUpdate(handle);
+
           phase_maximum = MaxPhaseFieldValue(phase_x_velocity[phase],
                                              phase_y_velocity[phase],
                                              phase_z_velocity[phase],
-                                             ProblemDataPorosity(problem_data));
+                                             solidmassfactor,
+                                             sat_rt);
 
           /* Put in a check for a possibly 0 velocity in this phase */
           if (phase_maximum != 0.0)
@@ -1178,25 +1192,27 @@ void      SolverImpes()
           }
           for (phase = 0; phase < ProblemNumPhases(problem); phase++)
           {
-            InitVectorAll(sat_rt, 1.0);
             Copy(saturations[phase], sat_rt);
-            handle = InitVectorUpdate(sat_rt, VectorUpdateAll);
+            handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
               FinalizeVectorUpdate(handle);
               
             for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
             {
-              PFModuleInvokeType(RetardationInvoke, retardation,
-                                 (solidmassfactor,
+
+              if (!GlobalsChemistryFlag)
+              {
+                PFModuleInvokeType(RetardationInvoke, retardation,
+                                  (solidmassfactor,
                                   concen,
                                   problem_data));
-              handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
-              FinalizeVectorUpdate(handle);
+                handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
+                FinalizeVectorUpdate(handle);
+              }
 
               handle = InitVectorUpdate(concentrations[indx], VectorUpdateGodunov);
               FinalizeVectorUpdate(handle);
 
-              InitVectorAll(ctemp, 0.0);
-              CopyConcenWithBoundary(concentrations[indx], ctemp);
+              PFVCopy(concentrations[indx], ctemp);
 
               PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
                                 (problem_data, phase, concen,
@@ -1205,8 +1221,7 @@ void      SolverImpes()
                                 phase_y_velocity[phase], 
                                 phase_z_velocity[phase],
                                 solidmassfactor, sat_rt, sat_rt,
-                                t, dt,
-                                iteration_number,iteration_number)); 
+                                t, dt)); 
               indx++;
             }
           }

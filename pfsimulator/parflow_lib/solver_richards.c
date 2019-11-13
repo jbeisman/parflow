@@ -309,6 +309,9 @@ typedef struct {
   Vector *ctemp;
   Vector *solidmassfactor;
   Vector **concentrations;
+  Vector *delta_saturation;
+  Vector *sat_transport_end;
+  Vector *sat_transport_start;
 } InstanceXtra;
 
 static const char* dswr_filenames[] = { "DSWR" };
@@ -1202,8 +1205,20 @@ SetupRichards(PFModule * this_module)
       instance_xtra -> ctemp = 
       NewVectorType(grid, 1, 3,  vector_cell_centered );
 
-      instance_xtra -> solidmassfactor = 
+      instance_xtra->solidmassfactor =
       NewVectorType( grid, 1, 2, vector_cell_centered);
+      InitVectorAll(instance_xtra->solidmassfactor, 1.0);
+
+      instance_xtra->delta_saturation =
+      NewVectorType(grid, 1, 1, vector_cell_centered);
+
+      instance_xtra->sat_transport_end =
+      NewVectorType(grid, 1, 2, vector_cell_centered);
+      InitVectorAll(instance_xtra->sat_transport_end, 1.0);
+
+      instance_xtra->sat_transport_start =
+      NewVectorType(grid, 1, 2, vector_cell_centered);
+      InitVectorAll(instance_xtra->sat_transport_start, 1.0);
 
       instance_xtra->concentrations = ctalloc(Vector *,ProblemNumContaminants(problem));
 
@@ -1628,10 +1643,9 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
   PFModule *advect_concen = (instance_xtra->advect_concen);
   PFModule *retardation = (instance_xtra -> retardation);
   double max_velocity;
-  int evolve_concentrations;
-  double advect_react_dt;
-  int num_rt_iterations;
-  double advect_react_time;
+  int evolve_concentrations, num_rt_iterations;
+  double advect_react_dt, advect_react_time;
+  double subcycle_progress;
 
 
 #ifdef HAVE_OAS3
@@ -2955,10 +2969,10 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
     }
 
     /* velocity updates - not sure these are necessary jjb */
-    handle = InitVectorUpdate(instance_xtra->x_velocity, VectorUpdateVelZ);
+    handle = InitVectorUpdate(instance_xtra->x_velocity, VectorUpdateVelX);
     FinalizeVectorUpdate(handle);
 
-    handle = InitVectorUpdate(instance_xtra->y_velocity, VectorUpdateVelZ);
+    handle = InitVectorUpdate(instance_xtra->y_velocity, VectorUpdateVelY);
     FinalizeVectorUpdate(handle);
 
     handle = InitVectorUpdate(instance_xtra->z_velocity, VectorUpdateVelZ);
@@ -2981,7 +2995,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
     // Alquimia coupling, call advect and then advance chemistry
     /******************************************************************/
-    /*         Alquimia geochemistry and solute transport              */
+    /*         Alquimia geochemistry and/or solute transport              */
     /******************************************************************/
 
     any_file_dumped = 0;
@@ -2992,24 +3006,60 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
     if (ProblemNumContaminants(problem) > 0 && evolve_concentrations)
     {
-      // get maximum darcy vel / phi displacement for time step selection
+
+      // calculate dsat/dt, put sat into vector with more ghost nodes
+      TransportSaturation(instance_xtra->sat_transport_start,
+                          instance_xtra->delta_saturation,
+                          instance_xtra->old_saturation,
+                          instance_xtra->saturation);
+
+      // copy porosity into solidmassfactor and update ghosts for MaxPhaseFieldValue and advect
+      Copy(ProblemDataPorosity(problem_data),instance_xtra->solidmassfactor);
+      handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
+      FinalizeVectorUpdate(handle);
+
+      // calculate vector of minimum saturations - use sat_transport_end to save memory
+      PFVMinVector(instance_xtra->saturation,
+                   instance_xtra->old_saturation,
+                   instance_xtra->sat_transport_end);
+
+      // update ghost nodes for MaxPhaseFieldValue
+      handle = InitVectorUpdate(instance_xtra->sat_transport_end, VectorUpdateAll2);
+          FinalizeVectorUpdate(handle);
+
+      // get maximum darcy vel / ( phi * sat) displacement for time step selection
       max_velocity = MaxPhaseFieldValue(instance_xtra->x_velocity,
-                                     instance_xtra->y_velocity,
-                                     instance_xtra->z_velocity,
-                                     ProblemDataPorosity(problem_data));
+                                       instance_xtra->y_velocity,
+                                       instance_xtra->z_velocity,
+                                       instance_xtra->solidmassfactor,
+                                       instance_xtra->sat_transport_end);
 
       // choose reaction and transport timestep and total number of iterations
-      SelectReactTransTimeStep(max_velocity,public_xtra->CFL,dt,&advect_react_dt,&num_rt_iterations);
+      SelectReactTransTimeStep(max_velocity,public_xtra->CFL,
+                               dt,
+                               &advect_react_dt,
+                               &num_rt_iterations);
+
       advect_react_time = t - dt;
+      subcycle_progress = 0.0;
 
       for (int iteration = 0; iteration < num_rt_iterations; iteration++)
       {
+        // copy sat_end from previous iteration into sat_start
+        if (iteration > 0) PFVCopy(instance_xtra->sat_transport_end, instance_xtra->sat_transport_start);
+
+        // linearly interpolate saturation through time
+        subcycle_progress += InterpolateTimeCycle(dt,advect_react_dt);
+        PFVLin1(subcycle_progress,instance_xtra->delta_saturation,instance_xtra->old_saturation,instance_xtra->sat_transport_end);
+
+        // update saturation ghosts
+        handle = InitVectorUpdate(instance_xtra->sat_transport_end, VectorUpdateAll2);
+        FinalizeVectorUpdate(handle);
 
 #ifdef HAVE_ALQUIMIA
         chem_dump_files = (iteration == num_rt_iterations - 1 && dump_files == 1) ? 1 : 0;
 #endif
         
-
         if (!amps_Rank(amps_CommWorld))
         {
           amps_Printf("Reactive transport iteration %d of %d.\n",iteration+1,num_rt_iterations);
@@ -3021,20 +3071,22 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         // loop through and transport each concentration separately
         for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
         {
-          // retardation doesn't need to be called
-          // todo: pass porosity instead of solidmassfactor, change bounds in advect
-          PFModuleInvokeType(RetardationInvoke, retardation,
-                            (instance_xtra->solidmassfactor,
-                            concen,
-                            problem_data));
-          handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
-          FinalizeVectorUpdate(handle);
+          // only call retardation if chemistry not active
+          if (!GlobalsChemistryFlag)
+          {
+            PFModuleInvokeType(RetardationInvoke, retardation,
+              (instance_xtra->solidmassfactor,
+                concen,
+                problem_data));
+
+            handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
+            FinalizeVectorUpdate(handle);
+          }
 
           handle = InitVectorUpdate(instance_xtra->concentrations[concen], VectorUpdateGodunov);
           FinalizeVectorUpdate(handle);
 
-          //InitVectorAll(instance_xtra->ctemp, 0.0);
-          CopyConcenWithBoundary(instance_xtra->concentrations[concen], instance_xtra->ctemp);
+          PFVCopy(instance_xtra->concentrations[concen], instance_xtra->ctemp);
 
           PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
                             (problem_data, 0, concen,
@@ -3043,10 +3095,9 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                             instance_xtra->y_velocity, 
                             instance_xtra->z_velocity,
                             instance_xtra->solidmassfactor, 
-                            instance_xtra->old_saturation, 
-                            instance_xtra->saturation,
-                            advect_react_time, advect_react_dt,
-                            iteration,num_rt_iterations)); // will need to fix this for multiphase
+                            instance_xtra->sat_transport_start,
+                            instance_xtra->sat_transport_end,
+                            advect_react_time, advect_react_dt)); // will need to fix this for multiphase
         }
         
 #ifdef HAVE_ALQUIMIA
@@ -3054,11 +3105,12 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         {
           PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem,
                             (problem_data, instance_xtra->alquimia_data,
-                            instance_xtra->concentrations, instance_xtra->saturation, advect_react_dt, advect_react_time,
+                            instance_xtra->concentrations, instance_xtra->sat_transport_end, advect_react_dt, advect_react_time,
                             &any_file_dumped, chem_dump_files,
                             instance_xtra->file_number, file_prefix));
         }
 #endif
+
       }
     }
     
@@ -4168,16 +4220,20 @@ TeardownRichards(PFModule * this_module)
     FreeVector(instance_xtra->veg_map_forc);
   }
 
-    if (ProblemNumContaminants(problem) > 0)
+  if (ProblemNumContaminants(problem) > 0)
+  {
+    for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
     {
-      for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
-      {
-        FreeVector(instance_xtra->concentrations[concen]);
-      }
+      FreeVector(instance_xtra->concentrations[concen]);
+    }
+
     tfree(instance_xtra->concentrations);
     FreeVector(instance_xtra->solidmassfactor);
     FreeVector(instance_xtra->ctemp);
-    }
+    FreeVector(instance_xtra->delta_saturation);
+    FreeVector(instance_xtra->sat_transport_end);
+    FreeVector(instance_xtra->sat_transport_start);
+  }
 
 
   if (public_xtra->sw1d)

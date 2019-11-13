@@ -57,17 +57,16 @@ BEGIN_EXTERN_C
 #endif
 
 #define CALL_ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
-                    dlo, dhi, hx, dt,\
-                    old_sat, sat, iteration, num_iterations,fx,fy,fz)\
+                    old_sat, sat, fx, fy, fz, \
+                    dlo, dhi, hx, dt )\
              ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
-                    dlo, dhi, hx, &dt,\
-                    old_sat, sat, &iteration, &num_iterations,fx,fy,fz)
+                    old_sat, sat, fx, fy, fz, \
+                    dlo, dhi, hx, &dt )
 
 void ADVECT_UPWIND(double *s, double *sn,
-            double *uedge, double *vedge, double *wedge, double *phi,
-            int *dlo, int *dhi, double *hx, double *dt,
-            double *old_sat, double *sat, int *iteration, int *num_iterations,
-            double *fx, double *fy,double *fz);
+            double *uedge, double *vedge, double *wedge, double *phi, 
+            double *old_sat, double *sat, double *fx, double *fy, 
+            double *fz, int *dlo, int *dhi, double *hx, double *dt);
 
 
 #if defined(_CRAYMPP)
@@ -78,14 +77,14 @@ void ADVECT_UPWIND(double *s, double *sn,
 #define ADVECT_HIGHORDER advect_highorder_
 #endif
 
-#define CALL_ADVECT_HIGHORDER(s, uedge, vedge, wedge,\
-                    dlo, dhi, hx, dt,sx,sy,sz)\
-             ADVECT_HIGHORDER(s, uedge, vedge, wedge,\
-                    dlo, dhi, hx, &dt,sx,sy,sz)
+#define CALL_ADVECT_HIGHORDER(s, uedge, vedge, wedge, \
+                    phi, sat, sx, sy, sz, dlo, dhi, hx, dt)\
+             ADVECT_HIGHORDER(s, uedge, vedge, wedge, \
+                    phi, sat, sx, sy, sz, dlo, dhi, hx, &dt)
 
 void ADVECT_HIGHORDER(double *s, double *uedge, double *vedge, double *wedge, 
-            int *dlo, int *dhi, double *hx, double *dt,
-            double *sx, double *sy,double *sz);
+            double *phi, double *old_sat, double *sx, double *sy, double *sz,
+            int *dlo, int *dhi, double *hx, double *dt);
 
 
 
@@ -117,17 +116,14 @@ void ADVECT_TRANSVERSE(double *s, double *uedge, double *vedge, double *wedge,
 #define ADVECT_COMPUTECONCEN advect_computeconcen_
 #endif
 
-#define CALL_ADVECT_COMPUTECONCEN(sn, phi,\
-                    dlo, dhi, hx, dt,old_sat,sat,\
-                    iteration,num_iterations,sx,sy,sz)\
-             ADVECT_COMPUTECONCEN(sn, phi,\
-                    dlo, dhi, hx, &dt,old_sat,sat,\
-                    &iteration,&num_iterations,sx,sy,sz)
+#define CALL_ADVECT_COMPUTECONCEN(sn, sx, sy, sz, phi,\
+                    sat, dlo, dhi, hx, dt)\
+             ADVECT_COMPUTECONCEN(sn, sx, sy, sz, phi,\
+                    sat, dlo, dhi, hx, &dt)
 
-void ADVECT_COMPUTECONCEN(double *sn, double *phi, 
-            int *dlo, int *dhi, double *hx, double *dt,
-            double *old_sat, double *sat,int *iteration, int *num_iterations,
-            double *sx, double *sy,double *sz);
+void ADVECT_COMPUTECONCEN(double *sn, double *sx, double *sy, 
+            double *sz, double *phi, double *sat,
+            int *dlo, int *dhi, double *hx, double *dt);
 
 
 

@@ -41,68 +41,85 @@
 #endif
 
 
-
-void CopyConcenWithBoundary(Vector *x, Vector *y)
+double InterpolateTimeCycle(double total_cycle_length, double subcycle_dt)
 {
-  Grid       *grid = VectorGrid(x);
+  return subcycle_dt / total_cycle_length;
+}
+
+/*--------------------------------------------------------------------------
+ * TransportSaturation
+ * Calculates saturation delta for transient simulations
+ * Places old saturation values into vector with 2 ghost layers 
+ *--------------------------------------------------------------------------*/
+
+void TransportSaturation(Vector *sat_transport_start, Vector *delta_sat, Vector *old_sat, Vector *new_sat)
+{
+
+  Grid       *grid = VectorGrid(sat_transport_start);
   Subgrid    *subgrid;
 
-  Subvector  *y_sub;
-  Subvector  *x_sub;
+  VectorUpdateCommHandle  *handle;
 
-  double     *yp, *xp;
+  Subvector  *os_sub;
+  Subvector  *st_sub;
+
+  double     *os, *st;
 
   int ix, iy, iz;
   int nx, ny, nz;
-  int nx_x, ny_x, nz_x;
-  int nx_y, ny_y, nz_y;
+  int nx_os, ny_os, nz_os;
+  int nx_st, ny_st, nz_st;
+  int sg, i, j, k, os_i, st_i;
 
-  int i_s, i, j, k, i_x, i_y;
+  PFVDiff(new_sat, old_sat, delta_sat);
 
-
-  ForSubgridI(i_s, GridSubgrids(grid))
+  ForSubgridI(sg, GridSubgrids(grid))
   {
-    subgrid = GridSubgrid(grid, i_s);
+    subgrid = GridSubgrid(grid, sg);
 
-    ix = SubgridIX(subgrid)-3;
-    iy = SubgridIY(subgrid)-3;
-    iz = SubgridIZ(subgrid)-3;
+    ix = SubgridIX(subgrid);
+    iy = SubgridIY(subgrid);
+    iz = SubgridIZ(subgrid);
 
-    nx = SubgridNX(subgrid)+6;
-    ny = SubgridNY(subgrid)+6;
-    nz = SubgridNZ(subgrid)+6;
+    nx = SubgridNX(subgrid);
+    ny = SubgridNY(subgrid);
+    nz = SubgridNZ(subgrid);
 
-    x_sub = VectorSubvector(x, i_s);
-    y_sub = VectorSubvector(y, i_s);
+    os_sub = VectorSubvector(old_sat, sg);
+    st_sub = VectorSubvector(sat_transport_start, sg);
 
-    nx_x = SubvectorNX(x_sub);
-    ny_x = SubvectorNY(x_sub);
-    nz_x = SubvectorNZ(x_sub);
+    nx_os = SubvectorNX(os_sub);
+    ny_os = SubvectorNY(os_sub);
+    nz_os = SubvectorNZ(os_sub);
 
-    nx_y = SubvectorNX(y_sub);
-    ny_y = SubvectorNY(y_sub);
-    nz_y = SubvectorNZ(y_sub);
+    nx_st = SubvectorNX(st_sub);
+    ny_st = SubvectorNY(st_sub);
+    nz_st = SubvectorNZ(st_sub);
 
-    yp = SubvectorElt(y_sub, ix, iy, iz);
-    xp = SubvectorElt(x_sub, ix, iy, iz);
+    os = SubvectorElt(os_sub, ix, iy, iz);
+    st = SubvectorElt(st_sub, ix, iy, iz);
 
-    i_x = 0;
-    i_y = 0;
+    os_i = 0;
+    st_i = 0;
+
     BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
-              i_x, nx_x, ny_x, nz_x, 1, 1, 1,
-              i_y, nx_y, ny_y, nz_y, 1, 1, 1,
+              os_i, nx_os, ny_os, nz_os, 1, 1, 1,
+              st_i, nx_st, ny_st, nz_st, 1, 1, 1,
     {
-      yp[i_y] = xp[i_x];
+      st[st_i] = os[os_i];
     });
   }
+
+  // scatter ghosts
+  handle = InitVectorUpdate(sat_transport_start, VectorUpdateAll2);
+  FinalizeVectorUpdate(handle);
+
 }
 
 
-
-int SubgridNumCells(Grid *grid, ProblemData *problem_data)
+int SubgridNumCells(Grid *grid)
 {
   SubgridArray  *subgrids = GridSubgrids(grid);
-  GrGeomSolid   *gr_domain;
   Subgrid       *subgrid;
   int is;
   int i, j, k;
@@ -110,8 +127,6 @@ int SubgridNumCells(Grid *grid, ProblemData *problem_data)
   int nx, ny, nz;
   int num_cells = 0;
   int ai = 0;
-
-  gr_domain = ProblemDataGrDomain(problem_data);
 
   ForSubgridI(is, subgrids)
   {
@@ -136,8 +151,6 @@ int SubgridNumCells(Grid *grid, ProblemData *problem_data)
 }
 
 
-
-
 void SelectReactTransTimeStep(double max_velocity, double CFL, 
                 double PF_dt, double *advect_react_dt, 
                 int *num_rt_iterations)
@@ -158,66 +171,6 @@ void SelectReactTransTimeStep(double max_velocity, double CFL,
   }
 
 }
-
-
-
-//void CutTimeStepandSolveRecursively(AlquimiaInterface chem, AlquimiaState *chem_state, AlquimiaProperties *chem_properties, void *chem_engine, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaEngineStatus *chem_status, double original_dt, int level)
-
-//void CutTimeStepandSolveRecursively(AlquimiaDataPF * alquimia_data, double original_dt, int level, int chem_index)
-//{
-//  double half_dt;
-//  double dt_epsilon;
-//  double t;
-//  
-//  half_dt = 0.5 * original_dt;
-//  dt_epsilon = original_dt * 1e-9;
-//  t = 0.0;
-//
-//  if (level < 10)
-//  {
-//
-//    while (fabs(t - original_dt) > dt_epsilon)
-//    {
-//      // Solve the geochemical system with a dt of half the original_dt
-//     // chem.ReactionStepOperatorSplit(&chem_engine,
-//     //                                      half_dt, chem_properties,
-//     //                                      chem_state,
-//     //                                      chem_aux_data,
-//     //                                      chem_status);
-//
-//      alquimia_data->chem.ReactionStepOperatorSplit(&alquimia_data->chem_engine,
-//                                             half_dt, &alquimia_data->chem_properties[chem_index],
-//                                             &alquimia_data->chem_state[chem_index],
-//                                             &alquimia_data->chem_aux_data[chem_index],
-//                                             &alquimia_data->chem_status);
-//      //if (!chem_status->converged)
-//      if (!(alquimia_data->chem_status.converged))
-//      {
-//        //CutTimeStepandSolveRecursively(chem, chem_state, chem_properties, chem_engine, chem_aux_data, chem_status, half_dt, level+1);
-//
-//        CopyAlquimiaState(&alquimia_data->chem_state_temp, &alquimia_data->chem_state[chem_index]);
-//        CopyAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data_temp ,&alquimia_data->chem_aux_data[chem_index]);
-//        CopyAlquimiaProperties(&alquimia_data->chem_properties_temp, &alquimia_data->chem_properties[chem_index]);
-//
-//
-//                CutTimeStepandSolveRecursively(alquimia_data, half_dt, level+1, chem_index);
-//
-//      }
-//
-//      CopyAlquimiaState(&alquimia_data->chem_state[chem_index], &alquimia_data->chem_state_temp);
-//      CopyAlquimiaAuxiliaryData(&alquimia_data->chem_aux_data[chem_index], &alquimia_data->chem_aux_data_temp);
-//      CopyAlquimiaProperties(&alquimia_data->chem_properties[chem_index], &alquimia_data->chem_properties_temp);
-//
-//
-//      t += half_dt;
-//    }
-//  }
-//  else
-//  {
-//    amps_Printf("Geochemical engine failed to converge. Timestep halved 10 times to %e seconds.\n",half_dt);
-//    PARFLOW_ERROR("Geochemical engine error, exiting simulation.\n");
-//  }
-//}
 
 
 #ifdef HAVE_ALQUIMIA
@@ -244,7 +197,6 @@ void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_s
 
 
 void WriteChemChkpt(Grid *grid, 
-                   ProblemData *problem_data,
                    AlquimiaSizes *chem_sizes,
                    AlquimiaState *chem_state,
                    AlquimiaAuxiliaryData *chem_aux_data,
@@ -254,7 +206,6 @@ void WriteChemChkpt(Grid *grid,
 {
   SubgridArray   *subgrids = GridSubgrids(grid);
   Subgrid        *subgrid;
-  GrGeomSolid    *gr_domain;
 
   int num_chem_vars;
   int is;
@@ -270,7 +221,6 @@ void WriteChemChkpt(Grid *grid,
 
   BeginTiming(PFBTimingIndex);
 
-  gr_domain = ProblemDataGrDomain(problem_data);
   p = amps_Rank(amps_CommWorld);
 
   if (p == 0)
@@ -299,7 +249,7 @@ void WriteChemChkpt(Grid *grid,
       size += 9 * amps_SizeofInt;
   }
 
-  num_cells = SubgridNumCells(grid, problem_data);
+  num_cells = SubgridNumCells(grid);
   size += num_cells * num_chem_vars * amps_SizeofDouble;
 
   /* open file */
@@ -447,7 +397,6 @@ void WriteChemChkpt(Grid *grid,
 
 
 void ReadChemChkpt(Grid *grid, 
-                   ProblemData *problem_data,
                    AlquimiaSizes *chem_sizes,
                    AlquimiaState *chem_state,
                    AlquimiaAuxiliaryData *chem_aux_data,
@@ -456,7 +405,6 @@ void ReadChemChkpt(Grid *grid,
 {
   SubgridArray   *subgrids = GridSubgrids(grid);
   Subgrid        *subgrid;
-  GrGeomSolid    *gr_domain;
 
   int is;
   int p, P;
@@ -472,7 +420,6 @@ void ReadChemChkpt(Grid *grid,
 
   BeginTiming(PFBTimingIndex);
   
-  gr_domain = ProblemDataGrDomain(problem_data);
   p = amps_Rank(amps_CommWorld);
   P = amps_Size(amps_CommWorld);
 

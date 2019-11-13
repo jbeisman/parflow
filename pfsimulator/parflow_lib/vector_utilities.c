@@ -63,6 +63,7 @@
  * PFVScaleBy(a, x)                  x = x * a
  *
  * PFVLayerCopy (a, b, x, y)         NBE: Extracts layer b from vector y, inserts into layer a of vector x
+ * PFVMinVector (x, y, z)            JJB: z = min(x,y)
  ****************************************************************************/
 
 #include "parflow.h"
@@ -2032,4 +2033,75 @@ void PFVLayerCopy(
     }
   }
   IncFLOPCount(2 * VectorSize(x));
+}
+
+
+void PFVMinVector(
+/* Diff : z = min(x, y)  */
+             Vector *x,
+             Vector *y,
+             Vector *z)
+{
+  Grid       *grid = VectorGrid(x);
+  Subgrid    *subgrid;
+
+  Subvector  *x_sub;
+  Subvector  *y_sub;
+  Subvector  *z_sub;
+
+  double     *xp, *yp, *zp;
+
+  int ix, iy, iz;
+  int nx, ny, nz;
+  int nx_x, ny_x, nz_x;
+  int nx_y, ny_y, nz_y;
+  int nx_z, ny_z, nz_z;
+
+  int sg, i, j, k, i_x, i_y, i_z;
+
+
+  ForSubgridI(sg, GridSubgrids(grid))
+  {
+    subgrid = GridSubgrid(grid, sg);
+
+    ix = SubgridIX(subgrid);
+    iy = SubgridIY(subgrid);
+    iz = SubgridIZ(subgrid);
+
+    nx = SubgridNX(subgrid);
+    ny = SubgridNY(subgrid);
+    nz = SubgridNZ(subgrid);
+
+    x_sub = VectorSubvector(x, sg);
+    y_sub = VectorSubvector(y, sg);
+    z_sub = VectorSubvector(z, sg);
+
+    nx_x = SubvectorNX(x_sub);
+    ny_x = SubvectorNY(x_sub);
+    nz_x = SubvectorNZ(x_sub);
+
+    nx_y = SubvectorNX(y_sub);
+    ny_y = SubvectorNY(y_sub);
+    nz_y = SubvectorNZ(y_sub);
+
+    nx_z = SubvectorNX(z_sub);
+    ny_z = SubvectorNY(z_sub);
+    nz_z = SubvectorNZ(z_sub);
+
+    xp = SubvectorElt(x_sub, ix, iy, iz);
+    yp = SubvectorElt(y_sub, ix, iy, iz);
+    zp = SubvectorElt(z_sub, ix, iy, iz);
+
+    i_x = 0;
+    i_y = 0;
+    i_z = 0;
+    BoxLoopI3(i, j, k, ix, iy, iz, nx, ny, nz,
+              i_x, nx_x, ny_x, nz_x, 1, 1, 1,
+              i_y, nx_y, ny_y, nz_y, 1, 1, 1,
+              i_z, nx_z, ny_z, nz_z, 1, 1, 1,
+    {
+      zp[i_z] = pfmin(xp[i_x], yp[i_y]);
+    });
+  }
+  IncFLOPCount(VectorSize(x));
 }

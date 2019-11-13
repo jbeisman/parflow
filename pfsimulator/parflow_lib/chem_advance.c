@@ -232,7 +232,7 @@ void AdvanceChemistry(ProblemData *problem_data, AlquimiaDataPF *alquimia_data, 
     if ((public_xtra->restart_file_flag) && (public_xtra->dump_index % public_xtra->write_restart_interval == 0)) // write chemistry checkpoint file
     {
     	sprintf(file_postfix, "CHEM_CHKPT.%05d", file_number);
-    	WriteChemChkpt(grid, problem_data, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, file_prefix, file_postfix);
+      WriteChemChkpt(grid, &alquimia_data->chem_sizes, alquimia_data->chem_state, alquimia_data->chem_aux_data, alquimia_data->chem_properties, file_prefix, file_postfix);
     }
   }
 

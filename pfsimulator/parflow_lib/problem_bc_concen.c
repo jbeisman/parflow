@@ -101,7 +101,6 @@ void BCConcentration(Problem *problem,
 
   num_concen =  ProblemNumContaminants(problem);
 
-
   for (ipatch = 0; ipatch < num_domain_patches; ipatch++)
   {
     switch (input_types[ipatch])
@@ -120,7 +119,6 @@ void BCConcentration(Problem *problem,
         
         for (int concen = 0; concen < num_concen; concen++)
         {
-
           ForSubgridI(is, subgrids)
           {
             subgrid = SubgridArraySubgrid(subgrids, is);
@@ -138,14 +136,15 @@ void BCConcentration(Problem *problem,
             BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
                       ci, nx_v, ny_v, nz_v, 1, 1, 1,
             {
-
-              iv1 = SubvectorEltIndex(concen_sub, i + dir[ipatch][0], j + dir[ipatch][1], k + dir[ipatch][2]);
-              iv2 = SubvectorEltIndex(concen_sub, i + 2*dir[ipatch][0], j + 2*dir[ipatch][1], k + 2*dir[ipatch][2]);
-              iv3 = SubvectorEltIndex(concen_sub, i + 3*dir[ipatch][0], j + 3*dir[ipatch][1], k + 3*dir[ipatch][2]);
-
-              concen_dat[iv1] = chem_bc_state[condition].total_mobile.data[concen]; 
-              concen_dat[iv2] = chem_bc_state[condition].total_mobile.data[concen]; 
-              concen_dat[iv3] = chem_bc_state[condition].total_mobile.data[concen];
+              if (BoundaryCell(ipatch,i,j,k))
+              {
+                iv1 = SubvectorEltIndex(concen_sub, i + dir[ipatch][0], j + dir[ipatch][1], k + dir[ipatch][2]);
+                iv2 = SubvectorEltIndex(concen_sub, i + 2*dir[ipatch][0], j + 2*dir[ipatch][1], k + 2*dir[ipatch][2]);
+                iv3 = SubvectorEltIndex(concen_sub, i + 3*dir[ipatch][0], j + 3*dir[ipatch][1], k + 3*dir[ipatch][2]);
+                concen_dat[iv1] = chem_bc_state[condition].total_mobile.data[concen];
+                concen_dat[iv2] = chem_bc_state[condition].total_mobile.data[concen];
+                concen_dat[iv3] = chem_bc_state[condition].total_mobile.data[concen];
+              }
             });
           }
         }
@@ -162,7 +161,6 @@ void BCConcentration(Problem *problem,
         
         for (int concen = 0; concen < num_concen; concen++)
         {
-
           ForSubgridI(is, subgrids)
           {
             subgrid = SubgridArraySubgrid(subgrids, is);
@@ -180,15 +178,17 @@ void BCConcentration(Problem *problem,
             BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
                       ci, nx_v, ny_v, nz_v, 1, 1, 1,
             {
+              if (BoundaryCell(ipatch,i,j,k))
+              {
+                itmp = SubvectorEltIndex(subvector, i, j, k);
+                iv1 = SubvectorEltIndex(concen_sub, i + dir[ipatch][0], j + dir[ipatch][1], k + dir[ipatch][2]);
+                iv2 = SubvectorEltIndex(concen_sub, i + 2*dir[ipatch][0], j + 2*dir[ipatch][1], k + 2*dir[ipatch][2]);
+                iv3 = SubvectorEltIndex(concen_sub, i + 3*dir[ipatch][0], j + 3*dir[ipatch][1], k + 3*dir[ipatch][2]);
 
-              itmp = SubvectorEltIndex(subvector, i, j, k);
-              iv1 = SubvectorEltIndex(concen_sub, i + dir[ipatch][0], j + dir[ipatch][1], k + dir[ipatch][2]);
-              iv2 = SubvectorEltIndex(concen_sub, i + 2*dir[ipatch][0], j + 2*dir[ipatch][1], k + 2*dir[ipatch][2]);
-              iv3 = SubvectorEltIndex(concen_sub, i + 3*dir[ipatch][0], j + 3*dir[ipatch][1], k + 3*dir[ipatch][2]);
-
-              concen_dat[iv1] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
-              concen_dat[iv2] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen]; 
-              concen_dat[iv3] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
+                concen_dat[iv1] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
+                concen_dat[iv2] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
+                concen_dat[iv3] = chem_bc_state[(int)tmpp[itmp]].total_mobile.data[concen];
+              }
             });
           }
         }
@@ -251,15 +251,17 @@ void BCConcenCopyPatch(Problem *problem, Grid *grid,
       BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
                 ci, nx_v, ny_v, nz_v, 1, 1, 1,
       {
+        if (BoundaryCell(ipatch,i,j,k))
+        {
+          iv = SubvectorEltIndex(concen_sub, i, j, k);
+          iv1 = SubvectorEltIndex(concen_sub, i + dir[ipatch][0], j + dir[ipatch][1], k + dir[ipatch][2]);
+          iv2 = SubvectorEltIndex(concen_sub, i + 2*dir[ipatch][0], j + 2*dir[ipatch][1], k + 2*dir[ipatch][2]);
+          iv3 = SubvectorEltIndex(concen_sub, i + 3*dir[ipatch][0], j + 3*dir[ipatch][1], k + 3*dir[ipatch][2]);
 
-        iv = SubvectorEltIndex(concen_sub, i, j, k);
-        iv1 = SubvectorEltIndex(concen_sub, i + dir[ipatch][0], j + dir[ipatch][1], k + dir[ipatch][2]);
-        iv2 = SubvectorEltIndex(concen_sub, i + 2*dir[ipatch][0], j + 2*dir[ipatch][1], k + 2*dir[ipatch][2]);
-        iv3 = SubvectorEltIndex(concen_sub, i + 3*dir[ipatch][0], j + 3*dir[ipatch][1], k + 3*dir[ipatch][2]);
-
-        concen_dat[iv1] = concen_dat[iv]; 
-        concen_dat[iv2] = concen_dat[iv];
-        concen_dat[iv3] = concen_dat[iv];
+          concen_dat[iv1] = concen_dat[iv];
+          concen_dat[iv2] = concen_dat[iv];
+          concen_dat[iv3] = concen_dat[iv];
+        }
       });
     }
   }
@@ -311,6 +313,30 @@ void BCConcenCopyAdjacent(Problem *problem, Grid *grid,
                       ipatch);
   }
 }
+
+/*--------------------------------------------------------------------------
+ * BoundaryCell
+ * return 1 if subgrid touches current patch, 0 otherwise
+ *--------------------------------------------------------------------------*/
+int BoundaryCell (int ipatch, int i, int j, int k)
+{
+  if ((ipatch < 2 && (i == BackgroundX(GlobalsBackground) || i ==
+    BackgroundX(GlobalsBackground) + BackgroundNX(GlobalsBackground) - 1))
+    ||
+    ((ipatch == 2 || ipatch == 3) && (j == BackgroundY(GlobalsBackground) || j ==
+      BackgroundY(GlobalsBackground) + BackgroundNY(GlobalsBackground) - 1))
+    ||
+    ((ipatch == 4 || ipatch == 5) && (k == BackgroundZ(GlobalsBackground) || k ==
+      BackgroundZ(GlobalsBackground) + BackgroundNZ(GlobalsBackground) - 1)))
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
 
 /*--------------------------------------------------------------------------
  * BCConcentrationInitInstanceXtra
