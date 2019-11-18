@@ -38,8 +38,8 @@
 !    in time, although small errors (~ 0.3%) may arise in the case of transient 
 !    saturations 
 !-------------------------------------------------------------------------------
-  subroutine advect_upwind(s,sn,uedge,vedge,wedge,phi,old_sat, &
-      sat,fx,fy,fz,dlo,dhi,hx,dt)
+  subroutine advect_upwind(s,sn,uedge,vedge,wedge,old_porsat, &
+      new_porsat_inv,fx,fy,fz,dlo,dhi,hx,dt)
 
   use, intrinsic :: iso_c_binding
 
@@ -51,9 +51,8 @@
   real(c_double), intent(in)  :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
   real(c_double), intent(in)  :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2) 
   real(c_double), intent(in)  :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3) 
-  real(c_double), intent(in)  :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
-  real(c_double), intent(in)  :: old_sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
-  real(c_double), intent(in)  :: sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(c_double), intent(in)  :: old_porsat(dlo(1)-1:dhi(1)+1,dlo(2)-1:dhi(2)+1,dlo(3)-1:dhi(3)+1)
+  real(c_double), intent(in)  :: new_porsat_inv(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent(out) :: fx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
   real(c_double), intent(out) :: fy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
   real(c_double), intent(out) :: fz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
@@ -62,9 +61,7 @@
   integer  i,j,k
   integer  is,ie,js,je,ks,ke
   integer  ii,jj,kk
-  real(dp) dx_inv,dy_inv,dz_inv
-
-
+  real(dp) dt_dx,dt_dy,dt_dz
 
   is = dlo(1)
   ie = dhi(1)
@@ -72,9 +69,9 @@
   je = dhi(2)
   ks = dlo(3)
   ke = dhi(3)
-  dx_inv = 1.0_dp/hx(1)
-  dy_inv = 1.0_dp/hx(2)
-  dz_inv = 1.0_dp/hx(3)
+  dt_dx = dt/hx(1)
+  dt_dy = dt/hx(2)
+  dt_dz = dt/hx(3)
 
   !x fluxes
   do k=ks,ke
@@ -132,9 +129,9 @@
     do j=js,je
       do i=is,ie
 
-      sn(i,j,k) = (old_sat(i,j,k)*phi(i,j,k)*s(i,j,k) + &
-      ((dt*dx_inv)*(fx(i,j,k) - fx(i+1,j,k)) + (dt*dy_inv)*(fy(i,j,k)-fy(i,j+1,k)) + &
-      (dt*dz_inv)*(fz(i,j,k)-fz(i,j,k+1)))) / (sat(i,j,k)*phi(i,j,k))
+      sn(i,j,k) = (old_porsat(i,j,k)*s(i,j,k) + &
+      dt_dx*(fx(i,j,k) - fx(i+1,j,k)) + dt_dy*(fy(i,j,k)-fy(i,j+1,k)) + &
+      dt_dz*(fz(i,j,k)-fz(i,j,k+1))) * new_porsat_inv(i,j,k)
 
       enddo
     enddo
@@ -156,10 +153,10 @@
 !    employs the monotone-centered limiter to ensure montonicity in each 
 !    primary dir
 !
-!    Lax-Wendrof style centered approximation 
+!    Lax-Wendroff style centered approximation with upwind-biased limiter
 !-------------------------------------------------------------------------------
   subroutine advect_highorder(s,uedge,vedge,wedge, &
-                             phi,sat,sx,sy,sz,dlo,dhi,hx,dt)
+                             porsat_inv,sx,sy,sz,dlo,dhi,hx,dt)
 
   use, intrinsic :: iso_c_binding
 
@@ -170,8 +167,7 @@
   real(c_double), intent (in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent (in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2)
   real(c_double), intent (in)    :: wedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+3)
-  real(c_double), intent (in)    :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
-  real(c_double), intent (in)    :: sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(c_double), intent (in)    :: porsat_inv(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent (inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
   real(c_double), intent (inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
   real(c_double), intent (inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
@@ -185,7 +181,6 @@
   real(dp) rx,ry,rz
   real(dp) mclimit,thetax,thetay,thetaz
   real(dp) limx,limy,limz,abs_vel
-  real(dp) porsat_inv(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
 
   is = dlo(1)
   ie = dhi(1)
@@ -197,15 +192,6 @@
   dy_inv = 1.0_dp/hx(2)
   dz_inv = 1.0_dp/hx(3)
   half   = 0.5_dp
-
-  !! compute inverse velocity scaling factor
-  do k=ks-2,ke+2
-    do j=js-2,je+2
-      do i=is-2,ie+2
-        porsat_inv(i,j,k) = 1.0_dp / (phi(i,j,k) * sat(i,j,k))
-      enddo
-    enddo
-  enddo
 
   !! compute second order corrections
   !x values
@@ -496,8 +482,8 @@
     enddo
   enddo
 
-      return
-      end subroutine advect_transverse
+  return
+  end subroutine advect_transverse
 
 
 !-------------------------------------------------------------------------------
@@ -508,7 +494,7 @@
 !    Also accounts for transient saturations    
 !-------------------------------------------------------------------------------
   subroutine advect_computeconcen(sn,sx,sy,sz, &
-                                phi,sat,dlo,dhi,hx,dt)
+                                porsat_inv,dlo,dhi,hx,dt)
 
   use, intrinsic :: iso_c_binding
 
@@ -516,16 +502,15 @@
   integer, parameter            :: dp = selected_real_kind(15, 307)
   integer(c_int), intent(in)    :: dlo(3), dhi(3)
   real(c_double), intent(inout) :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
-  real(c_double), intent(in)    :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)  
-  real(c_double), intent(in)    :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
+  real(c_double), intent(in)    :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+  real(c_double), intent(in)    :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
   real(c_double), intent(in)    :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
-  real(c_double), intent(in)    :: phi(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)  
-  real(c_double), intent(in)    :: sat(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
+  real(c_double), intent(in)    :: porsat_inv(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent(in)    :: hx(3), dt
  
   integer i,j,k
   integer is,ie,js,je,ks,ke
-  real(dp) dx_inv,dy_inv,dz_inv
+  real(dp) dt_dx,dt_dy,dt_dz
 
   is = dlo(1)
   ie = dhi(1)
@@ -533,18 +518,17 @@
   je = dhi(2)
   ks = dlo(3)
   ke = dhi(3)
-  dx_inv = 1.0_dp/hx(1)
-  dy_inv = 1.0_dp/hx(2)
-  dz_inv = 1.0_dp/hx(3)
+  dt_dx = dt/hx(1)
+  dt_dy = dt/hx(2)
+  dt_dz = dt/hx(3)
 
   do k=ks,ke
     do j=js,je
       do i=is,ie
 
-       sn(i,j,k) = sn(i,j,k) + ((dt*dx_inv)*(sx(i,j,k) - sx(i+1,j,k)) &
-       + (dt*dy_inv)*(sy(i,j,k)-sy(i,j+1,k)) + &
-       (dt*dz_inv)*(sz(i,j,k)-sz(i,j,k+1))) / &
-       (sat(i,j,k)*phi(i,j,k))
+       sn(i,j,k) = sn(i,j,k) + (dt_dx*(sx(i,j,k) - sx(i+1,j,k)) + &
+       dt_dy*(sy(i,j,k)-sy(i,j+1,k)) + &
+       dt_dz*(sz(i,j,k)-sz(i,j,k+1))) * porsat_inv(i,j,k)
 
       enddo
     enddo
@@ -561,7 +545,7 @@
 !    modeled after Zalesak FCT limiter    
 !-------------------------------------------------------------------------------
   subroutine advect_limit(sn,sx,sy,sz,dlo,dhi,hx,dt,&
-                   p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
+                   porsat_inv, p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
   use, intrinsic :: iso_c_binding
 
   implicit none
@@ -572,6 +556,7 @@
   real(c_double), intent(inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
   real(c_double), intent(inout) :: sy(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
   real(c_double), intent(inout) :: sz(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3)
+  real(c_double), intent(in)    :: porsat_inv(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent(out)   :: p_plus(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
   real(c_double), intent(out)   :: p_minus(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
   real(c_double), intent(out)   :: q_plus(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2) 
@@ -599,11 +584,11 @@
 
         p_plus(i,j,k) = (dt*dx_inv)*(max(0.0_dp,sx(i,j,k)) - min(0.0_dp,sx(i+1,j,k))) + &
         (dt*dy_inv)*(max(0.0_dp,sy(i,j,k)) - min(0.0_dp,sy(i,j+1,k))) + &
-        (dt*dz_inv)*(max(0.0_dp,sz(i,j,k)) - min(0.0_dp,sz(i,j,k+1)))
+        (dt*dz_inv)*(max(0.0_dp,sz(i,j,k)) - min(0.0_dp,sz(i,j,k+1))) * porsat_inv(i,j,k)
 
         p_minus(i,j,k) = (dt*dx_inv)*(max(0.0_dp,sx(i+1,j,k)) - min(0.0_dp,sx(i,j,k))) + &
         (dt*dy_inv)*(max(0.0_dp,sy(i,j+1,k)) - min(0.0_dp,sy(i,j,k))) + &
-        (dt*dz_inv)*(max(0.0_dp,sz(i,j,k+1)) - min(0.0_dp,sz(i,j,k)))
+        (dt*dz_inv)*(max(0.0_dp,sz(i,j,k+1)) - min(0.0_dp,sz(i,j,k))) * porsat_inv(i,j,k)
 
         q_plus(i,j,k) =  max(sn(i-1,j,k),sn(i,j,k),sn(i+1,j,k), sn(i,j-1,k),sn(i,j+1,k), &
           sn(i,j,k-1),sn(i,j,k+1)) - sn(i,j,k)

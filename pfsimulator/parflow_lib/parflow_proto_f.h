@@ -56,16 +56,16 @@ BEGIN_EXTERN_C
 #define ADVECT_UPWIND advect_upwind_
 #endif
 
-#define CALL_ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
-                    old_sat, sat, fx, fy, fz, \
+#define CALL_ADVECT_UPWIND(s, sn, uedge, vedge, wedge,\
+                    old_porsat, new_porsat_inv, fx, fy, fz, \
                     dlo, dhi, hx, dt )\
-             ADVECT_UPWIND(s, sn, uedge, vedge, wedge, phi,\
-                    old_sat, sat, fx, fy, fz, \
+             ADVECT_UPWIND(s, sn, uedge, vedge, wedge,\
+                    old_porsat, new_porsat_inv, fx, fy, fz, \
                     dlo, dhi, hx, &dt )
 
 void ADVECT_UPWIND(double *s, double *sn,
-            double *uedge, double *vedge, double *wedge, double *phi, 
-            double *old_sat, double *sat, double *fx, double *fy, 
+            double *uedge, double *vedge, double *wedge, 
+            double *old_porsat, double *new_porsat_inv, double *fx, double *fy, 
             double *fz, int *dlo, int *dhi, double *hx, double *dt);
 
 
@@ -78,12 +78,12 @@ void ADVECT_UPWIND(double *s, double *sn,
 #endif
 
 #define CALL_ADVECT_HIGHORDER(s, uedge, vedge, wedge, \
-                    phi, sat, sx, sy, sz, dlo, dhi, hx, dt)\
+                    porsat_inv, sx, sy, sz, dlo, dhi, hx, dt)\
              ADVECT_HIGHORDER(s, uedge, vedge, wedge, \
-                    phi, sat, sx, sy, sz, dlo, dhi, hx, &dt)
+                    porsat_inv, sx, sy, sz, dlo, dhi, hx, &dt)
 
 void ADVECT_HIGHORDER(double *s, double *uedge, double *vedge, double *wedge, 
-            double *phi, double *old_sat, double *sx, double *sy, double *sz,
+            double *porsat_inv, double *sx, double *sy, double *sz,
             int *dlo, int *dhi, double *hx, double *dt);
 
 
@@ -116,13 +116,13 @@ void ADVECT_TRANSVERSE(double *s, double *uedge, double *vedge, double *wedge,
 #define ADVECT_COMPUTECONCEN advect_computeconcen_
 #endif
 
-#define CALL_ADVECT_COMPUTECONCEN(sn, sx, sy, sz, phi,\
-                    sat, dlo, dhi, hx, dt)\
-             ADVECT_COMPUTECONCEN(sn, sx, sy, sz, phi,\
-                    sat, dlo, dhi, hx, &dt)
+#define CALL_ADVECT_COMPUTECONCEN(sn, sx, sy, sz, porsat_inv,\
+                    dlo, dhi, hx, dt)\
+             ADVECT_COMPUTECONCEN(sn, sx, sy, sz, porsat_inv,\
+                    dlo, dhi, hx, &dt)
 
 void ADVECT_COMPUTECONCEN(double *sn, double *sx, double *sy, 
-            double *sz, double *phi, double *sat,
+            double *sz, double *porsat_inv,
             int *dlo, int *dhi, double *hx, double *dt);
 
 
@@ -136,13 +136,13 @@ void ADVECT_COMPUTECONCEN(double *sn, double *sx, double *sy,
 #endif
 
 #define CALL_ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,dt,\
-                       p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)\
+                       porsat_inv,p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)\
              ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,&dt,\
-                       p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
+                       porsat_inv,p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
 
 void ADVECT_LIMIT(double *sn, double *sx, double *sy, double *sz, 
             int *dlo, int *dhi, double *hx, double *dt,
-             double *p_plus,double *p_minus,
+            double *porsat_inv, double *p_plus,double *p_minus,
             double *q_plus,double *q_minus, 
             double *r_plus,double *r_minus);
 

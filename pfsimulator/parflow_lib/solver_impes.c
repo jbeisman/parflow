@@ -235,7 +235,8 @@ void      SolverImpes()
   PFModule *init_chem = (instance_xtra->init_chem);
   PFModule *advance_chem = (instance_xtra->advance_chem);
 #endif
-  Vector *sat_rt = NULL;
+  Vector *old_porsat_rt = NULL;
+  Vector *new_porsat_rt_inv = NULL;
   int chem_flag = GlobalsChemistryFlag;
 
 
@@ -390,8 +391,10 @@ void      SolverImpes()
       InitVectorAll(saturations[0], 1.0);
   }
 
-  sat_rt = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
-      InitVectorAll(sat_rt, 1.0);
+  old_porsat_rt = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
+      InitVectorAll(old_porsat_rt, 1.0);
+  new_porsat_rt_inv = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+      InitVectorAll(new_porsat_rt_inv, 1.0);
 
   /*-------------------------------------------------------------------
    * If (transient); initialize some stuff
@@ -773,15 +776,15 @@ void      SolverImpes()
                              phase,
                              t));
 
-          Copy(saturations[phase], sat_rt);
-          handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
+          Copy(saturations[phase], old_porsat_rt);
+          handle = InitVectorUpdate(old_porsat_rt, VectorUpdateAll);
           FinalizeVectorUpdate(handle);
 
           phase_maximum = MaxPhaseFieldValue(phase_x_velocity[phase],
                                              phase_y_velocity[phase],
                                              phase_z_velocity[phase],
                                              solidmassfactor,
-                                             sat_rt);
+                                             old_porsat_rt);
 
           /* Put in a check for a possibly 0 velocity in this phase */
           if (phase_maximum != 0.0)
@@ -1192,8 +1195,11 @@ void      SolverImpes()
           }
           for (phase = 0; phase < ProblemNumPhases(problem); phase++)
           {
-            Copy(saturations[phase], sat_rt);
-            handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
+
+            PFVProd(ProblemDataPorosity(problem_data),saturations[phase],old_porsat_rt);
+            PFVInvProd(ProblemDataPorosity(problem_data),saturations[phase],new_porsat_rt_inv);
+
+            handle = InitVectorUpdate(new_porsat_rt_inv, VectorUpdateAll2);
               FinalizeVectorUpdate(handle);
               
             for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
@@ -1220,7 +1226,7 @@ void      SolverImpes()
                                 phase_x_velocity[phase], 
                                 phase_y_velocity[phase], 
                                 phase_z_velocity[phase],
-                                solidmassfactor, sat_rt, sat_rt,
+                                solidmassfactor, old_porsat_rt, new_porsat_rt_inv,
                                 t, dt)); 
               indx++;
             }
@@ -1462,7 +1468,8 @@ void      SolverImpes()
       }
       tfree(concentrations);
       FreeVector(ctemp);
-      FreeVector(sat_rt);
+      FreeVector(new_porsat_rt_inv);
+      FreeVector(old_porsat_rt);
       FreeVector(solidmassfactor);
     }
   }

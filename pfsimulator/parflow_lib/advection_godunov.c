@@ -83,8 +83,8 @@ void     Godunov(
                  Vector      *y_velocity,
                  Vector      *z_velocity,
                  Vector      *solid_mass_factor,
-                 Vector      *old_saturation,
-                 Vector      *saturation,
+                 Vector      *old_porsat,
+                 Vector      *new_porsat_inv,
                  double      time,
                  double      deltat)
 {
@@ -158,7 +158,7 @@ void     Godunov(
   int nx_cells, ny_cells, nz_cells, index, flopest;
   double lambda, decay_factor;
 
-  double *c, *cn, *old_sat, *sat;
+  double *c, *cn, *oldporsat, *newporsatinv;
   double *rhs, *scal, *smf;
   double *px, *py, *pz;
   double *xvel_u, *xvel_l, *yvel_u, *yvel_l, *zvel_u, *zvel_l;
@@ -219,14 +219,13 @@ void     Godunov(
     subgrid = GridSubgrid(grid, sg);
     
     /**** Get locations for subvector data of vectors passed in ****/
-    c       = SubvectorData(VectorSubvector(old_concentration, sg));
-    cn      = SubvectorData(VectorSubvector(new_concentration, sg));
-    old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
-    sat     = SubvectorData(VectorSubvector(saturation, sg));
-    uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
-    vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
-    wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
-    phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
+    c            = SubvectorData(VectorSubvector(old_concentration, sg));
+    cn           = SubvectorData(VectorSubvector(new_concentration, sg));
+    oldporsat    = SubvectorData(VectorSubvector(old_porsat, sg));
+    newporsatinv = SubvectorData(VectorSubvector(new_porsat_inv, sg));
+    uedge        = SubvectorData(VectorSubvector(x_velocity, sg));
+    vedge        = SubvectorData(VectorSubvector(y_velocity, sg));
+    wedge        = SubvectorData(VectorSubvector(z_velocity, sg));
    
     /***** Compute extents of data *****/
     dlo[0] = SubgridIX(subgrid);
@@ -242,7 +241,7 @@ void     Godunov(
     hx[2] = SubgridDZ(subgrid);
     
     /***** Make the call to the low-order advection routine *****/
-    CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,phi,old_sat,sat,
+    CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,oldporsat,newporsatinv,
       fx,fy,fz,dlo,dhi,hx,dt);
   }
 
@@ -250,11 +249,14 @@ void     Godunov(
   if (public_xtra->enforce_minmax)
   {
 
+    handle = InitVectorUpdate(new_concentration, VectorUpdateAll);
+    FinalizeVectorUpdate(handle);
+
     ForSubgridI(sg, subgrids)
     {
       subgrid = SubgridArraySubgrid(subgrids, sg);
 
-      concen_sub = VectorSubvector(old_concentration, sg);
+      concen_sub = VectorSubvector(new_concentration, sg);
       min_sub = VectorSubvector(min_concen, sg);
       max_sub = VectorSubvector(max_concen, sg);
 
@@ -293,7 +295,6 @@ void     Godunov(
       {
         min[mi] = pfmin(c[ci], pfmin(c_xl[ci], pfmin(c_xu[ci], pfmin(c_yl[ci], pfmin(c_yu[ci], pfmin(c_zl[ci], c_zu[ci]))))));
         max[mi] = pfmax(c[ci], pfmax(c_xl[ci], pfmax(c_xu[ci], pfmax(c_yl[ci], pfmax(c_yu[ci], pfmax(c_zl[ci], c_zu[ci]))))));
-//printf("%d %d %d min: %e max: %e \n",i,j,k,min[mi],max[mi]);
       });
     }
   }
@@ -303,12 +304,12 @@ void     Godunov(
    *-----------------------------------------------------------------------*/
 
   lambda = ProblemContaminantDegradation(problem, concentration);
-  decay_factor = exp(-1.0 * lambda * dt);
 
   contaminant_stat = 0.0;
   if (lambda != 0.0)
   {
     flopest = 3 * nx_cells * ny_cells * nz_cells;
+    decay_factor = exp(-1.0 * lambda * dt);
 
     ForSubgridI(sg, subgrids)
     {
@@ -743,51 +744,53 @@ void     Godunov(
   /*-----------------------------------------------------------------------
    * Compute contributions due to well terms.
    *-----------------------------------------------------------------------*/
-
-  flopest = 5 * nx_cells * ny_cells * nz_cells;
-
-  ForSubgridI(sg, subgrids)
+if (WellDataNumWells(well_data) > 0)
   {
-    subgrid = SubgridArraySubgrid(subgrids, sg);
+    flopest = 5 * nx_cells * ny_cells * nz_cells;
 
-    subvector = VectorSubvector(new_concentration, sg);
-    subvector_scal = VectorSubvector(scale, sg);
-    subvector_rhs = VectorSubvector(right_hand_side, sg);
-
-    ix = SubgridIX(subgrid);
-    iy = SubgridIY(subgrid);
-    iz = SubgridIZ(subgrid);
-
-    nx = SubgridNX(subgrid);
-    ny = SubgridNY(subgrid);
-    nz = SubgridNZ(subgrid);
-
-    dx = SubgridDX(subgrid);
-    dy = SubgridDY(subgrid);
-    dz = SubgridDZ(subgrid);
-
-    nx_c = SubvectorNX(subvector);
-    ny_c = SubvectorNY(subvector);
-    nz_c = SubvectorNZ(subvector);
-
-    nx_w = SubvectorNX(subvector_scal);     /* scal & rhs share nx_w */
-    ny_w = SubvectorNY(subvector_scal);     /* scal & rhs share ny_w */
-    nz_w = SubvectorNZ(subvector_scal);     /* scal & rhs share nz_w */
-
-    cn = SubvectorElt(subvector, ix, iy, iz);
-    rhs = SubvectorElt(subvector_rhs, ix, iy, iz);
-    scal = SubvectorElt(subvector_scal, ix, iy, iz);
-
-    ci = 0; wi = 0;
-    BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
-              wi, nx_w, ny_w, nz_w, 1, 1, 1,
-              ci, nx_c, ny_c, nz_c, 1, 1, 1,
+    ForSubgridI(sg, subgrids)
     {
-      cn[ci] = (cn[ci] - rhs[wi]) / (1.0 + scal[wi]);
-    });
-  }
+      subgrid = SubgridArraySubgrid(subgrids, sg);
 
-  IncFLOPCount(flopest);
+      subvector = VectorSubvector(new_concentration, sg);
+      subvector_scal = VectorSubvector(scale, sg);
+      subvector_rhs = VectorSubvector(right_hand_side, sg);
+
+      ix = SubgridIX(subgrid);
+      iy = SubgridIY(subgrid);
+      iz = SubgridIZ(subgrid);
+
+      nx = SubgridNX(subgrid);
+      ny = SubgridNY(subgrid);
+      nz = SubgridNZ(subgrid);
+
+      dx = SubgridDX(subgrid);
+      dy = SubgridDY(subgrid);
+      dz = SubgridDZ(subgrid);
+
+      nx_c = SubvectorNX(subvector);
+      ny_c = SubvectorNY(subvector);
+      nz_c = SubvectorNZ(subvector);
+
+      nx_w = SubvectorNX(subvector_scal);     /* scal & rhs share nx_w */
+      ny_w = SubvectorNY(subvector_scal);     /* scal & rhs share ny_w */
+      nz_w = SubvectorNZ(subvector_scal);     /* scal & rhs share nz_w */
+
+      cn = SubvectorElt(subvector, ix, iy, iz);
+      rhs = SubvectorElt(subvector_rhs, ix, iy, iz);
+      scal = SubvectorElt(subvector_scal, ix, iy, iz);
+
+      ci = 0; wi = 0;
+      BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+                wi, nx_w, ny_w, nz_w, 1, 1, 1,
+                ci, nx_c, ny_c, nz_c, 1, 1, 1,
+      {
+        cn[ci] = (cn[ci] - rhs[wi]) / (1.0 + scal[wi]);
+      });
+    }
+
+    IncFLOPCount(flopest);
+  }
 
 
   /*-----------------------------------------------------------------------
@@ -979,8 +982,7 @@ void     Godunov(
       /**** Get locations for subvector data of vectors passed in ****/
       c       = SubvectorData(VectorSubvector(old_concentration, sg));
       cn      = SubvectorData(VectorSubvector(new_concentration, sg));
-      old_sat = SubvectorData(VectorSubvector(old_saturation, sg));
-      sat     = SubvectorData(VectorSubvector(saturation, sg));
+      newporsatinv = SubvectorData(VectorSubvector(new_porsat_inv, sg));
       uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
       vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
       wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
@@ -1000,7 +1002,7 @@ void     Godunov(
       hx[2] = SubgridDZ(subgrid);
 
         /*compute anti-diffusive fluxes */
-        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge, phi, sat,
+        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge, newporsatinv,
                             fx, fy, fz, dlo, dhi, hx, dt);
 
         if (public_xtra->transverse)
@@ -1012,61 +1014,58 @@ void     Godunov(
 
                 /*multi-dimensional limiter */
         CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
-                          vx, wx, uy, wy, uz, vz);
+                          newporsatinv, vx, wx, uy, wy, uz, vz);
 
         /*add fluxes to  new concentration, account for transient saturation*/
-        CALL_ADVECT_COMPUTECONCEN(cn, fx, fy, fz, phi, sat,
+        CALL_ADVECT_COMPUTECONCEN(cn, fx, fy, fz, newporsatinv,
                           dlo, dhi, hx, dt);
       }
     }
 
     if (public_xtra->enforce_minmax)
-  {
-
-    ForSubgridI(sg, subgrids)
     {
-      subgrid = SubgridArraySubgrid(subgrids, sg);
 
-      concen_sub = VectorSubvector(new_concentration, sg);
-      min_sub = VectorSubvector(min_concen, sg);
-      max_sub = VectorSubvector(max_concen, sg);
-
-      ix = SubgridIX(subgrid);
-      iy = SubgridIY(subgrid);
-      iz = SubgridIZ(subgrid);
-
-      nx = SubgridNX(subgrid);
-      ny = SubgridNY(subgrid);
-      nz = SubgridNZ(subgrid);
-
-      nx_c = SubvectorNX(concen_sub);
-      ny_c = SubvectorNY(concen_sub);
-      nz_c = SubvectorNZ(concen_sub);
-
-      nx_m = SubvectorNX(min_sub);
-      ny_m = SubvectorNY(min_sub);
-      nz_m = SubvectorNZ(min_sub);
-
-      min = SubvectorElt(min_sub, ix, iy, iz);
-      max = SubvectorElt(max_sub, ix, iy, iz);
-
-      cn = SubvectorElt(concen_sub, ix, iy, iz);
-
-      ci = 0;
-      mi = 0;
-      BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
-              mi, nx_m, ny_m, nz_m, 1, 1, 1,
-              ci, nx_c, ny_c, nz_c, 1, 1, 1,
+      ForSubgridI(sg, subgrids)
       {
-        //min[mi] = pfmin(c[ci], pfmin(c_xl[ci], pfmin(c_xu[ci], pfmin(c_yl[ci], pfmin(c_yu[ci], pfmin(c_zl[ci], c_zu[ci]))))));
-        //max[mi] = pfmax(c[ci], pfmax(c_xl[ci], pfmax(c_xu[ci], pfmax(c_yl[ci], pfmax(c_yu[ci], pfmax(c_zl[ci], c_zu[ci]))))));
+        subgrid = SubgridArraySubgrid(subgrids, sg);
 
-        cn[ci] = pfmin(max[mi],cn[ci]);
-        cn[ci] = pfmax(min[mi],cn[ci]);
-//printf("%d %d %d min: %e max: %e \n",i,j,k,min[mi],max[mi]);
-      });
+        concen_sub = VectorSubvector(new_concentration, sg);
+        min_sub = VectorSubvector(min_concen, sg);
+        max_sub = VectorSubvector(max_concen, sg);
+
+        ix = SubgridIX(subgrid);
+        iy = SubgridIY(subgrid);
+        iz = SubgridIZ(subgrid);
+
+        nx = SubgridNX(subgrid);
+        ny = SubgridNY(subgrid);
+        nz = SubgridNZ(subgrid);
+
+        nx_c = SubvectorNX(concen_sub);
+        ny_c = SubvectorNY(concen_sub);
+        nz_c = SubvectorNZ(concen_sub);
+
+        nx_m = SubvectorNX(min_sub);
+        ny_m = SubvectorNY(min_sub);
+        nz_m = SubvectorNZ(min_sub);
+
+        min = SubvectorElt(min_sub, ix, iy, iz);
+        max = SubvectorElt(max_sub, ix, iy, iz);
+
+        cn = SubvectorElt(concen_sub, ix, iy, iz);
+
+        ci = 0;
+        mi = 0;
+        BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+                mi, nx_m, ny_m, nz_m, 1, 1, 1,
+                ci, nx_c, ny_c, nz_c, 1, 1, 1,
+        {
+
+          cn[ci] = pfmin(max[mi],cn[ci]);
+          cn[ci] = pfmax(min[mi],cn[ci]);
+        });
+      }
     }
-  }
 
 
   /*-----------------------------------------------------------------------

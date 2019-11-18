@@ -312,6 +312,8 @@ typedef struct {
   Vector *delta_saturation;
   Vector *sat_transport_end;
   Vector *sat_transport_start;
+  Vector *new_porsat_inv;
+  Vector *old_porsat;
 } InstanceXtra;
 
 static const char* dswr_filenames[] = { "DSWR" };
@@ -1208,17 +1210,28 @@ SetupRichards(PFModule * this_module)
       instance_xtra->solidmassfactor =
       NewVectorType( grid, 1, 2, vector_cell_centered);
       InitVectorAll(instance_xtra->solidmassfactor, 1.0);
+      Copy(ProblemDataPorosity(problem_data),instance_xtra->solidmassfactor);
+      handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
+      FinalizeVectorUpdate(handle);
 
       instance_xtra->delta_saturation =
       NewVectorType(grid, 1, 1, vector_cell_centered);
 
       instance_xtra->sat_transport_end =
-      NewVectorType(grid, 1, 2, vector_cell_centered);
+      NewVectorType(grid, 1, 1, vector_cell_centered);
       InitVectorAll(instance_xtra->sat_transport_end, 1.0);
 
       instance_xtra->sat_transport_start =
-      NewVectorType(grid, 1, 2, vector_cell_centered);
+      NewVectorType(grid, 1, 1, vector_cell_centered);
       InitVectorAll(instance_xtra->sat_transport_start, 1.0);
+
+      instance_xtra->new_porsat_inv =
+      NewVectorType(grid, 1, 2, vector_cell_centered);
+      InitVectorAll(instance_xtra->new_porsat_inv, 1.0);
+
+      instance_xtra->old_porsat =
+      NewVectorType(grid, 1, 1, vector_cell_centered);
+      InitVectorAll(instance_xtra->old_porsat, 1.0);
 
       instance_xtra->concentrations = ctalloc(Vector *,ProblemNumContaminants(problem));
 
@@ -3007,24 +3020,14 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
     if (ProblemNumContaminants(problem) > 0 && evolve_concentrations)
     {
 
-      // calculate dsat/dt, put sat into vector with more ghost nodes
-      TransportSaturation(instance_xtra->sat_transport_start,
-                          instance_xtra->delta_saturation,
-                          instance_xtra->old_saturation,
-                          instance_xtra->saturation);
-
-      // copy porosity into solidmassfactor and update ghosts for MaxPhaseFieldValue and advect
-      Copy(ProblemDataPorosity(problem_data),instance_xtra->solidmassfactor);
-      handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
-      FinalizeVectorUpdate(handle);
-
+      // calculate dsat/dt
       // calculate vector of minimum saturations - use sat_transport_end to save memory
-      PFVMinVector(instance_xtra->saturation,
-                   instance_xtra->old_saturation,
-                   instance_xtra->sat_transport_end);
+      PFVDiff(instance_xtra->saturation, instance_xtra->old_saturation,
+        instance_xtra->delta_saturation);
+      PFVMinVector(instance_xtra->saturation, instance_xtra->old_saturation,
+        instance_xtra->sat_transport_end);
 
-      // update ghost nodes for MaxPhaseFieldValue
-      handle = InitVectorUpdate(instance_xtra->sat_transport_end, VectorUpdateAll2);
+      handle = InitVectorUpdate(instance_xtra->sat_transport_end, VectorUpdateAll);
           FinalizeVectorUpdate(handle);
 
       // get maximum darcy vel / ( phi * sat) displacement for time step selection
@@ -3033,6 +3036,9 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                                        instance_xtra->z_velocity,
                                        instance_xtra->solidmassfactor,
                                        instance_xtra->sat_transport_end);
+
+      // copy old_sat into sat_transport_end for initial sub-cycling value
+      Copy(instance_xtra->old_saturation, instance_xtra->sat_transport_end);
 
       // choose reaction and transport timestep and total number of iterations
       SelectReactTransTimeStep(max_velocity,public_xtra->CFL,
@@ -3046,14 +3052,17 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
       for (int iteration = 0; iteration < num_rt_iterations; iteration++)
       {
         // copy sat_end from previous iteration into sat_start
-        if (iteration > 0) PFVCopy(instance_xtra->sat_transport_end, instance_xtra->sat_transport_start);
+        PFVCopy(instance_xtra->sat_transport_end, instance_xtra->sat_transport_start);
 
         // linearly interpolate saturation through time
-        subcycle_progress += InterpolateTimeCycle(dt,advect_react_dt);
-        PFVLin1(subcycle_progress,instance_xtra->delta_saturation,instance_xtra->old_saturation,instance_xtra->sat_transport_end);
+        subcycle_progress = InterpolateTimeCycle(dt,advect_react_dt);
+        PFVAxpy(subcycle_progress, instance_xtra->delta_saturation, instance_xtra->sat_transport_end);
 
-        // update saturation ghosts
-        handle = InitVectorUpdate(instance_xtra->sat_transport_end, VectorUpdateAll2);
+        // calculate old_sat*porosity and 1 / (new_sat * porosity)
+        PFVInvProd(instance_xtra->sat_transport_end, instance_xtra->solidmassfactor, instance_xtra->new_porsat_inv);
+        PFVProd(instance_xtra->sat_transport_start, instance_xtra->solidmassfactor, instance_xtra->old_porsat);
+
+        handle = InitVectorUpdate(instance_xtra->new_porsat_inv, VectorUpdateAll2);
         FinalizeVectorUpdate(handle);
 
 #ifdef HAVE_ALQUIMIA
@@ -3095,9 +3104,9 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                             instance_xtra->y_velocity, 
                             instance_xtra->z_velocity,
                             instance_xtra->solidmassfactor, 
-                            instance_xtra->sat_transport_start,
-                            instance_xtra->sat_transport_end,
-                            advect_react_time, advect_react_dt)); // will need to fix this for multiphase
+                            instance_xtra->old_porsat,
+                            instance_xtra->new_porsat_inv,
+                            advect_react_time, advect_react_dt));
         }
         
 #ifdef HAVE_ALQUIMIA
@@ -4233,6 +4242,8 @@ TeardownRichards(PFModule * this_module)
     FreeVector(instance_xtra->delta_saturation);
     FreeVector(instance_xtra->sat_transport_end);
     FreeVector(instance_xtra->sat_transport_start);
+    FreeVector(instance_xtra->new_porsat_inv);
+    FreeVector(instance_xtra->old_porsat);
   }
 
 

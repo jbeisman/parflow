@@ -1,10 +1,10 @@
 /* Header.c */
 
-typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor , Vector *old_saturation , Vector *saturation, double time , double deltat);
+typedef void (*AdvectionConcentrationInvoke) (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor , Vector *old_porsat , Vector *new_porsat_inv, double time , double deltat);
 typedef PFModule *(*AdvectionConcentrationInitInstanceXtraType) (Problem *problem , Grid *grid , double *temp_data );
 
 /* advection_godunov.c */
-void Godunov (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor, Vector *old_saturation , Vector *saturation, double time , double deltat);
+void Godunov (ProblemData *problem_data , int phase , int concentration , Vector *old_concentration , Vector *new_concentration , Vector *x_velocity , Vector *y_velocity , Vector *z_velocity , Vector *solid_mass_factor, Vector *old_porsat, Vector *new_porsat_inv, double time , double deltat);
 PFModule *GodunovInitInstanceXtra (Problem *problem , Grid *grid , double *temp_data );
 void GodunovFreeInstanceXtra (void );
 PFModule *GodunovNewPublicXtra (void );
@@ -1286,6 +1286,7 @@ void PFVAxpy(double a, Vector *x, Vector *y);
 void PFVScaleBy(double a, Vector *x);
 void PFVLayerCopy(int a, int b, Vector *x, Vector *y);
 void PFVMinVector(Vector *x, Vector *y, Vector *z);
+void PFVInvProd(Vector *x, Vector *y, Vector *z);
 
 /* w_jacobi.c */
 void WJacobi(Vector *x, Vector *b, double tol, int zero);
