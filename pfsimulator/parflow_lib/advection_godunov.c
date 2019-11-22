@@ -82,7 +82,6 @@ void     Godunov(
                  Vector      *x_velocity,
                  Vector      *y_velocity,
                  Vector      *z_velocity,
-                 Vector      *solid_mass_factor,
                  Vector      *old_porsat,
                  Vector      *new_porsat_inv,
                  double      time,
@@ -129,12 +128,13 @@ void     Godunov(
     *well_subgrid,
     *tmp_subgrid;
   Subvector        *subvector,
-    *subvector_smf,
     *subvector_scal,
     *subvector_rhs,
     *subvector_xvel,
     *subvector_yvel,
     *subvector_zvel,
+    *subvector_ops,
+    *subvector_npsi,
     *concen_sub,
     *min_sub,
     *max_sub,
@@ -158,14 +158,13 @@ void     Godunov(
   int nx_cells, ny_cells, nz_cells, index, flopest;
   double lambda, decay_factor;
 
-  double *c, *cn, *oldporsat, *newporsatinv;
-  double *rhs, *scal, *smf;
+  double *c, *cn;
+  double *rhs, *scal, *ops, *npsi;
   double *px, *py, *pz;
   double *xvel_u, *xvel_l, *yvel_u, *yvel_l, *zvel_u, *zvel_l;
   double *c_xl, *c_xu, *c_yl, *c_yu, *c_zl, *c_zu;
   double *uedge, *vedge, *wedge;
   double *min, *max;
-  double *phi;
 
   int cycle_number, interval_number;
   int dlo[3], dhi[3];
@@ -188,8 +187,11 @@ void     Godunov(
    * Allocate temp vectors
    *-----------------------------------------------------------------------*/
 
-  scale = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
-  right_hand_side = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+  if (WellDataNumWells(well_data) > 0)
+  {
+    scale = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+    right_hand_side = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+  }
 
   
   if (public_xtra->enforce_minmax)
@@ -219,13 +221,13 @@ void     Godunov(
     subgrid = GridSubgrid(grid, sg);
     
     /**** Get locations for subvector data of vectors passed in ****/
-    c            = SubvectorData(VectorSubvector(old_concentration, sg));
-    cn           = SubvectorData(VectorSubvector(new_concentration, sg));
-    oldporsat    = SubvectorData(VectorSubvector(old_porsat, sg));
-    newporsatinv = SubvectorData(VectorSubvector(new_porsat_inv, sg));
-    uedge        = SubvectorData(VectorSubvector(x_velocity, sg));
-    vedge        = SubvectorData(VectorSubvector(y_velocity, sg));
-    wedge        = SubvectorData(VectorSubvector(z_velocity, sg));
+    c     = SubvectorData(VectorSubvector(old_concentration, sg));
+    cn    = SubvectorData(VectorSubvector(new_concentration, sg));
+    ops   = SubvectorData(VectorSubvector(old_porsat, sg));
+    npsi  = SubvectorData(VectorSubvector(new_porsat_inv, sg));
+    uedge = SubvectorData(VectorSubvector(x_velocity, sg));
+    vedge = SubvectorData(VectorSubvector(y_velocity, sg));
+    wedge = SubvectorData(VectorSubvector(z_velocity, sg));
    
     /***** Compute extents of data *****/
     dlo[0] = SubgridIX(subgrid);
@@ -241,7 +243,7 @@ void     Godunov(
     hx[2] = SubgridDZ(subgrid);
     
     /***** Make the call to the low-order advection routine *****/
-    CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,oldporsat,newporsatinv,
+    CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,ops,npsi,
       fx,fy,fz,dlo,dhi,hx,dt);
   }
 
@@ -358,11 +360,11 @@ void     Godunov(
 
   index = phase * WellDataNumContaminants(well_data) + concentration;
 
-  InitVectorAll(scale, 0.0);
-  InitVectorAll(right_hand_side, 0.0);
-
   if (WellDataNumWells(well_data) > 0)
   {
+    InitVectorAll(scale, 0.0);
+    InitVectorAll(right_hand_side, 0.0);
+
     time_cycle_data = WellDataTimeCycleData(well_data);
     for (well = 0; well < WellDataNumPressWells(well_data); well++)
     {
@@ -384,14 +386,14 @@ void     Godunov(
 
         subvector_scal = VectorSubvector(scale, sg);
         subvector_rhs  = VectorSubvector(right_hand_side, sg);
-        subvector_smf  = VectorSubvector(solid_mass_factor, sg);
+        subvector_npsi = VectorSubvector(new_porsat_inv, sg);
         subvector_xvel = VectorSubvector(x_velocity, sg);
         subvector_yvel = VectorSubvector(y_velocity, sg);
         subvector_zvel = VectorSubvector(z_velocity, sg);
 
-        nx_w = SubvectorNX(subvector_scal);      /*scal,rhs & smf share nx_w */
-        ny_w = SubvectorNY(subvector_scal);      /*scal,rhs & smf share ny_w */
-        nz_w = SubvectorNZ(subvector_scal);      /*scal,rhs & smf share nz_w */
+        nx_w = SubvectorNX(subvector_scal);      /*scal, rhs & npsi share nx_w */
+        ny_w = SubvectorNY(subvector_scal);      /*scal, rhs & npsi share ny_w */
+        nz_w = SubvectorNZ(subvector_scal);      /*scal, rhs & npsi share nz_w */
 
         nx_xv = SubvectorNX(subvector_xvel);
         ny_xv = SubvectorNY(subvector_xvel);
@@ -424,7 +426,7 @@ void     Godunov(
 
           rhs    = SubvectorElt(subvector_rhs, ix, iy, iz);
           scal   = SubvectorElt(subvector_scal, ix, iy, iz);
-          smf    = SubvectorElt(subvector_smf, ix, iy, iz);
+          npsi   = SubvectorElt(subvector_npsi, ix, iy, iz);
 
           xvel_l = SubvectorElt(subvector_xvel, ix, iy, iz);
           xvel_u = SubvectorElt(subvector_xvel, ix + 1, iy, iz);
@@ -488,7 +490,7 @@ void     Godunov(
                        + (yvel_u[yi] - yvel_l[yi]) / dy
                        + (zvel_u[zi] - zvel_l[zi]) / dz;
 
-                scaled_flux = flux / smf[wi];
+                scaled_flux = flux * npsi[wi];
 
                 scal[wi] = dt * scaled_flux;
                 rhs[wi] = -dt * scaled_flux * input_c;
@@ -513,7 +515,7 @@ void     Godunov(
                      + (yvel_u[yi] - yvel_l[yi]) / dy
                      + (zvel_u[zi] - zvel_l[zi]) / dz;
 
-              scaled_flux = flux / smf[wi];
+              scaled_flux = flux * npsi[wi];
 
               scal[wi] = dt * scaled_flux;
 
@@ -570,15 +572,15 @@ void     Godunov(
 
         subvector_scal = VectorSubvector(scale, sg);
         subvector_rhs  = VectorSubvector(right_hand_side, sg);
-        subvector_smf  = VectorSubvector(solid_mass_factor, sg);
+        subvector_npsi = VectorSubvector(new_porsat_inv, sg);
 
         px_sub = VectorSubvector(perm_x, sg);
         py_sub = VectorSubvector(perm_y, sg);
         pz_sub = VectorSubvector(perm_z, sg);
 
-        nx_w = SubvectorNX(subvector_scal);      /*scal,rhs & smf share nx_w */
-        ny_w = SubvectorNY(subvector_scal);      /*scal,rhs & smf share ny_w */
-        nz_w = SubvectorNZ(subvector_scal);      /*scal,rhs & smf share nz_w */
+        nx_w = SubvectorNX(subvector_scal);     /*scal, rhs & npsi share nx_w */
+        ny_w = SubvectorNY(subvector_scal);     /*scal, rhs & npsi share ny_w */
+        nz_w = SubvectorNZ(subvector_scal);     /*scal, rhs & npsi share nz_w */
 
         nx_p = SubvectorNX(px_sub);
         ny_p = SubvectorNY(px_sub);
@@ -607,7 +609,7 @@ void     Godunov(
 
           rhs = SubvectorElt(subvector_rhs, ix, iy, iz);
           scal = SubvectorElt(subvector_scal, ix, iy, iz);
-          smf = SubvectorElt(subvector_smf, ix, iy, iz);
+          npsi = SubvectorElt(subvector_npsi, ix, iy, iz);
 
           px = SubvectorElt(px_sub, ix, iy, iz);
           py = SubvectorElt(py_sub, ix, iy, iz);
@@ -660,7 +662,7 @@ void     Godunov(
                         pi, nx_p, ny_p, nz_p, 1, 1, 1,
                         wi, nx_w, ny_w, nz_w, 1, 1, 1,
               {
-                scaled_flux = flux / smf[wi];
+                scaled_flux = flux * npsi[wi];
 
                 if (WellDataPhysicalMethod(well_data_physical)
                     == FLUX_STANDARD)
@@ -700,7 +702,7 @@ void     Godunov(
                       pi, nx_p, ny_p, nz_p, 1, 1, 1,
                       wi, nx_w, ny_w, nz_w, 1, 1, 1,
             {
-              scaled_flux = flux / smf[wi];
+              scaled_flux = flux * npsi[wi];
 
               if (WellDataPhysicalMethod(well_data_physical)
                   == FLUX_STANDARD)
@@ -755,6 +757,8 @@ if (WellDataNumWells(well_data) > 0)
       subvector = VectorSubvector(new_concentration, sg);
       subvector_scal = VectorSubvector(scale, sg);
       subvector_rhs = VectorSubvector(right_hand_side, sg);
+      subvector_ops = VectorSubvector(old_porsat, sg);
+      subvector_npsi = VectorSubvector(new_porsat_inv, sg);
 
       ix = SubgridIX(subgrid);
       iy = SubgridIY(subgrid);
@@ -772,20 +776,27 @@ if (WellDataNumWells(well_data) > 0)
       ny_c = SubvectorNY(subvector);
       nz_c = SubvectorNZ(subvector);
 
-      nx_w = SubvectorNX(subvector_scal);     /* scal & rhs share nx_w */
-      ny_w = SubvectorNY(subvector_scal);     /* scal & rhs share ny_w */
-      nz_w = SubvectorNZ(subvector_scal);     /* scal & rhs share nz_w */
+      nx_w = SubvectorNX(subvector_scal);     /*scal, rhs & npsi share nx_w */
+      ny_w = SubvectorNY(subvector_scal);     /*scal, rhs & npsi share ny_w */
+      nz_w = SubvectorNZ(subvector_scal);     /*scal, rhs & npsi share nz_w */
+
+      nx_m = SubvectorNX(subvector_ops);
+      ny_m = SubvectorNY(subvector_ops);
+      nz_m = SubvectorNZ(subvector_ops);
 
       cn = SubvectorElt(subvector, ix, iy, iz);
       rhs = SubvectorElt(subvector_rhs, ix, iy, iz);
       scal = SubvectorElt(subvector_scal, ix, iy, iz);
+      ops = SubvectorElt(subvector_ops, ix, iy, iz);
+      npsi = SubvectorElt(subvector_npsi, ix, iy, iz);
 
-      ci = 0; wi = 0;
-      BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+      ci = 0; wi = 0; mi = 0;
+      BoxLoopI3(i, j, k, ix, iy, iz, nx, ny, nz,
                 wi, nx_w, ny_w, nz_w, 1, 1, 1,
                 ci, nx_c, ny_c, nz_c, 1, 1, 1,
+                mi, nx_m, ny_m, nz_m, 1, 1, 1,
       {
-        cn[ci] = (cn[ci] - rhs[wi]) / (1.0 + scal[wi]);
+        cn[ci] = (cn[ci] * ops[mi] * npsi[wi] - rhs[wi]) / (1.0 + scal[wi]);
       });
     }
 
@@ -980,13 +991,12 @@ if (WellDataNumWells(well_data) > 0)
       subgrid = GridSubgrid(grid, sg);
 
       /**** Get locations for subvector data of vectors passed in ****/
-      c       = SubvectorData(VectorSubvector(old_concentration, sg));
-      cn      = SubvectorData(VectorSubvector(new_concentration, sg));
-      newporsatinv = SubvectorData(VectorSubvector(new_porsat_inv, sg));
-      uedge   = SubvectorData(VectorSubvector(x_velocity, sg));
-      vedge   = SubvectorData(VectorSubvector(y_velocity, sg));
-      wedge   = SubvectorData(VectorSubvector(z_velocity, sg));
-      phi     = SubvectorData(VectorSubvector(solid_mass_factor, sg));
+      c     = SubvectorData(VectorSubvector(old_concentration, sg));
+      cn    = SubvectorData(VectorSubvector(new_concentration, sg));
+      npsi  = SubvectorData(VectorSubvector(new_porsat_inv, sg));
+      uedge = SubvectorData(VectorSubvector(x_velocity, sg));
+      vedge = SubvectorData(VectorSubvector(y_velocity, sg));
+      wedge = SubvectorData(VectorSubvector(z_velocity, sg));
 
       /***** Compute extents of data *****/
       dlo[0] = SubgridIX(subgrid);
@@ -1002,7 +1012,7 @@ if (WellDataNumWells(well_data) > 0)
       hx[2] = SubgridDZ(subgrid);
 
         /*compute anti-diffusive fluxes */
-        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge, newporsatinv,
+        CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge, npsi,
                             fx, fy, fz, dlo, dhi, hx, dt);
 
         if (public_xtra->transverse)
@@ -1014,10 +1024,10 @@ if (WellDataNumWells(well_data) > 0)
 
                 /*multi-dimensional limiter */
         CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
-                          newporsatinv, vx, wx, uy, wy, uz, vz);
+                          npsi, vx, wx, uy, wy, uz, vz);
 
         /*add fluxes to  new concentration, account for transient saturation*/
-        CALL_ADVECT_COMPUTECONCEN(cn, fx, fy, fz, newporsatinv,
+        CALL_ADVECT_COMPUTECONCEN(cn, fx, fy, fz, npsi,
                           dlo, dhi, hx, dt);
       }
     }
@@ -1088,8 +1098,12 @@ IncFLOPCount(VectorSize(new_concentration));
   /*-----------------------------------------------------------------------
    * Free temp vectors
    *-----------------------------------------------------------------------*/
-  FreeVector(right_hand_side);
-  FreeVector(scale);
+
+  if (WellDataNumWells(well_data) > 0)
+  {
+    FreeVector(right_hand_side);
+    FreeVector(scale);
+  }
 
   if (public_xtra->enforce_minmax)
   {

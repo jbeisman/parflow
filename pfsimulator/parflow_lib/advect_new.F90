@@ -176,7 +176,7 @@
   integer  i,j,k
   integer  is,ie,js,je,ks,ke
   integer  ii,jj,kk
-  real(dp) dx_inv,dy_inv,dz_inv
+  real(dp) dt_dx,dt_dy,dt_dz
   real(dp) half
   real(dp) rx,ry,rz
   real(dp) mclimit,thetax,thetay,thetaz
@@ -188,9 +188,9 @@
   je = dhi(2)
   ks = dlo(3)
   ke = dhi(3)
-  dx_inv = 1.0_dp/hx(1)
-  dy_inv = 1.0_dp/hx(2)
-  dz_inv = 1.0_dp/hx(3)
+  dt_dx = dt/hx(1)
+  dt_dy = dt/hx(2)
+  dt_dz = dt/hx(3)
   half   = 0.5_dp
 
   !! compute second order corrections
@@ -212,7 +212,7 @@
       abs_vel = abs(uedge(i,j,k))
 
       sx(i,j,k) = half* abs_vel * &
-      (1.0_dp-(dt*dx_inv)*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i-1,j,k)))*rx*limx
+      (1.0_dp-dt_dx*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i-1,j,k)))*rx*limx
 
       enddo
     enddo
@@ -236,7 +236,7 @@
       abs_vel = abs(vedge(i,j,k))
 
       sy(i,j,k) = half* abs_vel * &
-      (1.0_dp-(dt*dy_inv)*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j-1,k)))*ry*limy
+      (1.0_dp-dt_dy*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j-1,k)))*ry*limy
 
       enddo
     enddo
@@ -260,7 +260,7 @@
       abs_vel = abs(wedge(i,j,k))
 
       sz(i,j,k) = half* abs_vel * &
-      (1.0_dp-(dt*dz_inv)*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j,k-1)))*rz*limz
+      (1.0_dp- dt_dz*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j,k-1)))*rz*limz
 
       enddo
     enddo

@@ -196,7 +196,8 @@ void      SolverImpes()
   Vector       *total_x_velocity = NULL, *total_y_velocity = NULL, *total_z_velocity = NULL;
   Vector       *z_permeability = NULL;
 
-  Vector       *solidmassfactor = NULL;
+  Vector       *retard_vector;
+  Vector       *trans_x_velocity, *trans_y_velocity, *trans_z_velocity;
 
   Matrix       *A;
   Vector       *f;
@@ -213,7 +214,7 @@ void      SolverImpes()
 
   double t;
   double dt;
-  double       *phase_dt = NULL, min_phase_dt = 0.0, total_dt = 0.0, print_dt, well_dt, bc_dt;
+  double *phase_dt = NULL, min_phase_dt = 0.0, total_dt = 0.0, print_dt, well_dt, bc_dt;
   double phase_maximum, total_maximum;
   double dtmp, *phase_densities;
 
@@ -429,8 +430,7 @@ void      SolverImpes()
 
       if (ProblemNumContaminants(problem) > 0)
       {
-        solidmassfactor = NewVectorType(grid, 1, 2, vector_cell_centered);
-        InitVectorAll(solidmassfactor, 1.0);
+        retard_vector = NewVectorType(grid, 1, 2, vector_cell_centered);
         ctemp = NewVectorType(instance_xtra->grid, 1, 3, vector_cell_centered);
 
         /*----------------------------------------------------------------
@@ -757,9 +757,7 @@ void      SolverImpes()
         /*                      Compute the velocities                 */
         /***************************************************************/
 
-        // put porosity into solidmassfactor and scatter for use in MaxPhaseFieldValue and advection
-        Copy(ProblemDataPorosity(problem_data),solidmassfactor);
-        handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
+        handle = InitVectorUpdate(ProblemDataPorosity(problem_data), VectorUpdateAll);
         FinalizeVectorUpdate(handle);
 
         for (phase = 0; phase < ProblemNumPhases(problem); phase++)
@@ -775,7 +773,9 @@ void      SolverImpes()
                              saturations,
                              phase,
                              t));
-
+          // copy saturations into old_porsat_rt because old_porsat_rt is
+          // guaranteed to have 1.0 values outside of domain, which is necessary
+          // to correctly compute max V dt / (dx por sat)
           Copy(saturations[phase], old_porsat_rt);
           handle = InitVectorUpdate(old_porsat_rt, VectorUpdateAll);
           FinalizeVectorUpdate(handle);
@@ -783,7 +783,7 @@ void      SolverImpes()
           phase_maximum = MaxPhaseFieldValue(phase_x_velocity[phase],
                                              phase_y_velocity[phase],
                                              phase_z_velocity[phase],
-                                             solidmassfactor,
+                                             ProblemDataPorosity(problem_data),
                                              old_porsat_rt);
 
           /* Put in a check for a possibly 0 velocity in this phase */
@@ -1205,28 +1205,31 @@ void      SolverImpes()
             for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
             {
 
-              if (!GlobalsChemistryFlag)
-              {
-                PFModuleInvokeType(RetardationInvoke, retardation,
-                                  (solidmassfactor,
-                                  concen,
-                                  problem_data));
-                handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
-                FinalizeVectorUpdate(handle);
-              }
+              PFModuleInvokeType(RetardationInvoke, retardation,
+                                (retard_vector,
+                                phase_x_velocity[phase],
+                                phase_y_velocity[phase],
+                                phase_z_velocity[phase],
+                                &trans_x_velocity,
+                                &trans_y_velocity,
+                                &trans_z_velocity,
+                                concen,
+                                problem_data));
+
 
               handle = InitVectorUpdate(concentrations[indx], VectorUpdateGodunov);
-              FinalizeVectorUpdate(handle);
+                FinalizeVectorUpdate(handle);
 
               PFVCopy(concentrations[indx], ctemp);
 
               PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
                                 (problem_data, phase, concen,
-                                ctemp, concentrations[indx], 
-                                phase_x_velocity[phase], 
-                                phase_y_velocity[phase], 
-                                phase_z_velocity[phase],
-                                solidmassfactor, old_porsat_rt, new_porsat_rt_inv,
+                                ctemp, concentrations[indx],
+                                trans_x_velocity,
+                                trans_y_velocity,
+                                trans_z_velocity,
+                                old_porsat_rt,
+                                new_porsat_rt_inv,
                                 t, dt)); 
               indx++;
             }
@@ -1470,7 +1473,7 @@ void      SolverImpes()
       FreeVector(ctemp);
       FreeVector(new_porsat_rt_inv);
       FreeVector(old_porsat_rt);
-      FreeVector(solidmassfactor);
+      FreeVector(retard_vector);
     }
   }
 
@@ -1733,7 +1736,8 @@ PFModule *SolverImpesInitInstanceXtra()
 
     (instance_xtra->retardation) =
       PFModuleNewInstanceType(RetardationInitInstanceXtraInvoke,
-                              ProblemRetardation(problem), (NULL));
+                              ProblemRetardation(problem),
+                              (grid, x_grid, y_grid, z_grid, NULL));
     (instance_xtra->phase_mobility) =
       PFModuleNewInstance(ProblemPhaseMobility(problem), ());
     (instance_xtra->ic_phase_concen) =
@@ -1803,7 +1807,8 @@ PFModule *SolverImpesInitInstanceXtra()
                               (instance_xtra->set_problem_data),
                               (problem, grid, NULL, NULL));
     PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
-                              (instance_xtra->retardation), (NULL));
+                              (instance_xtra->retardation),
+                              (grid, x_grid, y_grid, z_grid, NULL));
     PFModuleReNewInstance((instance_xtra->phase_mobility), ());
     PFModuleReNewInstance((instance_xtra->ic_phase_concen), ());
     PFModuleReNewInstance((instance_xtra->phase_density), ());
@@ -1932,7 +1937,7 @@ PFModule *SolverImpesInitInstanceXtra()
   temp_data_placeholder = temp_data;
   PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
                             (instance_xtra->retardation),
-                            (temp_data_placeholder));
+                            (NULL, NULL, NULL, NULL,temp_data_placeholder));
   PFModuleReNewInstanceType(AdvectionConcentrationInitInstanceXtraType,
                             (instance_xtra->advect_concen),
                             (NULL, NULL, temp_data_placeholder));

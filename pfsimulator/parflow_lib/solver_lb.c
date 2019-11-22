@@ -147,7 +147,8 @@ void      SolverDiffusion()
   Vector       *temp_mobility_z = NULL;
   Vector       *stemp = NULL;
   Vector       *ctemp = NULL;
-  Vector       *sat_rt = NULL;
+  Vector       *old_porsat_rt = NULL;
+  Vector       *new_porsat_rt_inv = NULL;
 
   int start_count = ProblemStartCount(problem);
   double start_time = ProblemStartTime(problem);
@@ -167,7 +168,8 @@ void      SolverDiffusion()
   Vector       *total_x_velocity, *total_y_velocity, *total_z_velocity;
   Vector       *z_permeability;
 
-  Vector       *solidmassfactor;
+  Vector       *retard_vector;
+  Vector       *trans_x_velocity, *trans_y_velocity, *trans_z_velocity;
 
   Matrix       *A;
   Vector       *f;
@@ -347,8 +349,10 @@ void      SolverDiffusion()
       InitVectorAll(saturations[0], 1.0);
   }
 
-  sat_rt = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
-      InitVectorAll(sat_rt, 1.0);
+  old_porsat_rt = NewVectorType(instance_xtra->grid, 1, 1, vector_cell_centered);
+      InitVectorAll(old_porsat_rt, 1.0);
+  new_porsat_rt_inv = NewVectorType(instance_xtra->grid, 1, 2, vector_cell_centered);
+      InitVectorAll(new_porsat_rt_inv, 1.0);
 
   /*-------------------------------------------------------------------
    * If (transient); initialize some stuff
@@ -381,15 +385,14 @@ void      SolverDiffusion()
       if (is_multiphase)
         eval_struct = NewEvalStruct(problem);
 
-      solidmassfactor = NewVectorType(grid, 1, 2, vector_cell_centered);
-      InitVectorAll(solidmassfactor, 1.0);
-
       /*-------------------------------------------------------------------
        * Allocate and set up initial concentrations
        *-------------------------------------------------------------------*/
 
       concentrations = ctalloc(Vector *,
                                ProblemNumPhases(problem) * ProblemNumContaminants(problem));
+
+      retard_vector = NewVectorType(grid, 1, 2, vector_cell_centered);
 
       indx = 0;
       for (phase = 0; phase < ProblemNumPhases(problem); phase++)
@@ -408,6 +411,11 @@ void      SolverDiffusion()
           indx++;
         }
       }
+
+      if ((!GlobalsChemistryFlag) && (ProblemNumContaminants(problem) > 0))
+        {
+          BCConcenCopyAdjacent(problem, grid, concentrations);
+        }
 
       /*-------------------------------------------------------------------
        * Allocate phase/total velocities and total mobility
@@ -743,9 +751,7 @@ void      SolverDiffusion()
         /*                      Compute the velocities                         */
         /***********************************************************************/
 
-        // put porosity into solidmassfactor and scatter for use in MaxPhaseFieldValue and advection
-        Copy(ProblemDataPorosity(problem_data),solidmassfactor);
-        handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
+        handle = InitVectorUpdate(ProblemDataPorosity(problem_data), VectorUpdateAll);
         FinalizeVectorUpdate(handle);
 
         for (phase = 0; phase < ProblemNumPhases(problem); phase++)
@@ -762,15 +768,18 @@ void      SolverDiffusion()
                               phase,
                               t));
 
-          Copy(saturations[phase], sat_rt);
-          handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
+           // copy saturations into old_porsat_rt because old_porsat_rt is
+          // guaranteed to have 1.0 values outside of domain, which is necessary
+          // to correctly compute max V dt / (dx por sat)
+          Copy(saturations[phase], old_porsat_rt);
+          handle = InitVectorUpdate(old_porsat_rt, VectorUpdateAll);
           FinalizeVectorUpdate(handle);
 
           phase_maximum = MaxPhaseFieldValue(phase_x_velocity[phase],
                                              phase_y_velocity[phase],
                                              phase_z_velocity[phase],
-                                             solidmassfactor,
-                                             sat_rt);
+                                             ProblemDataPorosity(problem_data),
+                                             old_porsat_rt);
 
           phase_dt[phase] = CFL / phase_maximum;
           if (phase == 0)
@@ -1112,30 +1121,41 @@ void      SolverDiffusion()
         indx = 0;
         for (phase = 0; phase < ProblemNumPhases(problem); phase++)
         {
-          Copy(saturations[phase], sat_rt);
-          handle = InitVectorUpdate(sat_rt, VectorUpdateAll2);
-          FinalizeVectorUpdate(handle);
+
+          PFVProd(ProblemDataPorosity(problem_data),saturations[phase],old_porsat_rt);
+          PFVInvProd(ProblemDataPorosity(problem_data),saturations[phase],new_porsat_rt_inv);
+
+          handle = InitVectorUpdate(new_porsat_rt_inv, VectorUpdateAll2);
+            FinalizeVectorUpdate(handle);
 
           for (concen = 0; concen < ProblemNumContaminants(problem); concen++)
           {
-            PFModuleInvokeType(RetardationInvoke, retardation,
-                               (solidmassfactor,
-                                concen,
-                                problem_data));
-            handle = InitVectorUpdate(solidmassfactor, VectorUpdateAll2);
-            FinalizeVectorUpdate(handle);
 
-            InitVectorAll(ctemp, 0.0);
-            Copy(concentrations[indx], ctemp);
+            PFModuleInvokeType(RetardationInvoke, retardation,
+                  (retard_vector,
+                  phase_x_velocity[phase],
+                  phase_y_velocity[phase],
+                  phase_z_velocity[phase],
+                  &trans_x_velocity,
+                  &trans_y_velocity,
+                  &trans_z_velocity,
+                  concen,
+                  problem_data));
+
+            handle = InitVectorUpdate(concentrations[indx], VectorUpdateGodunov);
+              FinalizeVectorUpdate(handle);
+
+            PFVCopy(concentrations[indx], ctemp);
 
             PFModuleInvokeType(AdvectionConcentrationInvoke, advect_concen,
-                                (problem_data, phase, concen,
-                                ctemp, concentrations[indx], 
-                                phase_x_velocity[phase], 
-                                phase_y_velocity[phase], 
-                                phase_z_velocity[phase],
-                                solidmassfactor, sat_rt, sat_rt,
-                                t, dt)); 
+                              (problem_data, phase, concen,
+                              ctemp, concentrations[indx],
+                              trans_x_velocity,
+                              trans_y_velocity,
+                              trans_z_velocity,
+                              old_porsat_rt,
+                              new_porsat_rt_inv,
+                              t, dt));
             indx++;
           }
         }
@@ -1255,7 +1275,7 @@ void      SolverDiffusion()
     }
     tfree(concentrations);
 
-    FreeVector(solidmassfactor);
+    FreeVector(retard_vector);
   }
 
     for (phase = 0; phase < ProblemNumPhases(problem); phase++)
@@ -1266,7 +1286,8 @@ void      SolverDiffusion()
   tfree(saturations);
   tfree(phase_densities);
 
-  FreeVector(sat_rt);
+  FreeVector(old_porsat_rt);
+  FreeVector(new_porsat_rt_inv);
   FreeVector(total_mobility_x);
   FreeVector(total_mobility_y);
   FreeVector(total_mobility_z);
@@ -1464,7 +1485,8 @@ PFModule *SolverDiffusionInitInstanceXtra()
                               (problem, grid, NULL, NULL));
     (instance_xtra->retardation) =
       PFModuleNewInstanceType(RetardationInitInstanceXtraInvoke,
-                              ProblemRetardation(problem), (NULL));
+                              ProblemRetardation(problem),
+                              (grid, x_grid, y_grid, z_grid, NULL));
     (instance_xtra->phase_mobility) =
       PFModuleNewInstance(ProblemPhaseMobility(problem), ());
     (instance_xtra->ic_phase_concen) =
@@ -1515,7 +1537,8 @@ PFModule *SolverDiffusionInitInstanceXtra()
                               (instance_xtra->set_problem_data),
                               (problem, grid, NULL, NULL));
     PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
-                              (instance_xtra->retardation), (NULL));
+                              (instance_xtra->retardation),
+                              (grid, x_grid, y_grid, z_grid, NULL));
     PFModuleReNewInstance((instance_xtra->phase_mobility), ());
     PFModuleReNewInstance((instance_xtra->ic_phase_concen), ());
     PFModuleReNewInstance((instance_xtra->phase_density), ());
@@ -1628,7 +1651,7 @@ PFModule *SolverDiffusionInitInstanceXtra()
   temp_data_placeholder = temp_data;
   PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
                             (instance_xtra->retardation),
-                            (temp_data_placeholder));
+                            (NULL, NULL, NULL, NULL, temp_data_placeholder));
   PFModuleReNewInstanceType(AdvectionConcentrationInitInstanceXtraType,
                             (instance_xtra->advect_concen),
                             (NULL, NULL, temp_data_placeholder));

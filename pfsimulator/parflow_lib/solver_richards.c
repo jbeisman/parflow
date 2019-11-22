@@ -307,7 +307,10 @@ typedef struct {
 #endif
 
   Vector *ctemp;
-  Vector *solidmassfactor;
+  Vector *retard_vector;
+  Vector *trans_x_velocity;
+  Vector *trans_y_velocity;
+  Vector *trans_z_velocity;
   Vector **concentrations;
   Vector *delta_saturation;
   Vector *sat_transport_end;
@@ -1207,12 +1210,11 @@ SetupRichards(PFModule * this_module)
       instance_xtra -> ctemp = 
       NewVectorType(grid, 1, 3,  vector_cell_centered );
 
-      instance_xtra->solidmassfactor =
+      instance_xtra->retard_vector =
       NewVectorType( grid, 1, 2, vector_cell_centered);
-      InitVectorAll(instance_xtra->solidmassfactor, 1.0);
-      Copy(ProblemDataPorosity(problem_data),instance_xtra->solidmassfactor);
-      handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
-      FinalizeVectorUpdate(handle);
+
+      handle = InitVectorUpdate(ProblemDataPorosity(problem_data), VectorUpdateAll);
+        FinalizeVectorUpdate(handle);
 
       instance_xtra->delta_saturation =
       NewVectorType(grid, 1, 1, vector_cell_centered);
@@ -3019,7 +3021,6 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
 
     if (ProblemNumContaminants(problem) > 0 && evolve_concentrations)
     {
-
       // calculate dsat/dt
       // calculate vector of minimum saturations - use sat_transport_end to save memory
       PFVDiff(instance_xtra->saturation, instance_xtra->old_saturation,
@@ -3034,7 +3035,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
       max_velocity = MaxPhaseFieldValue(instance_xtra->x_velocity,
                                        instance_xtra->y_velocity,
                                        instance_xtra->z_velocity,
-                                       instance_xtra->solidmassfactor,
+                                       ProblemDataPorosity(problem_data),
                                        instance_xtra->sat_transport_end);
 
       // copy old_sat into sat_transport_end for initial sub-cycling value
@@ -3059,8 +3060,8 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         PFVAxpy(subcycle_progress, instance_xtra->delta_saturation, instance_xtra->sat_transport_end);
 
         // calculate old_sat*porosity and 1 / (new_sat * porosity)
-        PFVInvProd(instance_xtra->sat_transport_end, instance_xtra->solidmassfactor, instance_xtra->new_porsat_inv);
-        PFVProd(instance_xtra->sat_transport_start, instance_xtra->solidmassfactor, instance_xtra->old_porsat);
+        PFVInvProd(instance_xtra->sat_transport_end, ProblemDataPorosity(problem_data), instance_xtra->new_porsat_inv);
+        PFVProd(instance_xtra->sat_transport_start, ProblemDataPorosity(problem_data), instance_xtra->old_porsat);
 
         handle = InitVectorUpdate(instance_xtra->new_porsat_inv, VectorUpdateAll2);
         FinalizeVectorUpdate(handle);
@@ -3080,20 +3081,20 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         // loop through and transport each concentration separately
         for (int concen = 0; concen < ProblemNumContaminants(problem); concen++)
         {
-          // only call retardation if chemistry not active
-          if (!GlobalsChemistryFlag)
-          {
-            PFModuleInvokeType(RetardationInvoke, retardation,
-              (instance_xtra->solidmassfactor,
-                concen,
-                problem_data));
 
-            handle = InitVectorUpdate(instance_xtra->solidmassfactor, VectorUpdateAll2);
-            FinalizeVectorUpdate(handle);
-          }
+          PFModuleInvokeType(RetardationInvoke, retardation,
+                            (instance_xtra->retard_vector,
+                            instance_xtra->x_velocity,
+                            instance_xtra->y_velocity,
+                            instance_xtra->z_velocity,
+                            &(instance_xtra->trans_x_velocity),
+                            &(instance_xtra->trans_y_velocity),
+                            &(instance_xtra->trans_z_velocity),
+                            concen,
+                            problem_data));
 
           handle = InitVectorUpdate(instance_xtra->concentrations[concen], VectorUpdateGodunov);
-          FinalizeVectorUpdate(handle);
+            FinalizeVectorUpdate(handle);
 
           PFVCopy(instance_xtra->concentrations[concen], instance_xtra->ctemp);
 
@@ -3103,7 +3104,6 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                             instance_xtra->x_velocity, 
                             instance_xtra->y_velocity, 
                             instance_xtra->z_velocity,
-                            instance_xtra->solidmassfactor, 
                             instance_xtra->old_porsat,
                             instance_xtra->new_porsat_inv,
                             advect_react_time, advect_react_dt));
@@ -4237,7 +4237,7 @@ TeardownRichards(PFModule * this_module)
     }
 
     tfree(instance_xtra->concentrations);
-    FreeVector(instance_xtra->solidmassfactor);
+    FreeVector(instance_xtra->retard_vector);
     FreeVector(instance_xtra->ctemp);
     FreeVector(instance_xtra->delta_saturation);
     FreeVector(instance_xtra->sat_transport_end);
@@ -4551,7 +4551,8 @@ SolverRichardsInitInstanceXtra()
 
     (instance_xtra->retardation) =
       PFModuleNewInstanceType(RetardationInitInstanceXtraInvoke,
-                              ProblemRetardation(problem), (NULL));
+                              ProblemRetardation(problem),
+                              (grid, x_grid, y_grid, z_grid, NULL));
     (instance_xtra->phase_rel_perm) =
       PFModuleNewInstanceType(PhaseRelPermInitInstanceXtraInvoke,
                               ProblemPhaseRelPerm(problem), (grid, NULL));
@@ -4605,7 +4606,8 @@ SolverRichardsInitInstanceXtra()
                               (problem, grid, grid2d, NULL));
 
     PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
-                              (instance_xtra->retardation), (NULL));
+                              (instance_xtra->retardation),
+                              (grid, x_grid, y_grid, z_grid, NULL));
 
     PFModuleReNewInstanceType(PhaseRelPermInitInstanceXtraInvoke,
                               (instance_xtra->phase_rel_perm), (grid,
@@ -4718,7 +4720,7 @@ SolverRichardsInitInstanceXtra()
   temp_data_placeholder = temp_data;
   PFModuleReNewInstanceType(RetardationInitInstanceXtraInvoke,
                             (instance_xtra->retardation),
-                            (temp_data_placeholder));
+                            (NULL, NULL, NULL, NULL, temp_data_placeholder));
   PFModuleReNewInstanceType(AdvectionConcentrationInitInstanceXtraType,
                             (instance_xtra->advect_concen),
                             (NULL, NULL, temp_data_placeholder));
