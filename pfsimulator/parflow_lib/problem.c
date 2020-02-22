@@ -310,10 +310,7 @@ Problem   *NewProblem(
   }
 
 #ifdef HAVE_ALQUIMIA
-    if (GlobalsChemistryFlag)
-  {
     ProblemBCConcentration(problem) = PFModuleNewModule(BCConcentration, ());
-  }
 #endif
 
   /*-----------------------------------------------------------------------
@@ -411,11 +408,8 @@ void      FreeProblem(
   PFModuleFreeModule(ProblemBCInternal(problem));
   
 #ifdef HAVE_ALQUIMIA
-  if (GlobalsChemistryFlag)
-  { 
     PFModuleFreeModule(ProblemGeochemCond(problem));
     PFModuleFreeModule(ProblemBCConcentration(problem));
-  }
 #endif
 
   PFModuleFreeModule(ProblemPhaseSource(problem));

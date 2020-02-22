@@ -201,68 +201,66 @@ PFModule   *GeochemCondNewPublicXtra()
   NameArray geochem_cond_na;
 
   type_na = NA_NewNameArray("Constant PFBFile");
-  public_xtra = ctalloc(PublicXtra, 1);
 
-
-    geochem_cond_names = GetStringDefault("GeochemCondition.Names","");
-    geochem_cond_na = NA_NewNameArray(geochem_cond_names);
-    num_geochem_conds = NA_Sizeof(geochem_cond_na);
+  geochem_cond_names = GetStringDefault("GeochemCondition.Names","");
+  geochem_cond_na = NA_NewNameArray(geochem_cond_names);
+  num_geochem_conds = NA_Sizeof(geochem_cond_na);
 
   if (num_geochem_conds > 0)
   {
+    public_xtra = ctalloc(PublicXtra, 1);
     switch_name = GetString("GeochemCondition.Type");
     public_xtra -> type = NA_NameToIndex(type_na, switch_name);
-        switch ((public_xtra->type))
-        {
-          case 0:
-          {
-            int num_regions, ir;
+    switch ((public_xtra->type))
+    {
+      case 0:
+      {
+        int num_regions, ir;
 
-            dummy0 = ctalloc(Type0, 1);
+        dummy0 = ctalloc(Type0, 1);
     
-            switch_name = GetString("GeochemCondition.GeomNames");
+        switch_name = GetString("GeochemCondition.GeomNames");
 
-            dummy0->regions = NA_NewNameArray(switch_name);
+        dummy0->regions = NA_NewNameArray(switch_name);
 
-            num_regions =
-              (dummy0->num_regions) = NA_Sizeof(dummy0->regions);
+        num_regions =
+          (dummy0->num_regions) = NA_Sizeof(dummy0->regions);
 
-            (dummy0->region_indices) = ctalloc(int, num_regions);
-            (dummy0->values) = ctalloc(double, num_regions);
+        (dummy0->region_indices) = ctalloc(int, num_regions);
+        (dummy0->values) = ctalloc(double, num_regions);
 
-            for (ir = 0; ir < num_regions; ir++)
-            {
-              region = NA_IndexToName(dummy0->regions, ir);
+        for (ir = 0; ir < num_regions; ir++)
+        {
+          region = NA_IndexToName(dummy0->regions, ir);
 
-              dummy0->region_indices[ir] =
-              NA_NameToIndex(GlobalsGeomNames, region);
+          dummy0->region_indices[ir] =
+          NA_NameToIndex(GlobalsGeomNames, region);
 
-              sprintf(key, "GeochemCondition.Geom.%s.Value", region);
-              dummy0 -> values[ir] = NA_NameToIndex(geochem_cond_na, GetString(key));
-            }
-
-            (public_xtra->data) = (void*)dummy0;
-
-            break;
-          }
-
-          case 1:
-          {
-            dummy1 = ctalloc(Type1, 1);
-            sprintf(key, "GeochemCondition.FileName");
-            dummy1->filename = GetString(key);
-            (public_xtra->data) = (void*)dummy1;
-
-            break;
-          }
-
-          default:
-          {
-            InputError("Error: invalid type <%s> for key <%s>\n",
-                       switch_name, key);
-          }
+          sprintf(key, "GeochemCondition.Geom.%s.Value", region);
+          dummy0 -> values[ir] = NA_NameToIndex(geochem_cond_na, GetString(key));
         }
-      
+
+        (public_xtra->data) = (void*)dummy0;
+
+        break;
+      }
+
+      case 1:
+      {
+        dummy1 = ctalloc(Type1, 1);
+        sprintf(key, "GeochemCondition.FileName");
+        dummy1->filename = GetString(key);
+        (public_xtra->data) = (void*)dummy1;
+
+        break;
+      }
+
+      default:
+      {
+        InputError("Error: invalid type <%s> for key <%s>\n",
+                   switch_name, key);
+      }
+    }
   }
   else
   {
@@ -291,29 +289,28 @@ void  GeochemCondFreePublicXtra()
 
   if (public_xtra)
   {
-
-      switch ((public_xtra->type))
+    switch ((public_xtra->type))
+    {
+      case 0:
       {
-        case 0:
-        {
-          dummy0 = (Type0*)(public_xtra->data);
+        dummy0 = (Type0*)(public_xtra->data);
 
-          NA_FreeNameArray(dummy0->regions);
+        NA_FreeNameArray(dummy0->regions);
 
-          tfree(dummy0->region_indices);
-          tfree(dummy0->values);
-          tfree(dummy0);
-          break;
-        }
-
-        case 1:
-        {
-          dummy1 = (Type1*)(public_xtra->data);
-
-          tfree(dummy1);
-          break;
-        }
+        tfree(dummy0->region_indices);
+        tfree(dummy0->values);
+        tfree(dummy0);
+        break;
       }
+
+      case 1:
+      {
+        dummy1 = (Type1*)(public_xtra->data);
+
+        tfree(dummy1);
+        break;
+      }
+    }
       
     tfree(public_xtra);
   }

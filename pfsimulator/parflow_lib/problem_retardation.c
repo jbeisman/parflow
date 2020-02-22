@@ -603,6 +603,7 @@ void  RetardationFreePublicXtra()
 
     tfree(public_xtra->data);
     tfree(public_xtra->type);
+    tfree(public_xtra->contam_retard_flag);
 
     tfree(public_xtra);
   }

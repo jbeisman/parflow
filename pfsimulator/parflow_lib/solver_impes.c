@@ -238,8 +238,6 @@ void      SolverImpes()
 #endif
   Vector *old_porsat_rt = NULL;
   Vector *new_porsat_rt_inv = NULL;
-  int chem_flag = GlobalsChemistryFlag;
-
 
   /*-------------------------------------------------------------------
    * Allocate temp vectors
@@ -457,7 +455,7 @@ void      SolverImpes()
           }
         }
 
-        if (!chem_flag)
+        if (!GlobalsChemistryFlag)
         {
           BCConcenCopyAdjacent(problem, grid, concentrations);
         }
@@ -523,7 +521,7 @@ void      SolverImpes()
       /*          Call the geochemical engine         */
       /*****************************************************************/
 #ifdef HAVE_ALQUIMIA
-      if (chem_flag) /*Initialize the geochemical system*/
+      if (GlobalsChemistryFlag) /*Initialize the geochemical system*/
       {
       	if (!amps_Rank(amps_CommWorld))
         {
@@ -1044,7 +1042,7 @@ void      SolverImpes()
          * this iteration.
          *------------------------------------------------------------*/
 
-        if (print_press || print_velocities || print_satur || print_concen || print_wells || chem_flag)
+        if (print_press || print_velocities || print_satur || print_concen || print_wells || GlobalsChemistryFlag)
         {
           dump_files = 0;
 
@@ -1241,7 +1239,7 @@ void      SolverImpes()
       /*          Call the geochemical engine         */
       /*****************************************************************/
 #ifdef HAVE_ALQUIMIA
-        if (chem_flag) /*advance the geochemical system*/
+        if (GlobalsChemistryFlag) /*advance the geochemical system*/
         {
           PFModuleInvokeType(AdvanceChemistryInvoke, advance_chem,
                             (problem_data, instance_xtra->alquimia_data,
@@ -1519,7 +1517,7 @@ void      SolverImpes()
    * Free Alquimia chemistry data and corresponding PF Vectors
    *-------------------------------------------------------------------*/
 #ifdef HAVE_ALQUIMIA
-  if (chem_flag)
+  if (GlobalsChemistryFlag)
     {
       FreeAlquimiaDataPF(instance_xtra->alquimia_data, grid, problem_data);
     }
@@ -1602,8 +1600,6 @@ PFModule *SolverImpesInitInstanceXtra()
   int is_multiphase;
 
   int i;
-  int chem_flag;
-  chem_flag = GlobalsChemistryFlag;
   is_multiphase = ProblemNumPhases(problem) > 1;
 
   if (PFModuleInstanceXtra(this_module) == NULL)
@@ -1746,7 +1742,7 @@ PFModule *SolverImpesInitInstanceXtra()
       PFModuleNewInstance(ProblemPhaseDensity(problem), ());
 
 #ifdef HAVE_ALQUIMIA
-    if (chem_flag)
+    if (GlobalsChemistryFlag)
     {
       (instance_xtra->init_chem) =
       PFModuleNewInstanceType(InitializeChemistryInitInstanceXtraType,
@@ -1814,7 +1810,7 @@ PFModule *SolverImpesInitInstanceXtra()
     PFModuleReNewInstance((instance_xtra->phase_density), ());
 
 #ifdef HAVE_ALQUIMIA
-    if (chem_flag)
+    if (GlobalsChemistryFlag)
     {
       PFModuleReNewInstanceType(InitializeChemistryInitInstanceXtraType,
                                (instance_xtra->init_chem),
@@ -1965,9 +1961,6 @@ void  SolverImpesFreeInstanceXtra()
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
   Problem       *problem = (public_xtra->problem);
   int is_multiphase;
-  int chem_flag;
-
-  chem_flag = GlobalsChemistryFlag;
   is_multiphase = ProblemNumPhases(problem) > 1;
 
   if (instance_xtra)
@@ -1987,7 +1980,7 @@ void  SolverImpesFreeInstanceXtra()
     PFModuleFreeInstance((instance_xtra->phase_density));
 
 #ifdef HAVE_ALQUIMIA
-    if (chem_flag)
+    if (GlobalsChemistryFlag)
     {
       PFModuleFreeInstance((instance_xtra->init_chem));
       PFModuleFreeInstance((instance_xtra->advance_chem));
@@ -2033,10 +2026,6 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
 
   NameArray diag_solver_na;
   NameArray linear_solver_na;
-
-  int chem_flag;
-  chem_flag = GlobalsChemistryFlag;
-
   switch_na = NA_NewNameArray("False True");
 
   public_xtra = ctalloc(PublicXtra, 1);
@@ -2126,7 +2115,7 @@ PFModule   *SolverImpesNewPublicXtra(char *name)
   (public_xtra->advect_concen) = PFModuleNewModule(Godunov, ());
 
 #ifdef HAVE_ALQUIMIA
-  if (chem_flag)
+  if (GlobalsChemistryFlag)
   {
     (public_xtra->init_chem) = PFModuleNewModule(InitializeChemistry, ());
     (public_xtra->advance_chem) = PFModuleNewModule(AdvanceChemistry, ());
@@ -2291,8 +2280,6 @@ void   SolverImpesFreePublicXtra()
 {
   PFModule      *this_module = ThisPFModule;
   PublicXtra    *public_xtra = (PublicXtra*)PFModulePublicXtra(this_module);
-  int chem_flag;
-  chem_flag = GlobalsChemistryFlag;
 
   if (public_xtra)
   {
@@ -2310,7 +2297,7 @@ void   SolverImpesFreePublicXtra()
     PFModuleFreeModule(public_xtra->discretize_pressure);
 
 #ifdef HAVE_ALQUIMIA
-    if (chem_flag)
+    if (GlobalsChemistryFlag)
     {
       PFModuleFreeModule(public_xtra->init_chem);
       PFModuleFreeModule(public_xtra->advance_chem);

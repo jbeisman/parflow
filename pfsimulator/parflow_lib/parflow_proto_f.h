@@ -58,15 +58,15 @@ BEGIN_EXTERN_C
 
 #define CALL_ADVECT_UPWIND(s, sn, uedge, vedge, wedge,\
                     old_porsat, new_porsat_inv, fx, fy, fz, \
-                    dlo, dhi, hx, dt )\
+                    dlo, dhi, hx, dim, dt )\
              ADVECT_UPWIND(s, sn, uedge, vedge, wedge,\
                     old_porsat, new_porsat_inv, fx, fy, fz, \
-                    dlo, dhi, hx, &dt )
+                    dlo, dhi, hx, dim, &dt )
 
 void ADVECT_UPWIND(double *s, double *sn,
             double *uedge, double *vedge, double *wedge, 
             double *old_porsat, double *new_porsat_inv, double *fx, double *fy, 
-            double *fz, int *dlo, int *dhi, double *hx, double *dt);
+            double *fz, int *dlo, int *dhi, double *hx, int *dim, double *dt);
 
 
 #if defined(_CRAYMPP)
@@ -78,13 +78,13 @@ void ADVECT_UPWIND(double *s, double *sn,
 #endif
 
 #define CALL_ADVECT_HIGHORDER(s, uedge, vedge, wedge, \
-                    porsat_inv, sx, sy, sz, dlo, dhi, hx, dt)\
+                    porsat_inv, sx, sy, sz, dlo, dhi, hx, dim, dt)\
              ADVECT_HIGHORDER(s, uedge, vedge, wedge, \
-                    porsat_inv, sx, sy, sz, dlo, dhi, hx, &dt)
+                    porsat_inv, sx, sy, sz, dlo, dhi, hx, dim, &dt)
 
 void ADVECT_HIGHORDER(double *s, double *uedge, double *vedge, double *wedge, 
             double *porsat_inv, double *sx, double *sy, double *sz,
-            int *dlo, int *dhi, double *hx, double *dt);
+            int *dlo, int *dhi, double *hx, int *dim, double *dt);
 
 
 
@@ -135,13 +135,13 @@ void ADVECT_COMPUTECONCEN(double *sn, double *sx, double *sy,
 #define ADVECT_LIMIT advect_limit_
 #endif
 
-#define CALL_ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,dt,\
+#define CALL_ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,dim,dt,\
                        porsat_inv,p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)\
-             ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,&dt,\
+             ADVECT_LIMIT(sn,sx,sy,sz,dlo,dhi,hx,dim,&dt,\
                        porsat_inv,p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
 
 void ADVECT_LIMIT(double *sn, double *sx, double *sy, double *sz, 
-            int *dlo, int *dhi, double *hx, double *dt,
+            int *dlo, int *dhi, double *hx, int *dim, double *dt,
             double *porsat_inv, double *p_plus,double *p_minus,
             double *q_plus,double *q_minus, 
             double *r_plus,double *r_minus);

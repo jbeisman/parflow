@@ -45,6 +45,7 @@ typedef struct {
   int high_order;
   int transverse;
   int enforce_minmax;
+  int dim[3];
 } PublicXtra;
 
 typedef struct {
@@ -244,7 +245,7 @@ void     Godunov(
     
     /***** Make the call to the low-order advection routine *****/
     CALL_ADVECT_UPWIND(c,cn,uedge,vedge,wedge,ops,npsi,
-      fx,fy,fz,dlo,dhi,hx,dt);
+      fx,fy,fz,dlo,dhi,hx,public_xtra->dim,dt);
   }
 
 
@@ -1013,7 +1014,7 @@ if (WellDataNumWells(well_data) > 0)
 
         /*compute anti-diffusive fluxes */
         CALL_ADVECT_HIGHORDER(c, uedge, vedge, wedge, npsi,
-                            fx, fy, fz, dlo, dhi, hx, dt);
+                            fx, fy, fz, dlo, dhi, hx, public_xtra->dim, dt);
 
         if (public_xtra->transverse)
         {
@@ -1023,7 +1024,7 @@ if (WellDataNumWells(well_data) > 0)
         }
 
                 /*multi-dimensional limiter */
-        CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, dt,
+        CALL_ADVECT_LIMIT(cn, fx, fy, fz, dlo, dhi, hx, public_xtra->dim, dt,
                           npsi, vx, wx, uy, wy, uz, vz);
 
         /*add fluxes to  new concentration, account for transient saturation*/
@@ -1260,10 +1261,9 @@ PFModule  *GodunovNewPublicXtra()
   NameArray switch_na;
   char *switch_name;
   int switch_value;
+
   switch_na = NA_NewNameArray("False True");
-
   public_xtra = ctalloc(PublicXtra, 1);
-
 
   (public_xtra->time_index) = RegisterTiming("Godunov Advection");
 
@@ -1299,6 +1299,10 @@ PFModule  *GodunovNewPublicXtra()
   }
   public_xtra->enforce_minmax = switch_value;
 
+  /*what is the dimensionality of the problem?*/
+  public_xtra->dim[0] = (BackgroundNX(GlobalsBackground) == 1) ? 0 : 1;
+  public_xtra->dim[1] = (BackgroundNY(GlobalsBackground) == 1) ? 0 : 1;
+  public_xtra->dim[2] = (BackgroundNZ(GlobalsBackground) == 1) ? 0 : 1;
 
   NA_FreeNameArray(switch_na);
 

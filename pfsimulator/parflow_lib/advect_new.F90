@@ -39,13 +39,13 @@
 !    saturations 
 !-------------------------------------------------------------------------------
   subroutine advect_upwind(s,sn,uedge,vedge,wedge,old_porsat, &
-      new_porsat_inv,fx,fy,fz,dlo,dhi,hx,dt)
+      new_porsat_inv,fx,fy,fz,dlo,dhi,hx,dims,dt)
 
   use, intrinsic :: iso_c_binding
 
   implicit none
   integer, parameter          :: dp = selected_real_kind(15, 307)
-  integer(c_int), intent(in)  :: dlo(3), dhi(3)
+  integer(c_int), intent(in)  :: dlo(3), dhi(3), dims(3)
   real(c_double), intent(in)  :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3) 
   real(c_double), intent(out) :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
   real(c_double), intent(in)  :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2) 
@@ -74,55 +74,67 @@
   dt_dz = dt/hx(3)
 
   !x fluxes
-  do k=ks,ke
-    do j=js,je
-      do i=is,ie+1
+  if (dims(1) == 1) then
+    do k=ks,ke
+      do j=js,je
+        do i=is,ie+1
 
-      if (uedge(i,j,k) .ge. 0.0)then
-        ii =  i-1
-      else
-        ii =  i
-      endif
+        if (uedge(i,j,k) >= 0.0)then
+          ii =  i-1
+        else
+          ii =  i
+        endif
 
-      fx(i,j,k)=uedge(i,j,k)*s(ii,j,k)
+        fx(i,j,k)=uedge(i,j,k)*s(ii,j,k)
 
+        enddo
       enddo
     enddo
-  enddo
+  else
+    fx = 0.0_dp
+  endif
 
   !y fluxes
-  do k=ks,ke
-    do j=js,je+1
-      do i=is,ie
+  if (dims(2) == 1) then
+    do k=ks,ke
+      do j=js,je+1
+        do i=is,ie
 
-      if (vedge(i,j,k) .ge. 0.0)then
-        jj =  j-1
-      else
-        jj =  j
-      endif
+        if (vedge(i,j,k) >= 0.0)then
+          jj =  j-1
+        else
+          jj =  j
+        endif
 
-      fy(i,j,k)=vedge(i,j,k)*s(i,jj,k)
+        fy(i,j,k)=vedge(i,j,k)*s(i,jj,k)
 
+        enddo
       enddo
     enddo
-  enddo
+  else
+    fy = 0.0_dp
+  endif
 
   !z fluxes
-  do k=ks,ke+1
-    do j=js,je
-      do i=is,ie
+  if (dims(3) == 1) then
+    do k=ks,ke+1
+      do j=js,je
+        do i=is,ie
 
-      if (wedge(i,j,k) .ge. 0.0)then
-        kk =  k-1
-      else
-        kk =  k
-      endif
+        if (wedge(i,j,k) >= 0.0)then
+          kk =  k-1
+        else
+          kk =  k
+        endif
 
-       fz(i,j,k)=wedge(i,j,k)*s(i,j,kk)
+         fz(i,j,k)=wedge(i,j,k)*s(i,j,kk)
 
-       enddo
+         enddo
+      enddo
     enddo
-  enddo
+  else
+    fz = 0.0_dp
+  endif
 
   !these values give a first order scheme
   do k=ks,ke
@@ -138,9 +150,9 @@
   enddo
 
   ! clear memory for resuse in other advect subroutines
-  fx = 0.0_dp
-  fy = 0.0_dp
-  fz = 0.0_dp
+  if (dims(1) == 1) fx = 0.0_dp
+  if (dims(2) == 1) fy = 0.0_dp
+  if (dims(3) == 1) fz = 0.0_dp
 
   return
   end subroutine advect_upwind
@@ -156,13 +168,13 @@
 !    Lax-Wendroff style centered approximation with upwind-biased limiter
 !-------------------------------------------------------------------------------
   subroutine advect_highorder(s,uedge,vedge,wedge, &
-                             porsat_inv,sx,sy,sz,dlo,dhi,hx,dt)
+                             porsat_inv,sx,sy,sz,dlo,dhi,hx,dims,dt)
 
   use, intrinsic :: iso_c_binding
 
   implicit none
   integer, parameter             :: dp = selected_real_kind(15, 307)
-  integer(c_int), intent (in)    :: dlo(3), dhi(3)
+  integer(c_int), intent (in)    :: dlo(3), dhi(3), dims(3)
   real(c_double), intent (in)    :: s(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
   real(c_double), intent (in)    :: uedge(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+2,dlo(3)-2:dhi(3)+2)
   real(c_double), intent (in)    :: vedge(dlo(1)-2:dhi(1)+2,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+2)
@@ -191,80 +203,89 @@
   dt_dx = dt/hx(1)
   dt_dy = dt/hx(2)
   dt_dz = dt/hx(3)
-  half   = 0.5_dp
+  half  = 0.5_dp
 
   !! compute second order corrections
   !x values
-  do k=ks-1,ke+1
-    do j=js-1,je+1
-      do i=is-1,ie+2
+  if (dims(1) == 1) then
+    do k=ks-1,ke+1
+      do j=js-1,je+1
+        do i=is-1,ie+2
  
-      if (uedge(i,j,k) .ge. 0.0)then
-        ii  = i-1
-      else
-        ii  = i+1
-      endif
+          if (uedge(i,j,k) >= 0.0)then
+            ii  = i-1
+          else
+            ii  = i+1
+          endif
 
-      rx=s(i,j,k)-s(i-1,j,k)
+          rx=s(i,j,k)-s(i-1,j,k)
 
-      thetax=(s(ii,j,k)-s(ii-1,j,k))/rx
-      limx=mclimit(thetax)
-      abs_vel = abs(uedge(i,j,k))
+          if (rx /= 0.0)then
+            thetax=(s(ii,j,k)-s(ii-1,j,k))/rx
+            limx=mclimit(thetax)
+            abs_vel = abs(uedge(i,j,k))
+            sx(i,j,k) = half* abs_vel * &
+            (1.0_dp-dt_dx*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i-1,j,k)))*rx*limx
+          endif
 
-      sx(i,j,k) = half* abs_vel * &
-      (1.0_dp-dt_dx*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i-1,j,k)))*rx*limx
-
+        enddo
       enddo
     enddo
-  enddo
+  endif
 
   !y values
-  do k=ks-1,ke+1
-    do j=js-1,je+2
-      do i=is-1,ie+1
+  if (dims(2) == 1) then
+    do k=ks-1,ke+1
+      do j=js-1,je+2
+        do i=is-1,ie+1
 
-      if (vedge(i,j,k) .ge. 0.0)then
-        jj  = j-1
-      else
-        jj  = j+1
-      endif
+          if (vedge(i,j,k) >= 0.0)then
+            jj  = j-1
+          else
+            jj  = j+1
+          endif
 
-      ry=s(i,j,k)-s(i,j-1,k)
+          ry=s(i,j,k)-s(i,j-1,k)
 
-      thetay=(s(i,jj,k)-s(i,jj-1,k))/ry
-      limy=mclimit(thetay)
-      abs_vel = abs(vedge(i,j,k))
+          if (ry /= 0.0_dp)then
+            thetay=(s(i,jj,k)-s(i,jj-1,k))/ry
+            limy=mclimit(thetay)
+            abs_vel = abs(vedge(i,j,k))
+            sy(i,j,k) = half* abs_vel * &
+            (1.0_dp-dt_dy*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j-1,k)))*ry*limy
+          endif
 
-      sy(i,j,k) = half* abs_vel * &
-      (1.0_dp-dt_dy*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j-1,k)))*ry*limy
-
+        enddo
       enddo
     enddo
-  enddo
+  endif
 
   !z values
-  do k=ks-1,ke+2
-    do j=js-1,je+1
-      do i=is-1,ie+1
+  if (dims(3) == 1) then
+    do k=ks-1,ke+2
+      do j=js-1,je+1
+        do i=is-1,ie+1
 
-      if (wedge(i,j,k) .ge. 0.0)then
-        kk  = k-1
-      else
-        kk  = k+1
-      endif
+          if (wedge(i,j,k) >= 0.0)then
+            kk  = k-1
+          else
+            kk  = k+1
+          endif
 
-      rz=s(i,j,k)-s(i,j,k-1)
+          rz=s(i,j,k)-s(i,j,k-1)
 
-      thetaz=(s(i,j,kk)-s(i,j,kk-1))/rz
-      limz=mclimit(thetaz)
-      abs_vel = abs(wedge(i,j,k))
+          if (rz /= 0.0_dp)then
+            thetaz=(s(i,j,kk)-s(i,j,kk-1))/rz
+            limz=mclimit(thetaz)
+            abs_vel = abs(wedge(i,j,k))
+            sz(i,j,k) = half* abs_vel * &
+            (1.0_dp- dt_dz*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j,k-1)))*rz*limz
+          endif
 
-      sz(i,j,k) = half* abs_vel * &
-      (1.0_dp- dt_dz*abs_vel * max(porsat_inv(i,j,k),porsat_inv(i,j,k-1)))*rz*limz
-
+        enddo
       enddo
     enddo
-  enddo
+  endif
 
   return
   end subroutine advect_highorder
@@ -348,7 +369,7 @@
     ks1 = ks
     ke1 = ke
   endif
-
+  
   !! main loop
   !! compute increment fluxes and second order corrections
   !! compute transverse riemann problem, move fluxes appropriately
@@ -356,19 +377,19 @@
     do j=js1-1,je1+2
       do i=is1-1,ie1+2
   
-      if (uedge(i,j,k) .ge. 0.0)then
+      if (uedge(i,j,k) >= 0.0)then
         ii2 = i
       else
         ii2 = i-1
       endif
   
-      if (vedge(i,j,k) .ge. 0.0)then
+      if (vedge(i,j,k) >= 0.0)then
         jj2 = j
       else
         jj2 = j-1
       endif
 
-      if (wedge(i,j,k) .ge. 0.0)then
+      if (wedge(i,j,k) >= 0.0)then
         kk2 = k
       else
         kk2 = k-1
@@ -389,7 +410,7 @@
       rz=s(i,j,k)-s(i,j,k-1)
   
       
-      if (vx(i,j,k) .gt. 0.0)then
+      if (vx(i,j,k) > 0.0)then
         jjx = j+1
         jjx2 = j+1
       else
@@ -397,19 +418,19 @@
         jjx2 = j-1
       endif
     
-      if (wx(i,j,k) .gt. 0.0)then
+      if (wx(i,j,k) > 0.0)then
         kkx = k+1
       else
         kkx = k
       endif
     
-      if (uy(i,j,k) .gt. 0.0)then
+      if (uy(i,j,k) > 0.0)then
         iiy = i+1
       else
         iiy = i
       endif
     
-      if (wy(i,j,k) .gt. 0.0)then
+      if (wy(i,j,k) > 0.0)then
         kky = k+1
         kky2 = k+1
       else
@@ -417,7 +438,7 @@
         kky2 = k-1
       endif
     
-      if (uz(i,j,k) .gt. 0.0)then
+      if (uz(i,j,k) > 0.0)then
         iiz = i+1
         iiz2 = i+1
       else
@@ -425,7 +446,7 @@
         iiz2 = i-1
       endif
     
-      if (vz(i,j,k) .gt. 0.0)then
+      if (vz(i,j,k) > 0.0)then
         jjz = j+1
       else
         jjz = j
@@ -544,13 +565,13 @@
 !
 !    modeled after Zalesak FCT limiter    
 !-------------------------------------------------------------------------------
-  subroutine advect_limit(sn,sx,sy,sz,dlo,dhi,hx,dt,&
+  subroutine advect_limit(sn,sx,sy,sz,dlo,dhi,hx,dims,dt,&
                    porsat_inv, p_plus,p_minus,q_plus,q_minus,r_plus,r_minus)
   use, intrinsic :: iso_c_binding
 
   implicit none
   integer,  parameter           :: dp = selected_real_kind(15, 307)
-  integer(c_int),  intent(in)   :: dlo(3), dhi(3)
+  integer(c_int), intent(in)    :: dlo(3), dhi(3), dims(3)
   real(c_double), intent(in)    :: dt,hx(3)
   real(c_double), intent(in)    :: sn(dlo(1)-3:dhi(1)+3,dlo(2)-3:dhi(2)+3,dlo(3)-3:dhi(3)+3)
   real(c_double), intent(inout) :: sx(dlo(1)-2:dhi(1)+3,dlo(2)-2:dhi(2)+3,dlo(3)-2:dhi(3)+3) 
@@ -596,12 +617,12 @@
         q_minus(i,j,k) = sn(i,j,k) - min(sn(i-1,j,k),sn(i,j,k),sn(i+1,j,k), sn(i,j-1,k), &
           sn(i,j+1,k), sn(i,j,k-1),sn(i,j,k+1))
 
-        if (p_plus(i,j,k) .gt. 0.0_dp) then
+        if (p_plus(i,j,k) > 0.0_dp) then
           r_plus(i,j,k) = min(q_plus(i,j,k)/p_plus(i,j,k),1.0_dp)
         else
           r_plus(i,j,k) = 0.0_dp
         endif 
-         if (p_minus(i,j,k) .gt. 0.0_dp) then
+         if (p_minus(i,j,k) > 0.0_dp) then
           r_minus(i,j,k) = min(q_minus(i,j,k)/p_minus(i,j,k),1.0_dp)
         else
           r_minus(i,j,k) = 0.0_dp
@@ -612,47 +633,53 @@
     enddo
   enddo
 
-  do k=ks,ke
-    do j=js,je
-      do i=is,ie+1
+  if (dims(1) == 1) then
+    do k=ks,ke
+      do j=js,je
+        do i=is,ie+1
 
-        if (sx(i,j,k) .ge. 0.0_dp) then
-          sx(i,j,k) = sx(i,j,k) * min(r_plus(i,j,k),r_minus(i-1,j,k))
-        else
-          sx(i,j,k) = sx(i,j,k) * min(r_plus(i-1,j,k),r_minus(i,j,k))
-        endif
+          if (sx(i,j,k) >= 0.0_dp) then
+            sx(i,j,k) = sx(i,j,k) * min(r_plus(i,j,k),r_minus(i-1,j,k))
+          else
+            sx(i,j,k) = sx(i,j,k) * min(r_plus(i-1,j,k),r_minus(i,j,k))
+          endif
 
+        enddo
       enddo
     enddo
-  enddo
+  endif
 
-  do k=ks,ke
-    do j=js,je+1
-      do i=is,ie
-   
-        if (sy(i,j,k) .ge. 0.0_dp) then
-           sy(i,j,k) = sy(i,j,k) * min(r_plus(i,j,k),r_minus(i,j-1,k))
-        else
-           sy(i,j,k) = sy(i,j,k) * min(r_plus(i,j-1,k),r_minus(i,j,k))
-        endif
+  if (dims(2) == 1) then
+    do k=ks,ke
+      do j=js,je+1
+        do i=is,ie
+     
+          if (sy(i,j,k) >= 0.0_dp) then
+             sy(i,j,k) = sy(i,j,k) * min(r_plus(i,j,k),r_minus(i,j-1,k))
+          else
+             sy(i,j,k) = sy(i,j,k) * min(r_plus(i,j-1,k),r_minus(i,j,k))
+          endif
 
+        enddo
       enddo
     enddo
-  enddo
+  endif
 
-  do k=ks,ke+1
-    do j=js,je
-      do i=is,ie
-
-        if (sz(i,j,k) .ge. 0.0_dp) then
-           sz(i,j,k) = sz(i,j,k) * min(r_plus(i,j,k),r_minus(i,j,k-1))
-        else
-           sz(i,j,k) = sz(i,j,k) * min(r_plus(i,j,k-1),r_minus(i,j,k))
-        endif
-
+  if (dims(3) == 1) then
+    do k=ks,ke+1
+      do j=js,je
+        do i=is,ie
+  
+          if (sz(i,j,k) >= 0.0_dp) then
+             sz(i,j,k) = sz(i,j,k) * min(r_plus(i,j,k),r_minus(i,j,k-1))
+          else
+             sz(i,j,k) = sz(i,j,k) * min(r_plus(i,j,k-1),r_minus(i,j,k))
+          endif
+  
+        enddo
       enddo
     enddo
-  enddo
+  endif
 
   return
   end subroutine advect_limit
@@ -817,7 +844,7 @@
       implicit none
       real(selected_real_kind(15)) a,b,prod,avg 
       prod = a*b
-      if (prod .gt. 0.0d0) then
+      if (prod > 0.0d0) then
       avg = (abs(a) + abs(b))/2.0d0
       transvel = sign(avg,a)
       else
