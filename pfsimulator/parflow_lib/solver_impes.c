@@ -42,6 +42,7 @@
 #include "pf_alquimia.h"
 
 
+#include <string.h>
 
 /*------------------------------------------------------------------------
  * Structures
@@ -299,7 +300,7 @@ void      SolverImpes()
 
   if (public_xtra->write_silo_subsurf_data)
   {
-    sprintf(file_postfix, "");
+    strcpy(file_postfix,"");
     sprintf(file_type, "perm_x");
     WriteSilo(file_prefix, file_type, file_postfix, ProblemDataPermeabilityX(problem_data),
               t, 0, "PermeabilityX");
@@ -1340,7 +1341,7 @@ void      SolverImpes()
 
       if (public_xtra->write_silo_press)
       {
-        sprintf(file_postfix, "");
+	strcpy(file_postfix, "");
         sprintf(file_type, "press");
         WriteSilo(file_prefix, file_type, file_postfix, pressure,
                   t, file_number, "Pressure");

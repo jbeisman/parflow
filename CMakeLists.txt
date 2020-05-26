@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.9)
 
-project (PARFLOW C Fortran CXX)
+project (PARFLOW LANGUAGES C Fortran CXX)
 
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_C_STANDARD 11)
@@ -84,6 +84,7 @@ if (${PARFLOW_HAVE_OAS3})
 endif (${PARFLOW_HAVE_OAS3})
 
 set (PARFLOW_AMPS_LAYER_REQUIRE_MPI mpi1 smpi oas3)
+set (PARFLOW_TEST_PARALLEL mpi1 smpi)
 
 # Check for MPI only if AMPS requires it
 if ( ${PARFLOW_AMPS_LAYER} IN_LIST PARFLOW_AMPS_LAYER_REQUIRE_MPI )
@@ -172,7 +173,7 @@ if (${PARFLOW_ENABLE_ALQUIMIA} OR DEFINED ALQUIMIA_ROOT)
   #-----------------------------------------------------------------------------
   set (PARFLOW_ENABLE_PFLOTRAN False CACHE BOOL "Build with PFLOTRAN")
   if (${PARFLOW_ENABLE_PFLOTRAN} OR DEFINED PFLOTRAN_ROOT)
-    find_package(Pflotran)
+    find_package(PFLOTRAN)
     if (${PFLOTRAN_FOUND})
       set(PARFLOW_HAVE_PFLOTRAN "yes")
       set(HAVE_PFLOTRAN ${PARFLOW_HAVE_PFLOTRAN})
@@ -194,6 +195,7 @@ if (${PARFLOW_ENABLE_NETCDF} OR DEFINED NETCDF_DIR OR DEFINED NETCDF_INCLUDE_DIR
   if (${NETCDF_FOUND})
     set(PARFLOW_HAVE_NETCDF "yes")
     set(HAVE_NETCDF ${PARFLOW_HAVE_NETCDF})
+    find_package(CURL)
   endif (${NETCDF_FOUND})
 endif (${PARFLOW_ENABLE_NETCDF} OR DEFINED NETCDF_DIR OR DEFINED NETCDF_INCLUDE_DIR OR DEFINED NETCDF_LIBRARY)
 
@@ -509,6 +511,8 @@ if ( ${PARFLOW_ENABLE_LATEX} )
 endif()
 
 install (DIRECTORY ${CMAKE_BINARY_DIR}/config/ DESTINATION config)
+# Test script for docker builds
+install(PROGRAMS bin/parflow-docker-test DESTINATION bin)
 
 #-----------------------------------------------------------------------------
 # Doxygen 

@@ -6,6 +6,9 @@ ORIGIN_DIR=${pwd}
 mkdir ${PARFLOW_DIR}/build ; cd ${PARFLOW_DIR}/build
 cmake .. \
   -DCMAKE_INSTALL_PREFIX=$PARFLOW_DIR \
+  -DCMAKE_C_COMPILER=`which mpicc` \
+  -DCMAKE_CXX_COMPILER=`which mpicxx` \
+  -DCMAKE_Fortran_COMPILER=`which mpif90` \
   -DHYPRE_ROOT=$HYPRE_DIR \
   -DPARFLOW_AMPS_LAYER=mpi1 \
   -DPARFLOW_AMPS_SEQUENTIAL_IO=true \
