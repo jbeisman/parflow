@@ -3119,7 +3119,10 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                             &any_file_dumped, chem_dump_files,
                             instance_xtra->file_number, file_prefix));
 
-          UpdateChemistryMetadata(instance_xtra->alquimia_data->print_flags, advect_react_time, file_prefix, instance_xtra->file_number, &js_outputs);
+          if (chem_dump_files)
+          {
+            UpdateChemistryMetadata(instance_xtra->alquimia_data->print_flags, advect_react_time, file_prefix, instance_xtra->file_number, &js_outputs);
+          }
         }
 #endif
       }
