@@ -37,6 +37,7 @@
 
 
 #ifdef HAVE_ALQUIMIA
+
 void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata, double t, int file_number, 
   char* file_prefix, int *any_file_dumped, Vector **concentrations, Vector **total_immobilePF, Vector **mineral_specific_surfacePF, Vector **mineral_volume_fractionsPF,
   Vector **surface_site_densityPF, Vector **cation_exchange_capacityPF, Vector *pH, Vector **aqueous_kinetic_ratePF, Vector **mineral_saturation_indexPF, 
@@ -401,5 +402,230 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
 		*any_file_dumped = 1;
 	}
 }
+
+void CreateChemMetadataEntry(MetadataItem *js_outputs, AlquimiaVectorString *names, char* file_prefix, char *postfix_format,
+	const char* field_name, const char* field_units, int size, double time)
+{
+	const char *file_postfix[size];
+	const char *component_names[size];
+	char temp[2048];
+	if (names)
+	{
+		for(int i = 0; i < size; i++)
+		{
+			sprintf(temp, postfix_format, i, names->data[i]);
+			file_postfix[i] = strdup(temp);
+			component_names[i] = names->data[i];
+		}
+	}
+	else
+	{
+		for(int i = 0; i < size; i++)
+		{
+			sprintf(temp, postfix_format, i);
+			file_postfix[i] = strdup(temp);
+			sprintf(temp, "%d", i);
+			component_names[i] = strdup(temp);
+		}
+
+	}
+	MetadataAddDynamicField(*js_outputs, file_prefix, time, 0, field_name, field_units, "cell", "subsurface",
+                           size, file_postfix, component_names);
+	for (int i = 0; i < size; i++) free((char *)file_postfix[i]);
+
+	if (!names) { for (int i = 0; i < size; i++) free((char *)component_names[i]); }
+}
+
+void CreateChemistryMetadata(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata, double t,
+  char* file_prefix, MetadataItem *js_outputs)
+{
+    if (print_flags->print_primary_mobile)
+	{
+		char *postfix_fmt = "PrimaryMobile.%02d.%s";
+		char *field_name  = "PrimaryMobile";
+		char *field_units = "mol l^-1";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->primary_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_primary, t);
+	}
+
+	if (print_flags->print_sorbed && chem_sizes->num_sorbed > 0)
+	{
+        char *postfix_fmt = "PrimarySorbed.%02d.%s";
+        char *field_name  = "PrimarySorbed";
+		char *field_units = "mol m^-3";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->primary_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_primary, t);
+	}
+
+	if (print_flags->print_mineral_volfx)
+	{
+        char *postfix_fmt = "MineralVolfx.%02d.%s";
+        char *field_name  = "MineralVolfx";
+		char *field_units =  "[-]";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->mineral_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_minerals, t);
+	}
+
+	if (print_flags->print_mineral_surfarea)
+	{
+        char *postfix_fmt = "MineralSurfArea.%02d.%s";
+        char *field_name  = "MineralSurfArea";
+		char *field_units = "m^2 m^-3";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->mineral_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_minerals, t);
+	}
+
+	if (print_flags->print_mineral_SI)
+	{
+        char *postfix_fmt = "MineralSI.%02d.%s";
+        char *field_name  = "MineralSI";
+		char *field_units =  "[-]";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->mineral_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_minerals, t);
+	}
+
+	if (print_flags->print_mineral_rate)
+	{
+        char *postfix_fmt = "MineralRate.%02d.%s";
+        char *field_name  = "MineralRate";
+		char *field_units = "mol m^-3 s^-1";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->mineral_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_minerals, t);
+	}
+
+	if (print_flags->print_surf_dens)
+	{
+        char *postfix_fmt = "SurfSiteDens.%02d.%s";
+        char *field_name  = "SurfSiteDens";
+		char *field_units = "mol m^-3";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->surface_site_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_surface_sites, t);
+	}
+
+	if (print_flags->print_CEC)
+	{
+        char *postfix_fmt = "CEC.%02d.%s";
+        char *field_name  = "CEC";
+		char *field_units = "mol m^-3";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->ion_exchange_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_ion_exchange_sites, t);
+	}
+
+	if (print_flags->print_pH)
+	{
+        const char *postfix_fmt[] = {"pH"};
+        char *field_name  = "pH";
+		char *field_units =  "[-]";
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, 0, field_name, field_units, "cell", "subsurface",
+                           1, postfix_fmt, NULL);
+	}
+
+	if (print_flags->print_aqueous_rate)
+	{
+        char *postfix_fmt = "AqueousRate.%02d.%s";
+        char *field_name  = "AqueousRate";
+		char *field_units = "mol m^-3 s^-1";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->aqueous_kinetic_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_aqueous_kinetics, t);
+	}
+
+	if (print_flags->print_primary_freeion)
+	{
+        char *postfix_fmt = "PrimaryFreeIon.%02d.%s";
+        char *field_name  = "PrimaryFreeIon";
+		char *field_units = "mol kg^-1 H2O";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->primary_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_primary, t);
+	}
+
+	if (print_flags->print_primary_activity)
+	{
+        char *postfix_fmt = "PrimaryActivity.%02d.%s";
+        char *field_name  = "PrimaryActivity";
+		char *field_units =  "[-]";
+		CreateChemMetadataEntry(js_outputs, &chem_metadata->primary_names, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_primary, t);
+	}
+
+	if (print_flags->print_secondary_freeion)
+	{
+        char *postfix_fmt = "SecondaryFreeIon.%02d";
+        char *field_name  = "SecondaryFreeIon";
+		char *field_units = "mol kg^-1 H2O";
+		CreateChemMetadataEntry(js_outputs, NULL, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_aqueous_complexes, t);
+	}
+
+	if (print_flags->print_secondary_activity)
+	{
+        char *postfix_fmt = "SecondaryActivity.%02d";
+        char *field_name  = "SecondaryActivity";
+		char *field_units =  "[-]";
+		CreateChemMetadataEntry(js_outputs, NULL, file_prefix, postfix_fmt, field_name, field_units, chem_sizes->num_aqueous_complexes, t);
+	}
+}
+
+
+void UpdateChemistryMetadata(ChemPrintFlags *print_flags, double t, char* file_prefix, int file_number, MetadataItem *js_outputs)
+{
+    if (print_flags->print_primary_mobile)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "PrimaryMobile", "mol l^-1", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_sorbed)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "PrimarySorbed", "mol m^-3", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_mineral_volfx)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "MineralVolfx", "[-]", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_mineral_surfarea)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "MineralSurfArea", "m^2 m^-3", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_mineral_SI)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "MineralSI", "[-]", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_mineral_rate)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "MineralRate", "mol m^-3 s^-1", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_surf_dens)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "SurfSiteDens", "mol m^-3", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_CEC)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "CEC", "mol m^-3", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_pH)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "pH", "[-]", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_aqueous_rate)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "AqueousRate", "mol m^-3 s^-1", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_primary_freeion)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "PrimaryFreeIon", "mol kg^-1 H2O", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_primary_activity)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "PrimaryActivity", "[-]", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_secondary_freeion)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "SecondaryFreeIon", "mol kg^-1 H2O", "cell", "subsurface", 0, NULL, NULL);
+	}
+
+	if (print_flags->print_secondary_activity)
+	{
+		MetadataAddDynamicField(*js_outputs, file_prefix, t, file_number, "SecondaryActivity", "[-]", "cell", "subsurface", 0, NULL, NULL);
+	}
+}
+
 #endif
 

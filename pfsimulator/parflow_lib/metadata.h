@@ -72,7 +72,8 @@ int MetadataAddDynamicField(
                             const char*  field_placement,
                             const char*  field_domain,
                             int          num_field_components,
-                            const char** field_component_postfixes);
+                            const char** field_component_postfixes,
+                            const char** component_names);
 int MetadataAddForcingField(
                             cJSON*       parent,
                             const char*  field_name,

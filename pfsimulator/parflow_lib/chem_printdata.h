@@ -29,6 +29,9 @@
 #ifndef CHEM_PRINTDATA_H
 #define CHEM_PRINTDATA_H
 
+#include "metadata.h"
+
+
 /* chem_printdata.c */
 void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata,
                         double t, int file_number, char* file_prefix, int *any_file_dumped, Vector **concentrations, 
@@ -36,5 +39,13 @@ void PrintChemistryData(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, 
                         Vector **cation_exchange_capacityPF, Vector *pH, Vector **aqueous_kinetic_ratePF, Vector **mineral_saturation_indexPF, 
                         Vector **mineral_reaction_ratePF, Vector **primary_free_ion_concentrationPF, Vector **primary_activity_coeffPF, 
                         Vector **secondary_free_ion_concentrationPF, Vector **secondary_activity_coeffPF);
+
+void CreateChemistryMetadata(ChemPrintFlags *print_flags, AlquimiaSizes *chem_sizes, AlquimiaProblemMetaData *chem_metadata, double t,
+                             char* file_prefix, MetadataItem *js_outputs);
+
+void CreateChemMetadataEntry(MetadataItem *js_outputs, AlquimiaVectorString *names, char* file_prefix, char *postfix_format,
+	                         const char* field_name, const char* field_units, int size, double time);
+
+void UpdateChemistryMetadata(ChemPrintFlags *print_flags, double t, char* file_prefix, int file_number, MetadataItem *js_outputs);
 #endif
 

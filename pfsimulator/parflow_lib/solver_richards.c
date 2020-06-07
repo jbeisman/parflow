@@ -1272,6 +1272,9 @@ SetupRichards(PFModule * this_module)
                          instance_xtra->concentrations, instance_xtra->saturation, 
                          &any_file_dumped, 1, t, 
                          instance_xtra->file_number, file_prefix));
+
+      CreateChemistryMetadata(instance_xtra->alquimia_data->print_flags, &instance_xtra->alquimia_data->chem_sizes,
+                             &instance_xtra->alquimia_data->chem_metadata, t, file_prefix, &js_outputs);
     }
 #endif
 
@@ -1320,7 +1323,7 @@ SetupRichards(PFModule * this_module)
       MetadataAddDynamicField(
                               js_outputs, file_prefix, t, 0, "pressure", "m", "cell", "subsurface",
                               sizeof(press_filenames) / sizeof(press_filenames[0]),
-                              press_filenames);
+                              press_filenames, NULL);
     }
 
     if (public_xtra->write_silo_press)
@@ -1369,7 +1372,7 @@ SetupRichards(PFModule * this_module)
       MetadataAddDynamicField(
                               js_outputs, file_prefix, t, 0, "saturation", NULL, "cell", "subsurface",
                               sizeof(satur_filenames) / sizeof(satur_filenames[0]),
-                              satur_filenames);
+                              satur_filenames, NULL);
     }
 
     if (public_xtra->write_silo_satur)
@@ -1570,7 +1573,7 @@ SetupRichards(PFModule * this_module)
       MetadataAddDynamicField(
                               js_outputs, file_prefix, t, 0, "velocity", "m/s", "cell", "subsurface",
                               sizeof(mask_filenames) / sizeof(mask_filenames[0]),
-                              mask_filenames);
+                              mask_filenames, NULL);
     }
 
     /*-----------------------------------------------------------------
@@ -3115,9 +3118,10 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
                             instance_xtra->concentrations, instance_xtra->sat_transport_end, advect_react_dt, advect_react_time,
                             &any_file_dumped, chem_dump_files,
                             instance_xtra->file_number, file_prefix));
+
+          UpdateChemistryMetadata(instance_xtra->alquimia_data->print_flags, advect_react_time, file_prefix, instance_xtra->file_number, &js_outputs);
         }
 #endif
-
       }
     }
     
@@ -3180,7 +3184,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         // Update with new timesteps
         MetadataAddDynamicField(
                                 js_outputs, file_prefix, t, instance_xtra->file_number,
-                                "pressure", "m", "cell", "subsurface", 0, NULL);
+                                "pressure", "m", "cell", "subsurface", 0, NULL, NULL);
       }
 
       if (public_xtra->write_silo_press)
@@ -3231,7 +3235,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         // Update with new timesteps
         MetadataAddDynamicField(
                                 js_outputs, file_prefix, t, instance_xtra->file_number,
-                                "velocity", "m/s", "cell", "subsurface", 0, NULL);
+                                "velocity", "m/s", "cell", "subsurface", 0, NULL, NULL);
       }
 
         
@@ -3270,7 +3274,7 @@ AdvanceRichards(PFModule * this_module, double start_time,      /* Starting time
         // Update with new timesteps
         MetadataAddDynamicField(
                                 js_outputs, file_prefix, t, instance_xtra->file_number,
-                                "saturation", "1/m", "cell", "subsurface", 0, NULL);
+                                "saturation", "1/m", "cell", "subsurface", 0, NULL, NULL);
       }
 
       if (public_xtra->write_silo_satur)

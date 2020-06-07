@@ -413,7 +413,8 @@ int MetadataAddDynamicField(
                             const char*  field_placement,
                             const char*  field_domain,
                             int          num_field_components,
-                            const char** field_component_postfixes)
+                            const char** field_component_postfixes,
+                            const char** component_names)
 {
   (void)time;
 
@@ -457,7 +458,7 @@ int MetadataAddDynamicField(
       snprintf(temp, 2047, "%s.%s.%%05d.pfb", file_prefix, field_component_postfixes[ii]);
       cJSON_AddItemToObject(file_descr, "file-series", cJSON_CreateString(temp));
       cJSON_AddItemToObject(file_descr, "time-range", time_range);
-      if (num_field_components > 1)
+      if (num_field_components > 1 && !component_names)
       {
         if (num_field_components < 4)
         {
@@ -468,6 +469,11 @@ int MetadataAddDynamicField(
         {
           snprintf(temp, 2047, "%d", ii);
         }
+        cJSON_AddItemToObject(file_descr, "component", cJSON_CreateString(temp));
+      }
+      if (component_names)
+      {
+        snprintf(temp, 2047, "%s", component_names[ii]);
         cJSON_AddItemToObject(file_descr, "component", cJSON_CreateString(temp));
       }
       cJSON_AddItemToArray(time_range, cJSON_CreateNumber(step));
