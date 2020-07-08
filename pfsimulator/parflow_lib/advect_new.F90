@@ -149,7 +149,7 @@
     enddo
   enddo
 
-  ! clear memory for resuse in other advect subroutines
+  ! clear memory for reuse in other advect subroutines
   if (dims(1) == 1) fx = 0.0_dp
   if (dims(2) == 1) fy = 0.0_dp
   if (dims(3) == 1) fz = 0.0_dp
@@ -586,11 +586,11 @@
   real(c_double), intent(out)   :: r_minus(dlo(1)-1:dhi(1)+2,dlo(2)-1:dhi(2)+2,dlo(3)-1:dhi(3)+2)
 
   integer  is,ie,js,je,ks,ke,i,j,k 
-  real(dp) dx_inv,dy_inv,dz_inv
+  real(dp) dt_dx,dt_dy,dt_dz
 
-  dx_inv = 1.0_dp/hx(1)
-  dy_inv = 1.0_dp/hx(2)
-  dz_inv = 1.0_dp/hx(3)
+  dt_dx = dt/hx(1)
+  dt_dy = dt/hx(2)
+  dt_dz = dt/hx(3)
 
   is = dlo(1)
   ie = dhi(1)
@@ -603,13 +603,13 @@
     do j=js-1,je+1
       do i=is-1,ie+1
 
-        p_plus(i,j,k) = (dt*dx_inv)*(max(0.0_dp,sx(i,j,k)) - min(0.0_dp,sx(i+1,j,k))) + &
-        (dt*dy_inv)*(max(0.0_dp,sy(i,j,k)) - min(0.0_dp,sy(i,j+1,k))) + &
-        (dt*dz_inv)*(max(0.0_dp,sz(i,j,k)) - min(0.0_dp,sz(i,j,k+1))) * porsat_inv(i,j,k)
+        p_plus(i,j,k) = dt_dx*(max(0.0_dp,sx(i,j,k)) - min(0.0_dp,sx(i+1,j,k))) + &
+        dt_dy*(max(0.0_dp,sy(i,j,k)) - min(0.0_dp,sy(i,j+1,k))) + &
+        dt_dz*(max(0.0_dp,sz(i,j,k)) - min(0.0_dp,sz(i,j,k+1)))
 
-        p_minus(i,j,k) = (dt*dx_inv)*(max(0.0_dp,sx(i+1,j,k)) - min(0.0_dp,sx(i,j,k))) + &
-        (dt*dy_inv)*(max(0.0_dp,sy(i,j+1,k)) - min(0.0_dp,sy(i,j,k))) + &
-        (dt*dz_inv)*(max(0.0_dp,sz(i,j,k+1)) - min(0.0_dp,sz(i,j,k))) * porsat_inv(i,j,k)
+        p_minus(i,j,k) = dt_dx*(max(0.0_dp,sx(i+1,j,k)) - min(0.0_dp,sx(i,j,k))) + &
+        dt_dy*(max(0.0_dp,sy(i,j+1,k)) - min(0.0_dp,sy(i,j,k))) + &
+        dt_dz*(max(0.0_dp,sz(i,j,k+1)) - min(0.0_dp,sz(i,j,k)))
 
         q_plus(i,j,k) =  max(sn(i-1,j,k),sn(i,j,k),sn(i+1,j,k), sn(i,j-1,k),sn(i,j+1,k), &
           sn(i,j,k-1),sn(i,j,k+1)) - sn(i,j,k)
@@ -618,12 +618,12 @@
           sn(i,j+1,k), sn(i,j,k-1),sn(i,j,k+1))
 
         if (p_plus(i,j,k) > 0.0_dp) then
-          r_plus(i,j,k) = min(q_plus(i,j,k)/p_plus(i,j,k),1.0_dp)
+          r_plus(i,j,k) = min(q_plus(i,j,k)/(p_plus(i,j,k)*porsat_inv(i,j,k)),1.0_dp)
         else
           r_plus(i,j,k) = 0.0_dp
         endif 
-         if (p_minus(i,j,k) > 0.0_dp) then
-          r_minus(i,j,k) = min(q_minus(i,j,k)/p_minus(i,j,k),1.0_dp)
+        if (p_minus(i,j,k) > 0.0_dp) then
+          r_minus(i,j,k) = min(q_minus(i,j,k)/(p_minus(i,j,k)*porsat_inv(i,j,k)),1.0_dp)
         else
           r_minus(i,j,k) = 0.0_dp
         endif
