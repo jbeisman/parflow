@@ -75,13 +75,7 @@ NewSolver()
 
   char *switch_name;
 
-  int solver;
-  int switch_value;
-  NameArray solver_na;
-  NameArray switch_na;
-
-  solver_na = NA_NewNameArray("Richards Diffusion Impes");
-  switch_na = NA_NewNameArray("False True");
+  int solver, chem;
 
   /*-----------------------------------------------------------------------
    * Read global solver input
@@ -114,7 +108,6 @@ NewSolver()
    * Initialize SAMRAI hierarchy
    *-----------------------------------------------------------------------*/
   // SGS FIXME is this a good place for this?  need UserGrid
-
 #ifdef HAVE_SAMRAI
   // SGS FIXME is this correct for restarts?
   double time = 0.0;
@@ -122,22 +115,35 @@ NewSolver()
 #endif
 
   {
+    NameArray chem_na;
+    chem_na = NA_NewNameArray("False True");
+    sprintf(key, "Solver.Chemistry");
+    chem_name = GetStringDefault(key, "False");
+    chem = NA_NameToIndex(chem_na, chem_name);
+    NA_FreeNameArray(chem_na);
+    if (chem < 0)
+    {
+      InputError("Error: invalid value <%s> for key <%s>. Options are <True> or <False>.\n",
+               chem_name, key);
+    }
+    GlobalsChemistryFlag = chem;
+  }
+
+  {
     NameArray solver_na;
     solver_na = NA_NewNameArray("Richards Diffusion Impes");
-    switch_name = GetStringDefault("Solver", "Impes");
+    sprintf(key, "Solver.Chemistry");
+    switch_name = GetStringDefault(key, "Impes");
     solver = NA_NameToIndex(solver_na, switch_name);
     NA_FreeNameArray(solver_na);
   }
 
-    sprintf(key, "Solver.Chemistry");
-  switch_name = GetStringDefault(key, "False");
-  switch_value = NA_NameToIndex(switch_na, switch_name);
-  if (switch_value < 0)
-  {
-    InputError("Error: invalid value <%s> for key <%s>\n",
-               switch_name, key);
-  }
-  GlobalsChemistryFlag = switch_value;
+  /*-----------------------------------------------------------------------
+   * Copy Globals struct to GPU (does not copy all unneccessary data)
+   *-----------------------------------------------------------------------*/
+#if PARFLOW_ACC_BACKEND == PARFLOW_BACKEND_CUDA
+  CopyGlobalsToDevice();
+#endif
 
   switch (solver)
   {

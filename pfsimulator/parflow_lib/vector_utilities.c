@@ -63,7 +63,7 @@
  * PFVScaleBy(a, x)                  x = x * a
  *
  * PFVLayerCopy (a, b, x, y)         NBE: Extracts layer b from vector y, inserts into layer a of vector x
- * PFVMinVector (x, y, z)            z = min(x,y) JJB
+ * PFVMinVector (x, y, z)            z_i = min(x_i, y_i) JJB
  * PFVInvProd(x, y, z)               z_i = 1 / (x_i * y_i) JJB
  ****************************************************************************/
 
@@ -94,7 +94,9 @@ void PFVLinearSum(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *yp, *xp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -235,7 +237,7 @@ void PFVConstInit(
 
   Subvector  *z_sub;
 
-  double     *zp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -285,7 +287,9 @@ void PFVProd(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *yp, *xp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -355,7 +359,9 @@ void PFVDiv(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *yp, *xp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -423,7 +429,8 @@ void PFVScale(
   Subvector  *x_sub;
   Subvector  *z_sub;
 
-  double     *xp, *zp;
+  const double * __restrict__ xp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -498,7 +505,8 @@ void PFVAbs(
   Subvector  *x_sub;
   Subvector  *z_sub;
 
-  double     *xp, *zp;
+  const double * __restrict__ xp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -555,7 +563,8 @@ void PFVInv(
   Subvector  *x_sub;
   Subvector  *z_sub;
 
-  double     *xp, *zp;
+  const double * __restrict__ xp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -614,7 +623,8 @@ void PFVAddConst(
   Subvector  *x_sub;
   Subvector  *z_sub;
 
-  double     *xp, *zp;
+  const double * __restrict__ xp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -672,7 +682,8 @@ double PFVDotProd(
   Subvector  *x_sub;
   Subvector  *y_sub;
 
-  double     *yp, *xp;
+  const double * __restrict__ yp;
+  const double * __restrict__ xp;
   double sum = ZERO;
 
   int ix, iy, iz;
@@ -712,11 +723,13 @@ double PFVDotProd(
 
     i_x = 0;
     i_y = 0;
-    BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+
+    BoxLoopReduceI2(sum,
+              i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
               i_y, nx_y, ny_y, nz_y, 1, 1, 1,
     {
-      sum += xp[i_x] * yp[i_y];
+      ReduceSum(sum, xp[i_x] * yp[i_y]);
     });
   }
 
@@ -738,7 +751,7 @@ double PFVMaxNorm(
 
   Subvector  *x_sub;
 
-  double     *xp;
+  const double * __restrict__ xp;
   double max_val = ZERO;
 
   int ix, iy, iz;
@@ -770,11 +783,12 @@ double PFVMaxNorm(
     xp = SubvectorElt(x_sub, ix, iy, iz);
 
     i_x = 0;
-    BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+    BoxLoopReduceI1(max_val,
+              i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
     {
-      if (fabs(xp[i_x]) > max_val)
-        max_val = fabs(xp[i_x]);
+      double xp_abs = fabs(xp[i_x]);
+      ReduceMax(max_val, xp_abs);
     });
   }
 
@@ -796,8 +810,9 @@ double PFVWrmsNorm(
   Subvector  *x_sub;
   Subvector  *w_sub;
 
-  double     *xp, *wp;
-  double prod, sum = ZERO;
+  const double * __restrict__ wp;
+  const double * __restrict__ xp;
+  double sum = ZERO;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -836,12 +851,14 @@ double PFVWrmsNorm(
 
     i_x = 0;
     i_w = 0;
-    BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+
+    BoxLoopReduceI2(sum,
+              i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
               i_w, nx_w, ny_w, nz_w, 1, 1, 1,
     {
-      prod = xp[i_x] * wp[i_w];
-      sum += prod * prod;
+      double prod = xp[i_x] * wp[i_w];
+      ReduceSum(sum, prod * prod);
     });
   }
 
@@ -865,8 +882,9 @@ double PFVWL2Norm(
   Subvector  *x_sub;
   Subvector  *w_sub;
 
-  double     *xp, *wp;
-  double prod, sum = ZERO;
+  const double * __restrict__ wp;
+  const double * __restrict__ xp;
+  double sum = ZERO;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -905,12 +923,14 @@ double PFVWL2Norm(
 
     i_x = 0;
     i_w = 0;
-    BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
+
+    BoxLoopReduceI2(sum,
+              i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
               i_w, nx_w, ny_w, nz_w, 1, 1, 1,
     {
-      prod = xp[i_x] * wp[i_w];
-      sum += prod * prod;
+      const double prod = xp[i_x] * wp[i_w];
+      ReduceSum(sum, prod * prod);
     });
   }
 
@@ -932,7 +952,7 @@ double PFVL1Norm(
 
   Subvector  *x_sub;
 
-  double     *xp;
+  const double * __restrict__ xp;
   double sum = ZERO;
 
   int ix, iy, iz;
@@ -964,10 +984,11 @@ double PFVL1Norm(
     xp = SubvectorElt(x_sub, ix, iy, iz);
 
     i_x = 0;
-    BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+    BoxLoopReduceI1(sum,
+              i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
     {
-      sum += fabs(xp[i_x]);
+      ReduceSum(sum, fabs(xp[i_x]));
     });
   }
 
@@ -987,8 +1008,8 @@ double PFVMin(
 
   Subvector  *x_sub;
 
-  double     *xp;
-  double min_val;
+  const double * __restrict__ xp;
+  double min_val = ZERO;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1026,19 +1047,20 @@ double PFVMin(
     if (sg == 0)
     {
       i_x = 0;
-      BoxLoopI1(i, j, k, ix, iy, iz, 1, 1, 1,
+      BoxLoopReduceI1(min_val,
+                i, j, k, ix, iy, iz, 1, 1, 1,
                 i_x, nx_x, ny_x, nz_x, 1, 1, 1,
       {
-        min_val = xp[i_x];
+        ReduceSum(min_val, xp[i_x]);
       });
     }
 
     i_x = 0;
-    BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+    BoxLoopReduceI1(min_val,
+              i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
     {
-      if (xp[i_x] < min_val)
-        min_val = xp[i_x];
+      ReduceMin(min_val, xp[i_x]);
     });
   }
 
@@ -1057,8 +1079,8 @@ double PFVMax(
 
   Subvector  *x_sub;
 
-  double     *xp;
-  double max_val;
+  const double * __restrict__ xp;
+  double max_val = ZERO;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1092,19 +1114,21 @@ double PFVMax(
     if (sg == 0)
     {
       i_x = 0;
-      BoxLoopI1(i, j, k, ix, iy, iz, 1, 1, 1,
+      BoxLoopReduceI1(max_val,
+                i, j, k, ix, iy, iz, 1, 1, 1,
                 i_x, nx_x, ny_x, nz_x, 1, 1, 1,
       {
-        max_val = xp[i_x];
+        ReduceSum(max_val, xp[i_x]);
       });
     }
 
     i_x = 0;
-    BoxLoopI1(i, j, k, ix, iy, iz, nx, ny, nz,
+
+    BoxLoopReduceI1(max_val,
+              i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
     {
-      if (xp[i_x] > max_val)
-        max_val = xp[i_x];
+      ReduceMax(max_val, xp[i_x]);
     });
   }
 
@@ -1127,7 +1151,10 @@ int PFVConstrProdPos(
   Subvector  *c_sub;
   Subvector  *x_sub;
 
-  double     *xp, *cp;
+  const double * __restrict__ cp;
+  const double * __restrict__ xp;
+
+  int *val = talloc(int, 1);
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1135,8 +1162,6 @@ int PFVConstrProdPos(
   int nx_c, ny_c, nz_c;
 
   int sg, i, j, k, i_x, i_c;
-
-  int val;
 
   amps_Invoice result_invoice;
 
@@ -1166,7 +1191,7 @@ int PFVConstrProdPos(
     xp = SubvectorElt(x_sub, ix, iy, iz);
     cp = SubvectorElt(c_sub, ix, iy, iz);
 
-    val = 1;
+    *val = 1;
     i_c = 0;
     i_x = 0;
     BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
@@ -1176,19 +1201,25 @@ int PFVConstrProdPos(
       if (cp[i_c] != ZERO)
       {
         if ((xp[i_x] * cp[i_c]) <= ZERO)
-          val = 0;
+          *val = 0;
       }
     });
   }
 
-  result_invoice = amps_NewInvoice("%i", &val);
+  result_invoice = amps_NewInvoice("%i", val);
   amps_AllReduce(amps_CommWorld, result_invoice, amps_Min);
   amps_FreeInvoice(result_invoice);
 
-  if (val == 0)
+  if (*val == 0)
+  {
+    tfree(val);
     return(FALSE);
+  }
   else
+  {
+    tfree(val);
     return(TRUE);
+  }
 }
 
 void PFVCompare(
@@ -1203,7 +1234,8 @@ void PFVCompare(
   Subvector  *x_sub;
   Subvector  *z_sub;
 
-  double     *xp, *zp;
+  const double * __restrict__ xp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1261,8 +1293,10 @@ int PFVInvTest(
   Subvector  *x_sub;
   Subvector  *z_sub;
 
-  double     *xp, *zp;
-  int val;
+  const double * __restrict__ xp;
+  double * __restrict__ zp;
+
+  int *val = talloc(int, 1);
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1301,26 +1335,32 @@ int PFVInvTest(
 
     i_x = 0;
     i_z = 0;
-    val = 1;
+    *val = 1;
     BoxLoopI2(i, j, k, ix, iy, iz, nx, ny, nz,
               i_x, nx_x, ny_x, nz_x, 1, 1, 1,
               i_z, nx_z, ny_z, nz_z, 1, 1, 1,
     {
       if (xp[i_x] == ZERO)
-        val = 0;
+        *val = 0;
       else
         zp[i_z] = ONE / (xp[i_x]);
     });
   }
 
-  result_invoice = amps_NewInvoice("%i", &val);
+  result_invoice = amps_NewInvoice("%i", val);
   amps_AllReduce(amps_CommWorld, result_invoice, amps_Min);
   amps_FreeInvoice(result_invoice);
 
-  if (val == 0)
+  if (*val == 0)
+  {
+    tfree(val);
     return(FALSE);
+  }
   else
+  {
+    tfree(val);
     return(TRUE);
+  }
 }
 
 
@@ -1347,7 +1387,7 @@ void PFVCopy(Vector *x,
     Subvector  *x_sub = VectorSubvector(x, sg);
     Subvector  *y_sub = VectorSubvector(y, sg);
 
-    memcpy(SubvectorData(y_sub), SubvectorData(x_sub), SubvectorDataSize(y_sub)*sizeof(double));
+    tmemcpy(SubvectorData(y_sub), SubvectorData(x_sub), SubvectorDataSize(y_sub)*sizeof(double));
   }
 }
 
@@ -1364,7 +1404,9 @@ void PFVSum(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *xp, *yp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1433,7 +1475,9 @@ void PFVDiff(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *xp, *yp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1501,7 +1545,8 @@ void PFVNeg(
   Subvector  *x_sub;
   Subvector  *z_sub;
 
-  double     *xp, *zp;
+  const double * __restrict__ xp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1562,7 +1607,9 @@ void PFVScaleSum(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *xp, *yp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1633,7 +1680,9 @@ void PFVScaleDiff(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *xp, *yp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1704,7 +1753,9 @@ void PFVLin1(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *xp, *yp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1775,7 +1826,9 @@ void PFVLin2(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *xp, *yp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1844,7 +1897,8 @@ void PFVAxpy(
   Subvector  *x_sub;
   Subvector  *y_sub;
 
-  double     *xp, *yp;
+  const double * __restrict__ xp;
+  double * __restrict__ yp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1902,7 +1956,7 @@ void PFVScaleBy(
 
   Subvector  *x_sub;
 
-  double     *xp;
+  double * __restrict__ xp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -1954,7 +2008,8 @@ void PFVLayerCopy(
   Subvector  *x_sub;
   Subvector  *y_sub;
 
-  double     *xp, *yp;
+  const double * __restrict__ yp;
+  double * __restrict__ xp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -2026,7 +2081,7 @@ void PFVLayerCopy(
 }
 
 void PFVMinVector(
-/* Diff : z = min(x, y)  */
+/* Diff : z_i = min(x_i, y_i)  */
              Vector *x,
              Vector *y,
              Vector *z)
@@ -2038,7 +2093,9 @@ void PFVMinVector(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *xp, *yp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -2089,10 +2146,9 @@ void PFVMinVector(
               i_y, nx_y, ny_y, nz_y, 1, 1, 1,
               i_z, nx_z, ny_z, nz_z, 1, 1, 1,
     {
-      zp[i_z] = pfmin(xp[i_x], yp[i_y]);
+      zp[i_z] = (xp[i_x] >= yp[i_x]) ? yp[i_x] : xp[i_x];
     });
   }
-  IncFLOPCount(VectorSize(x));
 }
 
 void PFVInvProd(
@@ -2108,7 +2164,9 @@ void PFVInvProd(
   Subvector  *y_sub;
   Subvector  *z_sub;
 
-  double     *yp, *xp, *zp;
+  const double * __restrict__ xp;
+  const double * __restrict__ yp;
+  double * __restrict__ zp;
 
   int ix, iy, iz;
   int nx, ny, nz;
@@ -2162,5 +2220,5 @@ void PFVInvProd(
       zp[i_z] =  ONE / (xp[i_x] * yp[i_y]);
     });
   }
-  IncFLOPCount(VectorSize(x));
+  IncFLOPCount(2 * VectorSize(x));
 }
