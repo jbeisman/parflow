@@ -132,8 +132,7 @@ NewSolver()
   {
     NameArray solver_na;
     solver_na = NA_NewNameArray("Richards Diffusion Impes");
-    sprintf(key, "Solver.Chemistry");
-    switch_name = GetStringDefault(key, "Impes");
+    switch_name = GetStringDefault("Solver", "Impes");
     solver = NA_NameToIndex(solver_na, switch_name);
     NA_FreeNameArray(solver_na);
   }
@@ -171,10 +170,6 @@ NewSolver()
                  key);
     }
   }
-
-  NA_FreeNameArray(solver_na);
-  NA_FreeNameArray(switch_na);
-
 }
 
 /*--------------------------------------------------------------------------
