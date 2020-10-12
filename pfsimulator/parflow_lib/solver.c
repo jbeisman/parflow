@@ -73,7 +73,7 @@ NewSolver()
 {
   char key[IDB_MAX_KEY_LEN];
 
-  char *switch_name;
+  char *switch_name, *chem_name;
 
   int solver, chem;
 

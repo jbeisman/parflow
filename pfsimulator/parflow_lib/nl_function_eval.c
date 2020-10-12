@@ -31,6 +31,7 @@
 #include "llnltyps.h"
 //#include "math.h"
 #include "float.h"
+#include "pf_alquimia.h"
 
 /*---------------------------------------------------------------------
  * Define module structures
@@ -191,19 +192,12 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
   Subvector   *p_sub, *d_sub, *od_sub, *s_sub, *os_sub, *po_sub, *op_sub, *ss_sub, *et_sub;
   Subvector   *f_sub, *rp_sub, *permx_sub, *permy_sub, *permz_sub;
 
-  Subvector   *vx_sub, *vy_sub, *vz_sub;  //jjb
-  double      *vx, *vy, *vz;  //jjb
-///<<<<<<< HEAD
-  //int vxi, vyi, vzi;         //jjb
-  //int vel_dir0 = 0;
-  //int vel_dir[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
-  Vector *vel_vec[3];
-  Subvector *vtemp_sub;
-  double *vel;
-  double vel_h[3];
-///=======
-///>>>>>>> 5e87b1602bc4daa4ae4aa255e3f25c748bfb4a2d
-
+  // Velocity data jjb
+  Vector      *vel_vec[3];
+  Subvector   *vx_sub, *vy_sub, *vz_sub;  
+  double      *vx, *vy, *vz;  
+  double      vel_h[3];
+  
   Grid        *grid = VectorGrid(pressure);
   Grid        *grid2d = VectorGrid(x_sl);
 
@@ -878,7 +872,7 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
       ForPatchCellsPerFace(DirichletBC,
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int dir, ip;
+                           Locals(int dir, vel_dir[2], ip;
                                   double diff, u_new, u_old, value;
                                   double x_dir_g, y_dir_g, z_dir_g;
                                   double sep, lower_cond, upper_cond;
@@ -908,7 +902,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(LeftFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - 1] - pp[ip];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip - 1], pp[ip], permxp[ip - 1], permxp[ip])
@@ -934,7 +929,9 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(RightFace,
                            {
-                             dir = 1;
+                            printf("RIGHTFACE!!!!!!!!!!!!!!! \n");
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + 1];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip], pp[ip + 1], permxp[ip], permxp[ip + 1])
@@ -960,7 +957,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(DownFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - sy_p] - pp[ip];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip - sy_p], pp[ip],
@@ -987,7 +985,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(UpFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + sy_p];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip], pp[ip + sy_p],
@@ -1014,7 +1013,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(BackFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = -1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]); //RMM
 
                              lower_cond = pp[ip - sz_p] / sep
@@ -1047,7 +1047,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(FrontFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = 1;
 
                              /* Calculate upper face velocity.
                               * @RMM added cos to g term to test terrain-following grid
@@ -1092,6 +1093,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
 
                              /* Add the correct boundary term */
                              fp[ip] += dt * dir * u_new;
+
+                             GetBoundaryVelocities(vel_vec, vel_h, u_new, vel_dir, is, i, j, k);
                            }),
                            AfterAllCells(DoNothing)
         ); /* End DirichletBC */
@@ -2173,28 +2176,3 @@ int  NlFunctionEvalSizeOfTempData()
 {
   return 0;
 }
-
-
-//    //grab boundary velocities
-//            vtemp_sub = VectorSubvector(vel_vec[vel_dir0], is);
-//            if (fdir[vel_dir0] == -1)
-//            {
-//              vel = SubvectorElt(vtemp_sub, i, j, k);
-//            }
-//            else
-//            {
-//              vel = SubvectorElt(vtemp_sub,
-//                                  i + vel_dir[vel_dir0][0],
-//                                  j + vel_dir[vel_dir0][1],
-//                                  k + vel_dir[vel_dir0][2]);
-//            }
-//            vel[0] = u_new / vel_h[vel_dir0];
-////---------------------------------------------------
-//            vel = SubvectorElt(vtemp_sub,i,j,k+1);
-//                  vel[0] += q_overlnd / vel_h[2];
-//
-//void GetBoundaryVelocities (Vector *vel_vec, double *vel_h, double u_new, int vel_dir0, int dir, int i, int j, int k)
-//{
-//
-//
-//}

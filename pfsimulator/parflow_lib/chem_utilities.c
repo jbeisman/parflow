@@ -172,6 +172,38 @@ void SelectReactTransTimeStep(double max_velocity, double CFL,
 
 }
 
+void GetBoundaryVelocities (Vector **vel_vec, double *vel_h, double u_new, 
+  int *vel_dir, int is, int i, int j, int k)
+{
+  Subvector *vtemp_sub;
+  double *vel;
+  int vel_idx_offset[3][3] = {{1,0,0},{0,1,0},{0,0,1}};
+
+  vtemp_sub = VectorSubvector(vel_vec[vel_dir[0]], is);
+
+  if (vel_dir[1] == -1)
+  {
+    vel = SubvectorElt(vtemp_sub, i, j, k);
+    printf("minus\n");
+  }
+  else if (vel_dir[1] == 1)
+  {
+    vel = SubvectorElt(vtemp_sub,
+                      i + vel_idx_offset[vel_dir[0]][0],
+                      j + vel_idx_offset[vel_dir[0]][1],
+                      k + vel_idx_offset[vel_dir[0]][2]);
+        printf("plus\n");
+
+  }
+  else
+  {
+    //error/unititialized
+  }
+  vel[0] = u_new / vel_h[vel_dir[0]];
+  printf("inside vel BC %d %d %d \n",i,j,k);
+}
+
+
 
 #ifdef HAVE_ALQUIMIA
 void CutTimeStepandSolveSingleCell(AlquimiaInterface chem, AlquimiaState *chem_state, AlquimiaProperties *chem_properties, void *chem_engine, AlquimiaAuxiliaryData *chem_aux_data, AlquimiaEngineStatus *chem_status, double original_dt)
