@@ -184,7 +184,6 @@ void GetBoundaryVelocities (Vector **vel_vec, double *vel_h, double u_new,
   if (vel_dir[1] == -1)
   {
     vel = SubvectorElt(vtemp_sub, i, j, k);
-    printf("minus\n");
   }
   else if (vel_dir[1] == 1)
   {
@@ -192,15 +191,12 @@ void GetBoundaryVelocities (Vector **vel_vec, double *vel_h, double u_new,
                       i + vel_idx_offset[vel_dir[0]][0],
                       j + vel_idx_offset[vel_dir[0]][1],
                       k + vel_idx_offset[vel_dir[0]][2]);
-        printf("plus\n");
-
   }
   else
   {
     //error/unititialized
   }
   vel[0] = u_new / vel_h[vel_dir[0]];
-  printf("inside vel BC %d %d %d \n",i,j,k);
 }
 
 

@@ -929,7 +929,6 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(RightFace,
                            {
-                            printf("RIGHTFACE!!!!!!!!!!!!!!! \n");
                              vel_dir[0] = 0;
                              vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + 1];
@@ -1102,7 +1101,7 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
       ForPatchCellsPerFace(FluxBC,
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int dir, ip;
+                           Locals(int dir, vel_dir[2], ip;
                                   double diff, u_new, u_old;
                                   double x_dir_g, y_dir_g, z_dir_g;
                                   double sep, lower_cond, upper_cond;
@@ -1129,7 +1128,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(LeftFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - 1] - pp[ip];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip - 1], pp[ip],
@@ -1150,7 +1150,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(RightFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + 1];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip], pp[ip + 1],
@@ -1171,7 +1172,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(DownFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - sy_p] - pp[ip];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip - sy_p], pp[ip],
@@ -1192,7 +1194,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(UpFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + sy_p];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip], pp[ip + sy_p],
@@ -1213,7 +1216,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(BackFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = -1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]); //RMM
 
                              lower_cond = (pp[ip - sz_p] / sep)
@@ -1235,7 +1239,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(FrontFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = 1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]); //RMM
 
                              lower_cond = (pp[ip] / sep) - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
@@ -1262,6 +1267,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                              /* Add the correct boundary term */
                              u_new = u_new * bc_patch_values[ival];
                              fp[ip] += dt * dir * u_new;
+                             
+                             GetBoundaryVelocities(vel_vec, vel_h, u_new, vel_dir, is, i, j, k);
                            }),
                            AfterAllCells(DoNothing)
         ); /* End FluxBC */
@@ -1294,7 +1301,7 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                              }
                            }),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int ip, io, dir;
+                           Locals(int ip, io, dir, vel_dir[2];
                                   double q_overlnd, u_old, u_new, diff;
                                   double x_dir_g, y_dir_g, z_dir_g;
                                   double sep, lower_cond, upper_cond;
@@ -1324,7 +1331,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(LeftFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - 1] - pp[ip];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip - 1], pp[ip],
@@ -1345,7 +1353,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(RightFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + 1];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip], pp[ip + 1],
@@ -1366,7 +1375,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(DownFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - sy_p] - pp[ip];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip - sy_p], pp[ip],
@@ -1387,7 +1397,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(UpFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + sy_p];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip], pp[ip + sy_p],
@@ -1408,7 +1419,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(BackFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = -1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]); //RMM
                              //  sep = dz*z_mult_dat[ip];  //RMM
 
@@ -1430,7 +1442,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(FrontFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = 1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]); //RMM
 
                              lower_cond = (pp[ip] / sep) - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
@@ -1474,6 +1487,9 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                              u_new = u_new * bc_patch_values[ival];       //sk: here we go in and implement surface routing!
 
                              fp[ip] += dt * dir * u_new;
+
+                             u_new += q_overlnd/dt;
+                             GetBoundaryVelocities(vel_vec, vel_h, u_new, vel_dir, is, i, j, k);
                            }),
                            AfterAllCells(DoNothing)
         ); /* End OverlandBC case */
@@ -1481,7 +1497,7 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
       ForPatchCellsPerFace(SeepageFaceBC,
                            BeforeAllCells(DoNothing),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int dir, ip;
+                           Locals(int dir, vel_dir[2], ip;
                                   double u_new, u_old, q_overlnd;
                                   double del_x_slope, del_y_slope;),
                            CellSetup(
@@ -1497,27 +1513,33 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                              del_y_slope = 1.0;
                            }),
                            FACE(LeftFace, {
-                               dir = -1;
+                               vel_dir[0] = 0;
+                               vel_dir[1] = dir = -1;
                                u_new = z_mult_dat[ip] * ffx * del_y_slope;
                              }),
                            FACE(RightFace, {
-                               dir = 1;
+                               vel_dir[0] = 0;
+                               vel_dir[1] = dir = 1;
                                u_new = z_mult_dat[ip] * ffx * del_y_slope;
                              }),
                            FACE(DownFace, {
-                               dir = -1;
+                               vel_dir[0] = 1;
+                               vel_dir[1] = dir = -1;
                                u_new = z_mult_dat[ip] * ffy * del_x_slope;
                              }),
                            FACE(UpFace, {
-                               dir = 1;
+                               vel_dir[0] = 1;
+                               vel_dir[1] = dir = 1;
                                u_new = z_mult_dat[ip] * ffy * del_x_slope;
                              }),
                            FACE(BackFace, {
-                               dir = -1;
+                               vel_dir[0] = 2;
+                               vel_dir[1] = dir = -1;
                                u_new = ffz * del_x_slope * del_y_slope;
                              }),
                            FACE(FrontFace, {
-                               dir = 1;
+                               vel_dir[0] = 2;
+                               vel_dir[1] = dir = 1;
                                u_new = ffz * del_x_slope * del_y_slope;
 
 /* add flux loss equal to excess head that overwrites the prior overland flux */
@@ -1532,6 +1554,9 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                              // add source boundary terms
                              u_new = u_new * bc_patch_values[ival];
                              fp[ip] += dt * dir * u_new;
+
+                             u_new += q_overlnd/dt;
+                             GetBoundaryVelocities(vel_vec, vel_h, u_new, vel_dir, is, i, j, k);
                            }),
                            AfterAllCells(DoNothing)
         ); /* End SeepageFaceBC case */
@@ -1552,7 +1577,7 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                                                  qx_, qy_, CALCFCN));
                            }),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int ip, io, dir;
+                           Locals(int ip, io, dir, vel_dir[2];
                                   double q_overlnd, u_old, u_new, diff;
                                   double x_dir_g, y_dir_g, z_dir_g;
                                   double sep, lower_cond, upper_cond;
@@ -1582,7 +1607,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(LeftFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - 1] - pp[ip];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip - 1], pp[ip],
@@ -1603,7 +1629,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(RightFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + 1];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip], pp[ip + 1],
@@ -1624,7 +1651,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(DownFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - sy_p] - pp[ip];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip - sy_p], pp[ip],
@@ -1645,7 +1673,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(UpFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + sy_p];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip], pp[ip + sy_p],
@@ -1666,7 +1695,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(BackFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = -1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]); //RMM
                              //  sep = dz*z_mult_dat[ip];  //RMM
 
@@ -1688,7 +1718,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(FrontFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = 1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]); //RMM
 
                              lower_cond = (pp[ip] / sep) - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
@@ -1721,6 +1752,9 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                              u_new = u_new * bc_patch_values[ival];
 
                              fp[ip] += dt * dir * u_new;
+
+                             u_new += q_overlnd/dt;
+                             GetBoundaryVelocities(vel_vec, vel_h, u_new, vel_dir, is, i, j, k);
                            }),
                            AfterAllCells(DoNothing)
         );
@@ -1742,7 +1776,7 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                                                  qx_, qy_, CALCFCN));
                            }),
                            LoopVars(i, j, k, ival, bc_struct, ipatch, is),
-                           Locals(int ip, io, dir;
+                           Locals(int ip, io, dir, vel_dir[2];
                                   double q_overlnd, u_old, u_new, diff;
                                   double x_dir_g, y_dir_g, z_dir_g;
                                   double sep, lower_cond, upper_cond;
@@ -1772,7 +1806,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(LeftFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - 1] - pp[ip];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip - 1], pp[ip],
@@ -1793,7 +1828,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(RightFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 0;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + 1];
                              u_old = z_mult_dat[ip] * ffx * del_y_slope
                                      * PMean(pp[ip], pp[ip + 1],
@@ -1814,7 +1850,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(DownFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = -1;
                              diff = pp[ip - sy_p] - pp[ip];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip - sy_p], pp[ip],
@@ -1835,7 +1872,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(UpFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 1;
+                             vel_dir[1] = dir = 1;
                              diff = pp[ip] - pp[ip + sy_p];
                              u_old = z_mult_dat[ip] * ffy * del_x_slope
                                      * PMean(pp[ip], pp[ip + sy_p],
@@ -1856,7 +1894,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(BackFace,
                            {
-                             dir = -1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = -1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip - sz_p]); //RMM
                              //  sep = dz*z_mult_dat[ip];  //RMM
 
@@ -1878,7 +1917,8 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                            }),
                            FACE(FrontFace,
                            {
-                             dir = 1;
+                             vel_dir[0] = 2;
+                             vel_dir[1] = dir = 1;
                              sep = dz * Mean(z_mult_dat[ip], z_mult_dat[ip + sz_p]); //RMM
 
                              lower_cond = (pp[ip] / sep) - (z_mult_dat[ip] / (z_mult_dat[ip] + z_mult_dat[ip + sz_p])) * dp[ip] * gravity *
@@ -1912,6 +1952,9 @@ void NlFunctionEval(Vector *     pressure, /* Current pressure values */
                              //add source boundary terms
                              u_new = u_new * bc_patch_values[ival];       //sk: here we go in and implement surface routing!
                              fp[ip] += dt * dir * u_new;
+
+                             u_new += q_overlnd/dt;
+                             GetBoundaryVelocities(vel_vec, vel_h, u_new, vel_dir, is, i, j, k);
                            }),
                            AfterAllCells(DoNothing)
         ); /* End OverlandDiffusiveBC case */
